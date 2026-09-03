@@ -163,6 +163,145 @@
 
   footer.note{font-size:11.5px;color:var(--text-muted);text-align:center;margin-top:30px;line-height:1.7;}
   footer.note a{color:var(--text-muted);}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .tab-btn{
+    font-size:13px;font-weight:600;color:var(--text-secondary);
+    background:var(--surface-1);border:1px solid var(--border);
+    border-radius:9px;padding:9px 15px;cursor:pointer;
+    display:flex;align-items:center;gap:6px;
+  }
+  .tab-btn:hover{color:var(--text-primary);border-color:var(--axis);}
+  .tab-btn.active{color:#fff;background:var(--series-1);border-color:var(--series-1);}
+  .panel[hidden]{display:none;}
+
+  /* ---------- ticket (US play-slip style) ---------- */
+  .ticket-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+  .ticket-controls .spacer{flex:1;}
+  .ticket-jump{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);}
+  .ticket-jump input{
+    width:72px;font-size:12px;padding:5px 7px;border-radius:6px;
+    border:1px solid var(--border);background:var(--surface-1);color:var(--text-primary);
+    font-variant-numeric:tabular-nums;
+  }
+  .ticket-stage{display:flex;justify-content:center;padding:22px 6px 8px;}
+  .ticket{
+    width:100%;max-width:400px;
+    background:#f7f1de;
+    color:#232017;
+    border-radius:3px;
+    padding:22px 22px 16px;
+    font-family:"Courier New",ui-monospace,monospace;
+    box-shadow:0 14px 34px rgba(0,0,0,.28),0 3px 8px rgba(0,0,0,.18);
+    border-top:3px dashed rgba(35,32,23,.35);
+    border-bottom:3px dashed rgba(35,32,23,.35);
+    transform:rotate(-1deg);
+    transition:opacity .18s ease, transform .18s ease;
+  }
+  .ticket.flip{opacity:0;transform:rotate(-1deg) scale(.97);}
+  .ticket-head{text-align:center;margin-bottom:10px;}
+  .ticket-brand{font-size:20px;font-weight:700;letter-spacing:2px;}
+  .ticket-sub{font-size:10px;letter-spacing:3px;color:#6b6350;margin-top:2px;}
+  .ticket-meta{
+    display:flex;justify-content:space-between;font-size:12px;font-weight:700;
+    border-top:1px solid rgba(35,32,23,.25);border-bottom:1px solid rgba(35,32,23,.25);
+    padding:6px 2px;margin-bottom:14px;
+  }
+  .board-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .board-row-label{width:42px;flex:none;font-size:10.5px;font-weight:700;text-align:right;}
+  .board-row-nums{display:flex;flex-wrap:wrap;gap:4px;}
+  .bubble{
+    width:23px;height:23px;border-radius:50%;flex:none;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:700;color:#6b6350;
+    border:1.5px solid rgba(35,32,23,.4);
+    font-variant-numeric:tabular-nums;
+  }
+  .bubble.hit{background:var(--fill);border-color:var(--fill);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+  .bubble.bonus{outline:2px dashed #232017;outline-offset:2px;}
+  .ticket-barcode{
+    height:24px;margin:12px 0 6px;
+    background:repeating-linear-gradient(90deg,#232017 0 2px, transparent 2px 5px, #232017 5px 6px, transparent 6px 10px);
+  }
+  .ticket-serial{font-size:10px;letter-spacing:1px;color:#6b6350;text-align:center;}
+
+  /* ---------- 3D skyline ---------- */
+  .skyline-scene{
+    position:relative;height:280px;border-radius:12px;overflow:hidden;
+    background:linear-gradient(var(--sky-top),var(--sky-bottom) 75%);
+  }
+  .viz-root{--sky-top:#cfe7fb;--sky-bottom:var(--surface-1);}
+  @media (prefers-color-scheme: dark){
+    :root:where(:not([data-theme="light"])) .viz-root{--sky-top:#0c1730;--sky-bottom:var(--surface-1);}
+  }
+  :root[data-theme="dark"] .viz-root{--sky-top:#0c1730;--sky-bottom:var(--surface-1);}
+  .skyline-ground{
+    position:absolute;left:0;right:0;bottom:0;height:240px;
+    display:flex;align-items:flex-end;gap:3px;padding:0 12px 26px;
+    perspective:900px;
+  }
+  .skyline-ground .row3d{display:flex;align-items:flex-end;gap:3px;width:100%;transform:rotateX(7deg);transform-origin:bottom;}
+  .building{position:relative;width:15px;flex:none;}
+  .building .front{position:relative;width:100%;border-radius:1px 1px 0 0;}
+  .building .top{position:absolute;left:0;right:0;height:6px;top:-6px;transform-origin:bottom left;transform:skewX(-42deg);}
+  .building .side{position:absolute;top:0;left:100%;width:6px;height:100%;transform-origin:top left;transform:skewY(-42deg);}
+  .building .spire{position:absolute;left:50%;bottom:100%;width:2px;height:16px;background:var(--text-muted);transform:translateX(-50%);}
+  .building .beacon{
+    position:absolute;left:50%;bottom:calc(100% + 14px);width:5px;height:5px;border-radius:50%;
+    background:#ff453a;transform:translateX(-50%);box-shadow:0 0 6px #ff453a;
+    animation:beacon-blink 1.6s infinite;
+  }
+  .building .flag{
+    position:absolute;left:50%;bottom:calc(100% + 18px);transform:translateX(-50%);
+    font-size:9px;font-weight:700;color:var(--text-primary);background:var(--surface-1);
+    border:1px solid var(--border);border-radius:4px;padding:1px 4px;white-space:nowrap;
+  }
+  @keyframes beacon-blink{0%,100%{opacity:1;}50%{opacity:.15;}}
+
+  /* ---------- roulette ---------- */
+  .roulette-wrap{display:flex;gap:36px;align-items:center;justify-content:center;flex-wrap:wrap;padding:6px 0 4px;}
+  .wheel-box{position:relative;width:250px;height:250px;flex:none;}
+  .wheel-pointer{
+    position:absolute;top:-4px;left:50%;transform:translateX(-50%);z-index:5;
+    width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;
+    border-top:15px solid var(--text-primary);
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));
+  }
+  .wheel{
+    width:100%;height:100%;border-radius:50%;position:relative;
+    box-shadow:0 10px 26px rgba(0,0,0,.3), inset 0 0 0 5px var(--surface-1), inset 0 0 0 7px var(--axis);
+    will-change:transform;
+  }
+  .wheel-hub{
+    position:absolute;top:50%;left:50%;width:60px;height:60px;border-radius:50%;
+    background:var(--surface-1);transform:translate(-50%,-50%);
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    font-weight:700;font-size:10.5px;color:var(--text-secondary);letter-spacing:1px;
+    box-shadow:0 2px 8px rgba(0,0,0,.2), inset 0 0 0 2px var(--border);
+  }
+  .wheel-tick{
+    position:absolute;top:6px;left:50%;font-size:10px;font-weight:700;color:#fff;
+    transform-origin:50% 119px;text-shadow:0 1px 2px rgba(0,0,0,.35);
+  }
+  .roulette-result{display:flex;flex-direction:column;align-items:center;gap:14px;}
+  .picked-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;}
+  .pick-slot{
+    width:32px;height:32px;border-radius:50%;flex:none;
+    border:2px dashed var(--axis);display:flex;align-items:center;justify-content:center;
+    font-size:12px;color:var(--text-muted);font-weight:700;font-variant-numeric:tabular-nums;
+    transition:transform .2s ease;
+  }
+  .pick-slot.filled{border-style:solid;color:#fff;transform:scale(1.06);}
+  .pick-slot.bonus-slot{border-color:var(--series-4);}
+  .pick-plus{color:var(--text-muted);font-size:14px;font-weight:700;}
+  .spin-btn{
+    background:var(--series-1);color:#fff;border:none;padding:11px 20px;border-radius:9px;
+    font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(42,120,214,.35);
+  }
+  .spin-btn:hover{filter:brightness(1.06);}
+  .spin-btn:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}
+  .roulette-note{font-size:11.5px;color:var(--text-muted);text-align:center;max-width:420px;}
 </style>
 </head>
 <body>
@@ -178,6 +317,14 @@
 
     <div class="tiles" id="tiles"></div>
 
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" data-panel="panel-stats">📊 통계</button>
+      <button class="tab-btn" data-panel="panel-ticket">🎟️ 당첨 용지</button>
+      <button class="tab-btn" data-panel="panel-skyline">🏙️ 3D 스카이라인</button>
+      <button class="tab-btn" data-panel="panel-roulette">🎡 추천 룰렛</button>
+    </div>
+
+    <div class="panel" id="panel-stats">
     <div class="card">
       <h2>번호별 출현 빈도 (1~45)</h2>
       <p class="desc">각 번호가 6개 당첨번호에 포함된 횟수입니다. 막대 색은 번호 구간을 나타내며(실제 로또 공 색상 기준), 가장 많이/적게 나온 번호에는 직접 라벨을 표시했습니다.</p>
@@ -205,6 +352,62 @@
       <h2>최근 당첨번호</h2>
       <p class="desc">가장 최근 10회차의 당첨번호와 보너스 번호(테두리 표시)입니다.</p>
       <div id="recentList"></div>
+    </div>
+    </div><!-- /panel-stats -->
+
+    <div class="panel" id="panel-ticket" hidden>
+      <div class="card">
+        <h2>당첨 용지</h2>
+        <p class="desc">미국 복권 플레이슬립처럼 번호를 마킹한 용지로 각 회차를 확인해보세요. 채워진 동그라미가 당첨번호, 점선 테두리가 보너스 번호입니다.</p>
+        <div class="ticket-controls">
+          <button class="toggle-btn" id="ticketPrev">◀ 이전 회차</button>
+          <div class="ticket-jump">
+            <input id="ticketInput" type="number" min="1" step="1">
+            <span>회</span>
+            <button class="toggle-btn" id="ticketGo">이동</button>
+          </div>
+          <button class="toggle-btn" id="ticketRandom">🎲 랜덤 회차</button>
+          <span class="spacer"></span>
+          <button class="toggle-btn" id="ticketNext">다음 회차 ▶</button>
+        </div>
+        <div class="ticket-stage">
+          <div class="ticket" id="ticket"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-skyline" hidden>
+      <div class="card">
+        <h2>번호별 출현 3D 스카이라인</h2>
+        <p class="desc">번호가 많이 나올수록 건물이 더 높고 화려해집니다. 붉은 조명이 깜빡이는 첨탑 건물이 가장 인기 있는 번호(들)입니다. 막대에 마우스를 올리면 정확한 출현 횟수를 볼 수 있어요.</p>
+        <div class="toggle-row" style="justify-content:flex-start;">
+          <button class="toggle-btn" id="skylineSortNum">번호순</button>
+          <button class="toggle-btn" id="skylineSortFreq">스카이라인순(빈도)</button>
+        </div>
+        <div class="skyline-scene">
+          <div class="skyline-ground" id="skyline"><div class="row3d" id="skylineRow"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-roulette" hidden>
+      <div class="card">
+        <h2>번호 추천 룰렛</h2>
+        <p class="desc">룰렛을 돌려 6개 번호와 보너스 번호를 무작위로 추천받아보세요. 통계적 예측이 아닌 재미 목적의 완전 무작위 추첨입니다.</p>
+        <div class="roulette-wrap">
+          <div class="wheel-box">
+            <div class="wheel-pointer"></div>
+            <div class="wheel" id="wheel">
+              <div class="wheel-hub">LOTTO<br>6/45</div>
+            </div>
+          </div>
+          <div class="roulette-result">
+            <div class="picked-row" id="pickedBalls"></div>
+            <button class="spin-btn" id="spinBtn">🎰 룰렛 돌려서 번호 추천받기</button>
+            <p class="roulette-note">결과는 서버가 아닌 브라우저에서 즉석으로 생성되는 완전 무작위 값이며, 실제 당첨 확률과는 무관합니다.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <footer class="note">
@@ -509,6 +712,238 @@ document.querySelectorAll('[data-toggle]').forEach(btn=>{
     btn.textContent = willShow ? '표 닫기' : '표로 보기';
   });
 });
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p=>p.hidden = true);
+    document.getElementById(btn.dataset.panel).hidden = false;
+  });
+});
+
+// ==================== 당첨 용지 (US play-slip style ticket) ====================
+(function(){
+  const ticketEl = document.getElementById('ticket');
+  const input = document.getElementById('ticketInput');
+  input.max = total;
+  let current = total;
+
+  function render(drawNo, animate){
+    const row = DATA[drawNo-1];
+    const drawN = row[0], date = row[1];
+    const nums = row.slice(2,8);
+    const bonus = row[8];
+
+    const draw = ()=>{
+      let html = `
+        <div class="ticket-head">
+          <div class="ticket-brand">LOTTO&nbsp;6/45</div>
+          <div class="ticket-sub">OFFICIAL&nbsp;DRAW&nbsp;SLIP</div>
+        </div>
+        <div class="ticket-meta"><span>DRAW #${drawN}</span><span>${date}</span></div>`;
+      RANGE_LABELS.forEach((label, ri)=>{
+        const start = ri*10+1, end = Math.min(45, start+9);
+        html += `<div class="board-row"><div class="board-row-label" style="color:${RANGE_COLORS[ri]}">${label}</div><div class="board-row-nums">`;
+        for (let num=start; num<=end; num++){
+          const hit = nums.includes(num);
+          const isBonus = num === bonus;
+          html += `<span class="bubble${hit?' hit':''}${isBonus?' bonus':''}"${hit?` style="--fill:${RANGE_COLORS[ri]}"`:''}>${num}</span>`;
+        }
+        html += `</div></div>`;
+      });
+      html += `
+        <div class="ticket-barcode"></div>
+        <div class="ticket-serial">QP · A · ${String(drawN).padStart(6,'0')}-${date.replace(/-/g,'')}</div>`;
+      ticketEl.innerHTML = html;
+      input.value = drawN;
+    };
+
+    if (!animate){ draw(); return; }
+    ticketEl.classList.add('flip');
+    setTimeout(()=>{ draw(); ticketEl.classList.remove('flip'); }, 160);
+  }
+
+  function goTo(n, animate){
+    current = Math.max(1, Math.min(total, n));
+    render(current, animate);
+  }
+
+  document.getElementById('ticketPrev').addEventListener('click', ()=> goTo(current-1, true));
+  document.getElementById('ticketNext').addEventListener('click', ()=> goTo(current+1, true));
+  document.getElementById('ticketGo').addEventListener('click', ()=> goTo(parseInt(input.value,10)||current, true));
+  document.getElementById('ticketRandom').addEventListener('click', ()=> goTo(1+Math.floor(Math.random()*total), true));
+  input.addEventListener('keydown', (e)=>{ if (e.key==='Enter') goTo(parseInt(input.value,10)||current, true); });
+
+  render(current, false);
+})();
+
+// ==================== 3D 스카이라인 ====================
+(function(){
+  const SEQ_BLUE = ['#cde2fb','#b7d3f6','#9ec5f4','#86b6ef','#6da7ec','#5598e7','#3987e5','#2a78d6','#256abf','#1c5cab','#184f95','#104281','#0d366b'];
+  function hexToRgb(hex){ hex=hex.replace('#',''); return [parseInt(hex.slice(0,2),16),parseInt(hex.slice(2,4),16),parseInt(hex.slice(4,6),16)]; }
+  function mixHex(hex, target, amt){
+    const [r,g,b]=hexToRgb(hex), [tr,tg,tb]=hexToRgb(target);
+    const m=(a,ta)=>Math.round(a+(ta-a)*amt);
+    return `rgb(${m(r,tr)},${m(g,tg)},${m(b,tb)})`;
+  }
+  function seqColor(t){ return SEQ_BLUE[Math.round(t*(SEQ_BLUE.length-1))]; }
+
+  const rowEl = document.getElementById('skylineRow');
+  const numbers = []; for (let n=1;n<=45;n++) numbers.push(n);
+  const minF = minFreq, maxF = maxFreq;
+
+  function mountainOrder(sortedDesc){
+    const n = sortedDesc.length;
+    const res = new Array(n);
+    let left = Math.floor((n-1)/2), right = left+1, sideLeft = true;
+    for (const it of sortedDesc){
+      if (sideLeft){ res[left--] = it; } else { res[right++] = it; }
+      sideLeft = !sideLeft;
+    }
+    return res;
+  }
+
+  function draw(order){
+    rowEl.innerHTML = '';
+    order.forEach(num=>{
+      const v = freq[num];
+      const t = maxF===minF ? 0.5 : (v-minF)/(maxF-minF);
+      const hex = seqColor(t);
+      const h = Math.round(28 + t*196);
+      const tier = t > 0.8 ? 2 : (t > 0.4 ? 1 : 0);
+
+      const b = document.createElement('div');
+      b.className = 'building';
+      b.style.height = h+'px';
+
+      const front = document.createElement('div');
+      front.className = 'front';
+      front.style.height = '100%';
+      front.style.background = tier>=1
+        ? `linear-gradient(${mixHex(hex,'#ffffff',.15)}, ${hex})`
+        : hex;
+      if (tier>=1){
+        front.style.backgroundImage += `, repeating-linear-gradient(to bottom, rgba(255,255,255,.35) 0 2px, transparent 2px 8px), repeating-linear-gradient(to right, rgba(255,255,255,.2) 0 1px, transparent 1px 5px)`;
+      }
+      b.appendChild(front);
+
+      const top = document.createElement('div');
+      top.className = 'top';
+      top.style.background = mixHex(hex,'#ffffff',.35);
+      b.appendChild(top);
+
+      const side = document.createElement('div');
+      side.className = 'side';
+      side.style.background = mixHex(hex,'#000000',.35);
+      b.appendChild(side);
+
+      if (tier===2){
+        const spire = document.createElement('div'); spire.className='spire'; b.appendChild(spire);
+        const beacon = document.createElement('div'); beacon.className='beacon'; b.appendChild(beacon);
+        const flag = document.createElement('div'); flag.className='flag'; flag.textContent=num; b.appendChild(flag);
+      }
+
+      b.addEventListener('mouseenter', (e)=> showTip(e, `<b>${num}번</b> · ${v}회 출현 (${(v/total*100).toFixed(1)}%)`));
+      b.addEventListener('mousemove', moveTip);
+      b.addEventListener('mouseleave', hideTip);
+
+      rowEl.appendChild(b);
+    });
+  }
+
+  const byNum = numbers.slice();
+  const byFreqDesc = numbers.slice().sort((a,b)=> freq[b]-freq[a]);
+  const mountain = mountainOrder(byFreqDesc);
+
+  draw(byNum);
+  document.getElementById('skylineSortNum').addEventListener('click', ()=> draw(byNum));
+  document.getElementById('skylineSortFreq').addEventListener('click', ()=> draw(mountain));
+})();
+
+// ==================== 번호 추천 룰렛 ====================
+(function(){
+  const SLICE = 360/45;
+  const wheelEl = document.getElementById('wheel');
+  const spinBtn = document.getElementById('spinBtn');
+  const slotsEl = document.getElementById('pickedBalls');
+
+  let stops = [];
+  for (let i=1;i<=45;i++){
+    stops.push(`${ballColor(i)} ${(i-1)*SLICE}deg ${i*SLICE}deg`);
+  }
+  wheelEl.style.background = `conic-gradient(from 0deg, ${stops.join(',')})`;
+  [1,11,21,31,41].forEach(n=>{
+    const tick = document.createElement('div');
+    tick.className = 'wheel-tick';
+    tick.textContent = n;
+    tick.style.transform = `rotate(${(n-1)*SLICE + SLICE/2}deg)`;
+    wheelEl.appendChild(tick);
+  });
+
+  slotsEl.innerHTML = '';
+  for (let i=0;i<6;i++){
+    const s = document.createElement('div'); s.className='pick-slot'; s.dataset.i=i;
+    slotsEl.appendChild(s);
+  }
+  const plus = document.createElement('div'); plus.className='pick-plus'; plus.textContent='+';
+  slotsEl.appendChild(plus);
+  const bonusSlot = document.createElement('div'); bonusSlot.className='pick-slot bonus-slot'; bonusSlot.dataset.i='bonus'; bonusSlot.textContent='B';
+  slotsEl.appendChild(bonusSlot);
+
+  let rotation = 0;
+  function spinToNumber(num){
+    return new Promise(resolve=>{
+      const idx = num-1;
+      const center = idx*SLICE + SLICE/2;
+      const desiredMod = ((-center)%360+360)%360;
+      const currentMod = ((rotation%360)+360)%360;
+      let delta = desiredMod - currentMod; if (delta<=0) delta += 360;
+      const fullSpins = 4 + Math.floor(Math.random()*2);
+      rotation += delta + fullSpins*360;
+      wheelEl.style.transition = 'transform 2.1s cubic-bezier(.13,.7,.16,1)';
+      wheelEl.style.transform = `rotate(${rotation}deg)`;
+      const onEnd = ()=>{ wheelEl.removeEventListener('transitionend', onEnd); resolve(); };
+      wheelEl.addEventListener('transitionend', onEnd);
+    });
+  }
+
+  function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+  async function runSpin(){
+    spinBtn.disabled = true;
+    spinBtn.textContent = '🎡 돌아가는 중...';
+    document.querySelectorAll('.pick-slot').forEach(s=>{
+      s.classList.remove('filled');
+      s.style.background = '';
+      s.textContent = s.dataset.i==='bonus' ? 'B' : '';
+    });
+
+    const picked = [];
+    for (let i=0;i<6;i++){
+      let n; do { n = 1+Math.floor(Math.random()*45); } while (picked.includes(n));
+      picked.push(n);
+      await spinToNumber(n);
+      const slot = document.querySelector(`.pick-slot[data-i="${i}"]`);
+      slot.classList.add('filled');
+      slot.style.background = ballColor(n);
+      slot.textContent = n;
+      await wait(220);
+    }
+    let bonus; do { bonus = 1+Math.floor(Math.random()*45); } while (picked.includes(bonus));
+    await spinToNumber(bonus);
+    const bslot = document.querySelector('.pick-slot[data-i="bonus"]');
+    bslot.classList.add('filled');
+    bslot.style.background = ballColor(bonus);
+    bslot.textContent = bonus;
+
+    spinBtn.disabled = false;
+    spinBtn.textContent = '🎰 다시 돌리기';
+  }
+
+  spinBtn.addEventListener('click', runSpin);
+})();
 </script>
 
 </body>
