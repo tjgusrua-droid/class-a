@@ -1,0 +1,5 @@
+cache/
+daily.csv
+report.html
+node_modules/
+*.png
