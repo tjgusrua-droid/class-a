@@ -85,6 +85,43 @@ def parse_date(note):
     return ""
 
 
+def apply_corrections(tbl, ev, errors):
+    """data/manual/corrections.csv 의 확인된 사실로 상태표·이벤트·오류 목록을 고친다.
+
+    rename : old 가 year 부터 new 로 바뀜 → old 의 폐관 이벤트를 전환으로, year 이후 old 의 휴관 행 삭제
+    close  : old 의 폐관 날짜 확정
+    address: old 의 year 이후 주소 교체
+    """
+    path = ROOT / "data" / "manual" / "corrections.csv"
+    if not path.exists():
+        return tbl, ev, errors, []
+    resolved = []
+
+    def settle(year, *names):
+        nonlocal errors
+        hit = [e for e in errors if int(e[:4]) >= year and any(n in e for n in names)]
+        errors = [e for e in errors if e not in hit]
+        resolved.extend(hit)
+
+    for _, c in pd.read_csv(path, dtype=str).fillna("").iterrows():
+        y, ok = int(c.year), key(c.old)
+        if c.type == "rename":
+            nk = key(c.new)
+            m = (ev.key == ok) & (ev.year >= y) & ev.event.str.startswith("폐관")
+            ev.loc[m, ["year", "event", "note"]] = [y, "전환", f"→ {c.new} ({c.source})"]
+            m = (ev.key == nk) & (ev.year == y) & ev.event.str.contains("목록비교")
+            ev.loc[m, ["event", "note"]] = ["전환", f"(구){c.old} ({c.source})"]
+            tbl = tbl[~((tbl.key == ok) & (tbl.year >= y) & (tbl.status == "휴관"))]
+            settle(y, c.old.strip(), c.new.strip())
+        elif c.type == "close":
+            m = (ev.key == ok) & (ev.year == y) & ev.event.str.startswith("폐관")
+            ev.loc[m, ["event", "date", "note"]] = ["폐관", c.date, c.source]
+            settle(y, c.old.strip())
+        elif c.type == "address":
+            tbl.loc[(tbl.key == ok) & (tbl.year >= y), "address"] = c.address
+    return tbl, ev, errors, resolved
+
+
 def year_frames(y):
     secs = load_old(y) if y <= 2018 else load_new(y)
     main = secs["main"]
@@ -194,10 +231,9 @@ def main():
         prev_keys, prev_hyu = set(mkeys), hyu
         prev_addr = {k: v for k, v in addr_now.items()}
 
+    tbl, ev, errors, resolved = apply_corrections(pd.DataFrame(rows), pd.DataFrame(events), errors)
     CLEAN.mkdir(parents=True, exist_ok=True)
-    tbl = pd.DataFrame(rows)
     tbl.to_csv(CLEAN / "seoul_theater_year.csv", index=False, encoding="utf-8-sig")
-    ev = pd.DataFrame(events)
     ev.to_csv(CLEAN / "seoul_events.csv", index=False, encoding="utf-8-sig")
 
     h = tbl[tbl.status == "휴관"]
@@ -217,7 +253,9 @@ def main():
         yrs = sorted(g.year)
         after = tbl[(tbl.key == k) & (tbl.year > yrs[-1]) & (tbl.status == "영업")]
         closed = ev[(ev.key == k) & (ev.year > yrs[-1]) & ev.event.str.startswith("폐관")]
+        moved = ev[(ev.key == k) & (ev.year > yrs[-1]) & (ev.event == "전환")]
         end = (f"{after.year.min()} 재개관" if len(after) else
+               f"{moved.year.min()} 전환 {moved.note.iloc[0].split(' (')[0]}" if len(moved) else
                f"{closed.year.min()} 폐관" if len(closed) else
                "2025 현재 휴관" if yrs[-1] == 2025 else "기록 끊김")
         tl.append(dict(name=g.name.iloc[-1], 휴관연도=",".join(map(str, yrs)), 휴관연수=len(yrs),
@@ -229,7 +267,8 @@ def main():
     VERIFY.mkdir(parents=True, exist_ok=True)
     out = ["# 서울 극장 파일 오류·확인 필요 항목", "", "## 연도별 집계 (폐관 제외)", "",
            cnt.to_markdown(), "", "## 휴관 진행", "", pd.DataFrame(tl).to_markdown(index=False), "",
-           "## 오류·확인 필요", ""] + [f"- {e}" for e in errors]
+           "## 오류·확인 필요 (미해결)", ""] + [f"- {e}" for e in errors] + ["",
+           "## 수동 보정으로 해결됨 (data/manual/corrections.csv)", ""] + [f"- {e}" for e in resolved]
     (VERIFY / "file_errors.md").write_text("\n".join(out) + "\n", encoding="utf-8")
     print("\n".join(out))
 
