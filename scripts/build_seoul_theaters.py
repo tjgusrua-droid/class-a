@@ -85,11 +85,19 @@ def parse_date(note):
     return ""
 
 
+def add(df, **row):
+    return pd.concat([df, pd.DataFrame([row])], ignore_index=True)
+
+
 def apply_corrections(tbl, ev, errors):
     """data/manual/corrections.csv 의 확인된 사실로 상태표·이벤트·오류 목록을 고친다.
 
-    rename : old 가 year 부터 new 로 바뀜 → old 의 폐관 이벤트를 전환으로, year 이후 old 의 휴관 행 삭제
-    close  : old 의 폐관 날짜 확정
+    rename : old 가 year 부터 new 로 바뀜 → old 의 폐관 이벤트를 전환으로, year 이후 old 의 행 삭제
+             (같은 해 본 목록에 두 이름이 다 있으면 하나로 합쳐진다)
+    close  : old 의 폐관을 year(date) 로 확정. 기존 폐관 추정 이벤트는 지운다.
+    fill   : 목록에서 빠진 year~until 연도를 직전 기록을 복사해 status 로 채운다.
+    drop   : year~until 연도의 old 행을 지운다(이미 폐관한 극장이 목록에 남은 경우).
+    confirm: 현재 처리가 맞다는 확인. 이벤트 비고에만 남긴다.
     address: old 의 year 이후 주소 교체
     """
     path = ROOT / "data" / "manual" / "corrections.csv"
@@ -105,21 +113,69 @@ def apply_corrections(tbl, ev, errors):
 
     for _, c in pd.read_csv(path, dtype=str).fillna("").iterrows():
         y, ok = int(c.year), key(c.old)
+        until = int(c.until) if c.until else y
+        src = c.source + (f" — {c.note}" if c.note else "")
         if c.type == "rename":
             nk = key(c.new)
             m = (ev.key == ok) & (ev.year >= y) & ev.event.str.startswith("폐관")
-            ev.loc[m, ["year", "event", "note"]] = [y, "전환", f"→ {c.new} ({c.source})"]
+            ev.loc[m, ["year", "event", "note"]] = [y, "전환", f"→ {c.new} ({src})"]
+            if not m.any():
+                ev = add(ev, year=y, key=ok, name=c.old, event="전환", date=c.date, note=f"→ {c.new} ({src})")
             m = (ev.key == nk) & (ev.year == y) & ev.event.str.contains("목록비교")
-            ev.loc[m, ["event", "note"]] = ["전환", f"(구){c.old} ({c.source})"]
-            tbl = tbl[~((tbl.key == ok) & (tbl.year >= y) & (tbl.status == "휴관"))]
+            ev.loc[m, ["event", "note"]] = ["전환", f"(구){c.old} ({src})"]
+            tbl = tbl[~((tbl.key == ok) & (tbl.year >= y))]
             settle(y, c.old.strip(), c.new.strip())
         elif c.type == "close":
-            m = (ev.key == ok) & (ev.year == y) & ev.event.str.startswith("폐관")
-            ev.loc[m, ["event", "date", "note"]] = ["폐관", c.date, c.source]
+            ev = ev[~((ev.key == ok) & ev.event.str.startswith("폐관"))]
+            ev = add(ev, year=y, key=ok, name=c.old, event="폐관", date=c.date, note=src)
+            tbl = tbl[~((tbl.key == ok) & (tbl.year >= y))]
+            settle(0, c.old.strip())
+        elif c.type == "fill":
+            last = tbl[(tbl.key == ok) & (tbl.year < y)].sort_values("year").iloc[-1]
+            for yy in range(y, until + 1):
+                tbl = tbl[~((tbl.key == ok) & (tbl.year == yy))]
+                tbl = add(tbl, **{**last.to_dict(), "year": yy, "status": c.status or "영업",
+                                  "note": f"영진위 목록 누락 보정 ({src})"})
             settle(y, c.old.strip())
+        elif c.type == "drop":
+            tbl = tbl[~((tbl.key == ok) & tbl.year.between(y, until))]
+        elif c.type == "confirm":
+            m = (ev.key == ok) & ev.event.str.startswith("폐관")
+            ev.loc[m, "note"] = ev.loc[m, "note"].astype(str) + f" / 확인: {src}"
+            settle(0, c.old.strip())
         elif c.type == "address":
             tbl.loc[(tbl.key == ok) & (tbl.year >= y), "address"] = c.address
+    tbl = tbl.sort_values(["year", "gu", "name"]).reset_index(drop=True)
+    ev = ev.sort_values(["year", "name"]).reset_index(drop=True)
     return tbl, ev, errors, resolved
+
+
+def opt(r, *keys):
+    """여러 표기 중 처음 맞는 컬럼 값. 없으면 빈 문자열."""
+    for k in keys:
+        k = k.replace(" ", "")
+        for c in r.index:
+            if k in str(c).replace(" ", "").replace("\n", ""):
+                v = r[c]
+                return "" if pd.isna(v) else (v.strip() if isinstance(v, str) else v)
+    return ""
+
+
+def theater_row(r, y, status, note=None):
+    """극장 한 행 → 속성 dict (스크린·좌석·특별관 포함)."""
+    opened = opt(r, "개관일")
+    return dict(
+        year=y, key=key(re.sub(r"\s*\d+관$", "", str(opt(r, "영화관명")))), name=str(opt(r, "영화관명")).strip(),
+        gu=opt(r, "기초단체"), address=str(opt(r, "소재지")), status=status,
+        operator=str(opt(r, "대기업")), screens=opt(r, "총스크린"), seats=opt(r, "총좌석"),
+        special_screens=opt(r, "특수상영관수", "특별관스크린수"),
+        special_desc=opt(r, "특수상영관명", "특별관명", "특별관운영여부"),
+        screens_3d=opt(r, "3D가능관수"), screens_4d=opt(r, "4D상영관수"), screens_imax=opt(r, "IMAX상영관수"),
+        screens_film=opt(r, "필름"), art_screens=opt(r, "독립예술영화전용관수"),
+        art_desc=opt(r, "독립예술영화전용관명"), small_cinema=opt(r, "작은영화관여부"),
+        opened=str(opened)[:10] if opened != "" else "", phone=opt(r, "전화번호"),
+        note=str(opt(r, "비고")) if note is None else note,
+    )
 
 
 def year_frames(y):
@@ -141,17 +197,12 @@ def main():
 
     for y in YEARS:
         main_df, extra, news = year_frames(y)
-        nc, ac = col(main_df, "영화관명"), col(main_df, "소재지")
-        sc, cc = col(main_df, "총스크린"), col(main_df, "대기업")
-        seat = col(main_df, "총좌석")
-        gu = col(main_df, "기초단체")
+        nc = col(main_df, "영화관명")
         mkeys = {}
         for _, r in main_df.iterrows():
-            k = key(r[nc])
-            mkeys[k] = r[nc]
-            rows.append(dict(year=y, key=k, name=str(r[nc]).strip(), gu=r[gu], address=str(r[ac]).strip(),
-                             screens=r[sc], seats=r[seat], operator=str(r[cc]).strip(),
-                             status="영업", note="" if pd.isna(r[col(main_df, "비고")]) else str(r[col(main_df, "비고")]).strip()))
+            row = theater_row(r, y, "영업")
+            mkeys[row["key"]] = r[nc]
+            rows.append(row)
         hyu = {}
         listed = set()
         for label, df in extra:
@@ -175,12 +226,7 @@ def main():
                 if kind == "폐관(비고없음)":
                     errors.append(f"{y}: 휴폐관 목록의 {r[n_c]} 비고가 비어 있음 → 폐관으로 간주, 확인 필요")
         for k, r in hyu.items():
-            g = col(r.to_frame().T, "기초단체") if any("기초" in str(c) for c in r.index) else None
-            rows.append(dict(year=y, key=k, name=str(r[col(r.to_frame().T, '영화관명')]).strip(),
-                             gu=r[g] if g else "", address=str(r.get(col(r.to_frame().T, "소재지"), "")).strip(),
-                             screens=r.get(col(r.to_frame().T, "총스크린"), ""), seats="",
-                             operator=str(r.get(col(r.to_frame().T, "대기업"), "")).strip(),
-                             status="휴관", note=str(r[col(r.to_frame().T, '비고')]).strip()))
+            rows.append(theater_row(r, y, "휴관"))
 
         # 전년도 휴관 극장이 올해 아무 데도 없는 경우: 휴관 2년 미만이면 지속, 이상이면 실질 폐관
         for k, r in prev_hyu.items():

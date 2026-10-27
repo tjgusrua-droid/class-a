@@ -41,3 +41,8 @@
 - `close`: 폐관 날짜 확정(행안부 폐업일자 등)
 - `address`: 주소 교체
 해결된 오류는 `file_errors.md` 맨 아래 "수동 보정으로 해결됨"으로 옮겨진다.
+
+## 최종 파일
+
+`data/seoul_cinema_master.xlsx` 하나에 모두 묶었다(안내·연도별집계·극장연도·극장목록·이벤트·계보·휴관진행·스크린상세·보정내역·미해결).
+다시 만들 때: `cd scripts && python3 build_seoul_theaters.py && python3 export_master.py`
