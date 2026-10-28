@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { CONFIG, TYPES, TYPE_STYLE, type TheaterType } from '../config'
+import { forwardRef, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { CONFIG, CULTURE_CATS, TYPES, TYPE_STYLE, type TheaterType } from '../config'
 import { building, centers, cultureCounts, subway, type Categorizer } from '../analysis'
 import { located, mean, median, nearest, pct, type DataSet, type Theater } from '../data'
 import { DataTable, DotPlot } from './charts'
@@ -32,6 +32,8 @@ export default function LocationTabs({ data, snap, sel, setSel }: { data: DataSe
   const [step, setStep] = useState(0)
   const [pick, setPick] = useState<string | null>(null)
   const [sameType, setSameType] = useState(false)
+  const [cultOn, setCultOn] = useState<string[]>(CULTURE_CATS)
+  const cultSvg = useRef<SVGSVGElement>(null)
   const refs = useRef<(HTMLDivElement | null)[]>([])
   const svg = useRef<SVGSVGElement>(null)
   const pts = snap.filter(located)
@@ -62,7 +64,9 @@ export default function LocationTabs({ data, snap, sel, setSel }: { data: DataSe
       'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 0, CONFIG.stationRadiusM / 62047, 22, (CONFIG.stationRadiusM / 62047) * 2 ** 22] } },
     { type: 'circle', paint: { 'circle-radius': ['case', ['to-boolean', ['get', 'transfer']], 4, 2.5], 'circle-color': '#fff', 'circle-stroke-color': '#111', 'circle-stroke-width': ['case', ['to-boolean', ['get', 'transfer']], 2.5, 1] } }] })
   if (step === 1 && ok(['centers'])) extras.push({ id: 'centers', data: data.centers.data, layers: [{ type: 'fill', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#000', 'fill-opacity': 0.08, 'fill-outline-color': '#333' } }] })
-  if (step === 4 && ok(['culture'])) extras.push({ id: 'culture', data: data.culture.data, layers: [{ type: 'circle', paint: { 'circle-radius': 2.5, 'circle-color': '#fff', 'circle-stroke-color': '#555', 'circle-stroke-width': 1 } }] })
+  if (step === 4 && ok(['culture'])) extras.push({ id: 'culture',
+    data: { ...data.culture.data, features: data.culture.data.features.filter((f: any) => cultOn.includes(f.properties.category)) },
+    layers: [{ type: 'circle', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 1.8, 14, 4], 'circle-color': '#fff', 'circle-stroke-color': '#444', 'circle-stroke-width': 1 } }] })
 
   const panel = (i: number): ReactNode => {
     if (i === 0) return cats[0] ? <CategoryBars ts={pts} cat={cats[0]} /> :
@@ -74,7 +78,15 @@ export default function LocationTabs({ data, snap, sel, setSel }: { data: DataSe
       <p className="note">‘영화관 중심의 독립 건물’은 건물 형태를 뜻하며, 운영 유형인 ‘독립극장’과 다른 개념입니다. 복합용도 건물은 판매·문화공공·업무주거 등·복수 용도로 다시 나눕니다.</p>
       {cats[3] ? <CategoryBars ts={pts} cat={cats[3]} /> : <DataStatus data={data} need={['building']} />}
     </>
-    if (i === 4) return ok(['culture']) ? <CultureTable ts={pts} fc={data.culture.data} /> :
+    if (i === 4) return ok(['culture']) ? <>
+      <div className="chips ui" role="group" aria-label="문화시설 분류">
+        {CULTURE_CATS.map((c) => <label key={c}><input type="checkbox" checked={cultOn.includes(c)}
+          onChange={() => setCultOn(cultOn.includes(c) ? cultOn.filter((x) => x !== c) : CULTURE_CATS.filter((x) => x === c || cultOn.includes(x)))} /> {c}</label>)}
+      </div>
+      <CultureChart ref={cultSvg} ts={pts.filter((t) => !sel || t.type === sel)} fc={data.culture.data} cats={cultOn} />
+      <p className="note">영화관 반경 {CONFIG.cultureRadiusM}m 안의 문화시설(영화관 제외, {data.culture.data.features.length.toLocaleString()}곳). 막대 = 해당 분류가 1곳 이상 있는 영화관 비율, 숫자 = 영화관당 개수의 중앙값·평균. 가깝다는 사실이 시설 간 협력이나 이용 연계를 뜻하지는 않습니다.</p>
+      <button className="ui link" onClick={() => saveSvg(cultSvg.current, '3-5_문화시설_인접성')}>SVG 저장</button>
+    </> :
       <DataStatus data={data} need={['culture']} note={<>「문화예술진흥법」 시행령 별표 1 기준 문화시설(영화관 제외). 반경 {CONFIG.cultureRadiusM}m (<code>config.ts</code>에서 1km로 변경 가능). 가깝다는 사실이 시설 간 연계를 뜻하지는 않습니다.</>} />
     return <>
       <div className="row ui">
@@ -122,15 +134,40 @@ export default function LocationTabs({ data, snap, sel, setSel }: { data: DataSe
   )
 }
 
-function CultureTable({ ts, fc }: { ts: Theater[]; fc: any }) {
-  const rows = TYPES.map((t) => {
-    const xs = ts.filter((x) => x.type === t).map((x) => cultureCounts(fc, x))
-    const cats = [...new Set(xs.flatMap(Object.keys))]
-    return { t, n: xs.length, cats: cats.map((c) => ({ c, med: median(xs.map((x) => x[c] ?? 0)), avg: mean(xs.map((x) => x[c] ?? 0)), share: pct(xs.filter((x) => (x[c] ?? 0) > 0).length, xs.length) })) }
-  })
-  return <>
-    {rows.map((r) => <p key={r.t} style={{ color: TYPE_STYLE[r.t].color }}><b>{r.t}</b> n={r.n}</p>)}
-    <DataTable caption={`영화관 반경 ${CONFIG.cultureRadiusM}m 내 문화시설`} head={['유형', '분류', '중앙값(개)', '평균(개)', '1개 이상 있는 비율(%)']}
-      rows={rows.flatMap((r) => r.cats.map((c) => [r.t, c.c, c.med, c.avg.toFixed(2), c.share.toFixed(1)]))} />
-  </>
-}
+// 3-5: 분류(행) × 유형(막대). 반경 안에 1곳 이상 있는 영화관 비율과 개수 중앙값·평균
+const CultureChart = forwardRef<SVGSVGElement, { ts: Theater[]; fc: any; cats: string[] }>(function CultureChart({ ts, fc, cats }, ref) {
+  const counts = useMemo(() => new Map(ts.map((t) => [t.id, cultureCounts(fc, t)])), [ts, fc])
+  const types = TYPES.filter((t) => ts.some((x) => x.type === t))
+  const W = 560, l = 132, bh = 11, rowH = types.length * (bh + 3) + 16, top = 26
+  const H = top + cats.length * rowH + 36
+  const rows = cats.map((c) => types.map((t) => {
+    const xs = ts.filter((x) => x.type === t).map((x) => counts.get(x.id)?.[c] ?? 0)
+    return { t, share: pct(xs.filter((v) => v > 0).length, xs.length), med: median(xs), avg: mean(xs) }
+  }))
+  const sx = (p: number) => l + (p / 100) * (W - l - 160)
+  return (
+    <>
+      <svg ref={ref} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="유형별 문화시설 인접성">
+        <title>영화관 반경 {CONFIG.cultureRadiusM}m 안 문화시설 — 유형별</title>
+        <g fontSize="10.5" fill="#444">
+          {types.map((t, i) => <text key={t} x={l + i * 112} y={12}>{TYPE_STYLE[t].mark} {t} n={ts.filter((x) => x.type === t).length}</text>)}
+        </g>
+        {[0, 50, 100].map((v) => <g key={v}><line x1={sx(v)} x2={sx(v)} y1={top - 6} y2={H - 32} stroke="#eee" /><text x={sx(v)} y={H - 20} fontSize="10" textAnchor="middle" fill="#555">{v}%</text></g>)}
+        {rows.map((r, j) => (
+          <g key={cats[j]} transform={`translate(0,${top + j * rowH})`}>
+            <text x={0} y={bh + 2} fontSize="11.5" fontWeight="600">{cats[j]}</text>
+            {r.map((x, i) => (
+              <g key={x.t} transform={`translate(0,${i * (bh + 3)})`}>
+                <rect x={l} y={0} width={Math.max(0.5, sx(x.share) - l)} height={bh} fill={TYPE_STYLE[x.t].color} />
+                <text x={sx(x.share) + 4} y={bh - 1} fontSize="9.5" fill="#333">{x.share.toFixed(0)}% · 중앙값 {x.med} · 평균 {x.avg.toFixed(1)}</text>
+              </g>
+            ))}
+          </g>
+        ))}
+        <text x={l} y={H - 4} fontSize="10" fill="#555">막대: 1곳 이상 있는 영화관 비율(%) · 숫자 단위: 곳</text>
+      </svg>
+      <DataTable caption={`영화관 반경 ${CONFIG.cultureRadiusM}m 내 문화시설`} head={['분류', '유형', '1곳 이상(%)', '중앙값(곳)', '평균(곳)']}
+        rows={rows.flatMap((r, j) => r.map((x) => [cats[j], x.t, x.share.toFixed(1), x.med, x.avg.toFixed(2)]))} />
+    </>
+  )
+})

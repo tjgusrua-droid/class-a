@@ -146,7 +146,9 @@ function apply(m: maplibregl.Map, p: Props) {
   if (!src) return
   const on = new Set((p.extras ?? []).map((o) => o.id))
   for (const o of p.extras ?? []) {
-    if (!m.getSource(o.id)) {
+    const s = m.getSource(o.id) as maplibregl.GeoJSONSource | undefined
+    if (s) s.setData(o.data)
+    else {
       m.addSource(o.id, { type: 'geojson', data: o.data })
       o.layers.forEach((l, i) => m.addLayer({ ...l, id: `${o.id}-${i}`, source: o.id }, 'link'))
     }

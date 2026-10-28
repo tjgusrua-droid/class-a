@@ -26,6 +26,9 @@ export const ERAS = [
   { id: '2020s', label: '2020년대', from: 2020, to: 2025, ready: true },
 ]
 
+// 문화시설 대분류(「문화예술진흥법」 시행령 별표 1 + 문학관·창작공간). scripts/build_culture_data.py 와 같은 이름
+export const CULTURE_CATS = ['공연시설', '전시시설', '도서시설', '지역문화활동시설', '문화 보급·전수시설', '종합시설', '문학관·창작공간']
+
 // 그래프에 배경으로 표시할 사건(인과관계를 뜻하지 않음)
 export const EVENTS = [{ label: '코로나19', from: 2020, to: 2022 }]
 
@@ -55,4 +58,5 @@ export const SOURCES = [
   '좌표: 행정안전부 영화상영관 인허가 데이터 (EPSG:5174 → EPSG:4326 변환, 주소·상호로 연결)',
   '자치구·서울 경계: 통계청 행정동 경계 2023.7 (vuski/admdongkor) 자치구 단위 병합',
   '한강·주요 도로: Natural Earth 1:10m (개략 축척)',
+  '문화시설: 서울시 문화공간 정보 + 행정안전부 공연장 인허가(2025년 말 영업, 같은 건물 홀은 1곳). 분류 근거는 data/clean/culture_facilities_review.csv',
 ]

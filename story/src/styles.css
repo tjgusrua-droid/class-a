@@ -147,3 +147,4 @@ details caption { text-align: left; font-weight: 600; padding: 4px 0; }
   .step { scroll-margin-top: calc(42vh + 70px); }
 }
 .present .toolbar button { opacity: .12; } .present .toolbar button:hover, .present .toolbar button:focus { opacity: 1; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; margin-bottom: 10px; } .chips label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
