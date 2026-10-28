@@ -1,73 +1,95 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { SOURCES, TYPE_STYLE, TYPES, type VenueType } from '../config'
-import { distM, f1, located, pct, sum, topBy, type DataSet, type Venue } from '../data'
+import { distM, f1, jo, located, pct, sum, topBy, type DataSet, type Venue } from '../data'
 import { DataTable, ShareBars } from './charts'
-import SeoulMap, { stationOverlay } from './SeoulMap'
+import SeoulMap, { stationOverlay, type Overlay } from './SeoulMap'
 import { MapLegend, saveSvg, SourceNote, Sym, TypeToggles } from './ui'
 
-// 계산으로 만든 해석문. '군집' 대신 '상대적으로 많이 분포'
-function sentence(t: VenueType, xs: Venue[]) {
-  if (!xs.length) return `${t}: 자료 없음`
-  const g = topBy(xs, (v) => v.gu, 2), d = topBy(xs, (v) => v.dong, 2)
-  const share = pct(g.reduce((a, [, n]) => a + n, 0), xs.length)
-  const gus = new Set(xs.map((v) => v.gu)).size
-  return `${t}(n=${xs.length})는 ${g.map(([k, n]) => `${k} ${n}곳`).join('·')}에 상대적으로 많이 분포하며, 두 구가 전체 ${t}의 ${f1(share)}%를 차지한다. ` +
-    `행정동 기준 상위는 ${d.map(([k, n]) => `${k}(${n})`).join('·')}이고, 영화관이 있는 자치구는 25개 중 ${gus}개다.` +
-    (xs.length < 10 ? ' 표본이 적어 해석에 주의가 필요하다.' : '')
+type Spot = { lon: number; lat: number; name: string }
+type Cluster = { at: Spot; members: Venue[]; names: string[]; center?: string }
+const R = 1000 // 모임 판정 반경(m)
+
+// 역 반경 1km 안에 같은 유형이 가장 많이 모인 곳을 두 번까지 찾는다(첫 모임에 든 영화관은 빼고 다시 찾음)
+function clusters(xs: Venue[], st: Spot[], centers: any[]): Cluster[] {
+  let rest = xs.filter(located)
+  const out: Cluster[] = []
+  for (let k = 0; k < 2; k++) {
+    let best: { at: Spot; members: Venue[] } | null = null
+    for (const s of st) { const m = rest.filter((v) => distM(v, s) <= R); if (!best || m.length > best.members.length) best = { at: s, members: m } }
+    if (!best || best.members.length < 2) break
+    const near = (v: Venue) => st.reduce((a, s) => (distM(v, s) < distM(v, a) ? s : a)).name
+    const c = centers.find((f) => f.properties.anchors.some((a: number[]) => distM(best!.at, { lon: a[0], lat: a[1] }) <= f.properties.radius))
+    out.push({ ...best, names: topBy(best.members, near, 3).map(([n]) => n), center: c?.properties.name })
+    rest = rest.filter((v) => !best!.members.includes(v))
+  }
+  return out
+}
+
+function circle(c: Spot, r: number) {
+  const k = 111320, ring = Array.from({ length: 65 }, (_, i) => { const a = (i / 64) * 2 * Math.PI
+    return [c.lon + (r * Math.cos(a)) / (k * Math.cos((c.lat * Math.PI) / 180)), c.lat + (r * Math.sin(a)) / k] })
+  return { type: 'Polygon', coordinates: [ring] }
+}
+
+// 데이터를 모르는 사람도 한 번에 읽을 수 있는 결론 문장
+function headline(t: VenueType, n: number, gus: number, cs: Cluster[]) {
+  const [a, b] = cs
+  if (!a) return { head: `${jo(t, '는')} 2곳 이상 모인 역 주변이 없다.`, mean: '' }
+  const p = pct(a.members.length, n), where = `${a.center ? `${a.center} 일대의 ` : ''}${a.names.join('·')}역 주변`
+  if (p >= 25) return { head: `${jo(t, '는')} ${where}에 모여 있다.`,
+    mean: `${n}곳 중 ${a.members.length}곳(${f1(p)}%)이 이 반경 1km 안에 있다${b ? `. 두 번째로 ${b.names.join('·')}역 주변에 ${b.members.length}곳이 있다` : ''}.` }
+  return { head: `${jo(t, '는')} 특정 지역에 몰리지 않고 서울 곳곳에 퍼져 있다.`,
+    mean: `가장 많이 모인 ${where}도 ${n}곳 중 ${a.members.length}곳(${f1(p)}%)에 그치며, 영화관이 있는 자치구가 25개 중 ${gus}개다.` }
 }
 
 export default function Distribution({ data, open }: { data: DataSet; open: Venue[] }) {
   const [sel, setSel] = useState<VenueType | null>(null) // 이 장면에서만 쓰는 선택
-  const [showSt, setShowSt] = useState(true)
   const [on, setOn] = useState<VenueType[]>([...TYPES])
+  const [showSt, setShowSt] = useState(true)
   const [pick, setPick] = useState<Venue | null>(null)
   const svg = useRef<SVGSVGElement>(null)
   const by = (t: VenueType) => open.filter((v) => v.type === t)
   const known = (t: VenueType) => by(t).filter((v) => v.screens25 != null)
+  const st: Spot[] = data.stations.status === 'ok' ? data.stations.data.features.filter((f: any) => f.properties.inside)
+    .map((f: any) => ({ lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], name: f.properties.name })) : []
+  const centers: any[] = data.centers.status === 'ok' ? data.centers.data.features : []
+  const cl = useMemo(() => Object.fromEntries(TYPES.map((t) => [t, st.length ? clusters(by(t), st, centers) : []])) as Record<VenueType, Cluster[]>, [open, st.length])
   const shown = open.filter((v) => on.includes(v.type))
-  const focus = sel ?? null
-  const stations: any[] = data.stations.status === 'ok' ? data.stations.data.features.filter((f: any) => f.properties.inside) : []
-  const stationTop = (t: VenueType) => {
-    const xs = by(t).filter(located)
-    return stations.map((f) => ({ n: f.properties.name, c: xs.filter((v) => distM(v, { lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] }) <= 500).length }))
-      .filter((x) => x.c > 0).sort((a, b) => b.c - a.c).slice(0, 3).map((x) => `${x.n}역 ${x.c}곳`).join(', ') || '반경 500m 안에 영화관이 있는 역 없음'
-  }
+  const focus = sel
   const guRows = topBy(open, (v) => v.gu, 25).map(([gu]) => [gu, ...TYPES.map((t) => by(t).filter((v) => v.gu === gu).length), open.filter((v) => v.gu === gu).length])
+  const rings: Overlay = { id: 'clusters', place: 'over', data: { type: 'FeatureCollection', features: TYPES.filter((t) => on.includes(t) && (!focus || focus === t))
+    .flatMap((t) => cl[t].slice(0, 1).map((c) => ({ type: 'Feature', properties: { color: TYPE_STYLE[t].color, t }, geometry: circle(c.at, R) }))) },
+    layers: [{ type: 'line', paint: { 'line-color': ['get', 'color'], 'line-width': 2, 'line-dasharray': [2, 1.5] } }] }
+
   return (
     <div className="split">
       <div className="mapcol">
         <TypeToggles value={on} onChange={setOn} counts={Object.fromEntries(TYPES.map((t) => [t, by(t).length]))} />
-        <label className="ui chk"><input type="checkbox" checked={showSt} onChange={() => setShowSt(!showSt)} /> 지하철역 표시</label>
-        <SeoulMap data={data} label="유형별 영화관 분포 지도" selectedId={pick?.id} extras={showSt ? stationOverlay(data) : []}
+        <label className="ui chk"><input type="checkbox" checked={showSt} onChange={() => setShowSt(!showSt)} /> 지하철 노선·역 표시</label>
+        <SeoulMap data={data} label="유형별 영화관 분포 지도" selectedId={pick?.id} extras={[...(showSt ? stationOverlay(data) : []), rings]}
           points={shown.map((v) => ({ v, mark: focus && v.type !== focus ? 'dim' : 'fill' }))} onSelect={setPick} />
-        <MapLegend types={on} marks={focus ? ['fill', 'dim'] : ['fill']} extra={showSt && <span>○ 일반역 · ◎ 환승역(역에 마우스를 올리면 역명)</span>} />
-        <p className="note">좌표 없는 영업 영화관 {open.filter((v) => !located(v)).length}곳은 지도에서 빠졌습니다. 같은 건물의 영화관은 확대하면 둥글게 펼쳐 보입니다(실제 좌표는 동일).</p>
+        <MapLegend types={on} marks={focus ? ['fill', 'dim'] : ['fill']} extra={<>
+          {showSt && <span>━ 지하철 노선(노선색, 반투명) · ○ 역</span>}
+          <span>┅ 유형별로 가장 많이 모인 곳(역 반경 1km)</span></>} />
       </div>
       <div className="chart">
+        <div className="headlines">
+          {(focus ? [focus] : TYPES).map((t) => { const h = headline(t, by(t).filter(located).length, new Set(by(t).map((v) => v.gu)).size, cl[t])
+            return <div key={t} className="headline" style={{ borderColor: TYPE_STYLE[t].color }} onClick={() => setSel(sel === t ? null : t)}>
+              <p className="find-big"><Sym type={t} /> {h.head}</p>{h.mean && <p className="find-sub">{h.mean}</p>}</div> })}
+          <p className="note">문장은 ‘역 반경 1km 안에 같은 유형이 가장 많은 곳’을 계산해 자동으로 만듭니다. 25% 이상이 한곳에 있으면 ‘모여 있다’, 아니면 ‘퍼져 있다’로 씁니다. 문장을 누르면 그 유형만 강조합니다.</p>
+        </div>
         <ShareBars ref={svg} title="유형별 개소·스크린·좌석 비중" highlight={sel} onPick={setSel} rows={[
           { label: '영화관', unit: '곳', values: Object.fromEntries(TYPES.map((t) => [t, by(t).length])) as any },
           { label: '스크린', unit: '개', values: Object.fromEntries(TYPES.map((t) => [t, sum(known(t).map((v) => v.screens25))])) as any },
           { label: '좌석', unit: '석', values: Object.fromEntries(TYPES.map((t) => [t, sum(known(t).map((v) => v.seats25))])) as any },
         ]} />
-        <div className="interp">
-          {(focus ? [focus] : TYPES).map((t) => {
-            const xs = by(t)
-            return (
-              <div key={t}>
-                <p><Sym type={t} /> <b>{t}</b> — 상위 자치구 {topBy(xs, (v) => v.gu, 3).map(([k, n]) => `${k} ${n}곳(${f1(pct(n, xs.length))}%)`).join(', ') || '자료 없음'}</p>
-                <p className="sub">상위 행정동 {topBy(xs, (v) => v.dong, 3).map(([k, n]) => `${k} ${n}`).join(', ') || '자료 없음'}</p>
-                <p className="auto">{sentence(t, xs)}</p>
-              </div>)
-          })}
-        </div>
-        {stations.length > 0 && <div className="interp">
-          <p className="sub"><b>영화관이 많이 모인 역 주변</b> — 역 반경 500m 안 영업 영화관 수 상위</p>
-          {(focus ? [focus] : TYPES).map((t) => <p key={t}><Sym type={t} /> {t}: {stationTop(t)}</p>)}
-        </div>}
+        <p className="note">자치구 상위: {TYPES.map((t) => `${TYPE_STYLE[t].short} ${topBy(by(t), (v) => v.gu, 2).map(([k, n]) => `${k} ${n}`).join('·')}`).join(' / ')}</p>
         <button className="ui link" onClick={() => saveSvg(svg.current, '2_비중')}>SVG 저장</button>
         <DataTable caption="자치구별 영업 영화관 수" head={['자치구', ...TYPES, '계']} rows={guRows} />
-        <SourceNote source={SOURCES.venues} n={`영업 ${open.length}곳(${TYPES.map((t) => `${TYPE_STYLE[t].short} ${by(t).length}`).join(' · ')})`}
-          method="자치구·행정동(통계청 2023.7)에 점이 속한 수를 셈. 군집 검정은 하지 않음" caution="스크린·좌석 비중은 KOFIC 2025 수록 영화관만으로 계산합니다." />
+        <SourceNote source={`${SOURCES.venues} · ${SOURCES.subway}`} n={`영업 ${open.length}곳(${TYPES.map((t) => `${TYPE_STYLE[t].short} ${by(t).length}`).join(' · ')})`}
+          method="역 반경 1km(직선거리) 안 같은 유형 영화관 수가 가장 많은 역을 찾고, 그 영화관들을 뺀 뒤 한 번 더 찾음. 역 이름 = 모인 영화관들의 가장 가까운 역 상위 3곳. 군집 검정은 하지 않음"
+          caution="스크린·좌석 비중은 KOFIC 2025 수록 영화관만으로 계산합니다. 중심지 이름은 2040 중심지 개략 영역 기준입니다." />
       </div>
     </div>
   )

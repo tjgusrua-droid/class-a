@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { SOURCES, TYPE_STYLE, TYPES, type VenueType } from '../config'
 import { f1, jo, mean, median, pct, sum, topBy, type Venue } from '../data'
 import { BoxDot, DataTable, ShareBars } from './charts'
-import { saveSvg, SourceNote, Sym } from './ui'
+import { saveSvg, Seg, SourceNote, Sym } from './ui'
 import { TypeIsometric } from './Isometric'
 
 // 한두 문장으로 된 쉬운 설명
@@ -33,6 +33,7 @@ const DEF: Record<VenueType, { legal: string; analytic: string; rule: string }> 
 
 export default function TypeComparison({ open }: { open: Venue[] }) {
   const [sel, setSel] = useState<VenueType | null>(null) // 이 장면에서만 쓰는 선택
+  const [rangeOf, setRangeOf] = useState<'screens' | 'seats' | 'per'>('screens')
   const svg = useRef<SVGSVGElement>(null), svg2 = useRef<SVGSVGElement>(null)
   const by = (t: VenueType) => open.filter((v) => v.type === t)
   const k = (t: VenueType) => by(t).filter((v) => v.screens25 != null) // KOFIC 2025 속성이 있는 곳
@@ -86,12 +87,10 @@ export default function TypeComparison({ open }: { open: Venue[] }) {
           <button className="ui link" onClick={() => saveSvg(svg.current, '1_구성비')}>SVG 저장</button>
         </div>
         <div>
-          <p className="chart-title">시설당 스크린 수 — 단위가 다른 값은 그래프를 나눠 봅니다</p>
-          <BoxDot ref={svg2} title="유형별 시설당 스크린 수" unit="개" rowH={52} groups={metric((v) => v.screens25)} />
-          <p className="chart-title">시설당 좌석 수</p>
-          <BoxDot title="유형별 시설당 좌석 수" unit="석" rowH={52} groups={metric((v) => v.seats25)} />
-          <p className="chart-title">1관당 좌석 수</p>
-          <BoxDot title="유형별 1관당 좌석 수" unit="석/관" rowH={52} groups={metric((v) => (v.seats25 && v.screens25 ? v.seats25 / v.screens25 : null))} />
+          <p className="chart-title">유형별 규모의 범위 — 점 = 영화관, 상자 = 가운데 50%, 굵은 선 = 중앙값</p>
+          <Seg label="범위 지표" value={rangeOf} onChange={setRangeOf} options={[{ v: 'screens' as const, label: '시설당 스크린' }, { v: 'seats' as const, label: '시설당 좌석' }, { v: 'per' as const, label: '1관당 좌석' }]} />
+          <BoxDot ref={svg2} title="유형별 규모의 범위" unit={rangeOf === 'screens' ? '개' : rangeOf === 'seats' ? '석' : '석/관'} rowH={44}
+            groups={metric(rangeOf === 'screens' ? (v) => v.screens25 : rangeOf === 'seats' ? (v) => v.seats25 : (v) => (v.seats25 && v.screens25 ? v.seats25 / v.screens25 : null))} />
         </div>
       </div>
       <p className="takeaway">{TYPES.map((t) => {

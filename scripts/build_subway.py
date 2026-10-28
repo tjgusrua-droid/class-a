@@ -7,7 +7,9 @@
 출력: story/public/data/subway_stations.geojson  역 1곳 = 1점, lines(노선 목록), n_lines, transfer(2개 노선 이상)
       story/public/data/subway_buffers.geojson   반경 300/500/800/1000m × 일반역/환승역, 같은 조건 원은 합집합
       story/public/data/seoul_centers.geojson    중심지 개략 영역 = 대표 역 중심 원의 합집합(반경은 위계별 표현값, 공식 범위 아님)
-노선 형상은 공식 자료가 없어 그리지 않는다(역 순서 직선 연결 금지).
+      data/raw/subway/osm_lines_network.json — 노선 선형(OpenStreetMap 선로 way 기반, © OpenStreetMap contributors, ODbL).
+        kimmdr2/metroscope(MIT)가 Overpass API로 뽑아 단순화한 data/network.json(2026-10-12 생성)을 그대로 보관.
+      → story/public/data/subway_lines.geojson  노선별 선형(name, color), 서울 경계 + 2km 안으로 자름
 거리·버퍼는 EPSG:5186(중부원점, m)에서 계산한 뒤 EPSG:4326 으로 되돌린다.
 같은 역명은 300m 안, 다른 역명은 150m 안(총신대입구·이수)이면 한 역으로 합친다.
 """
@@ -18,7 +20,7 @@ from pathlib import Path
 import pandas as pd
 from pyproj import Transformer
 import shapely
-from shapely.geometry import Point, mapping, shape
+from shapely.geometry import LineString, Point, mapping, shape
 from shapely.ops import transform, unary_union
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -53,7 +55,20 @@ def stations():
         lines = sorted({LINE_KO.get(x, x) for x in g.line})
         out.append(dict(name="·".join(dict.fromkeys(g.name)), lines=lines, n_lines=len(lines), transfer=len(lines) >= 2,
                         inside=seoul.contains(g.pt.iloc[0]), pt=unary_union(list(g.pt)).centroid))
-    return out
+    return out, seoul
+
+
+def lines(seoul):
+    net = json.loads((ROOT / "data" / "raw" / "subway" / "osm_lines_network.json").read_text(encoding="utf-8"))
+    area = seoul.buffer(2000)
+    feats = []
+    for ln in net["lines"]:
+        for ch in ln["chains"]:
+            g = transform(to_m, LineString(ch["path"])).intersection(area)
+            if not g.is_empty:
+                feats.append({"type": "Feature", "geometry": mapping(shapely.set_precision(transform(to_deg, g.simplify(8)), 1e-5)),
+                              "properties": {"name": ln["name"], "color": ln["color"]}})
+    return feats
 
 
 def fc(feats):
@@ -61,7 +76,8 @@ def fc(feats):
 
 
 def main():
-    st = stations()
+    st, seoul = stations()
+    (OUT / "subway_lines.geojson").write_text(fc(lines(seoul)), encoding="utf-8")
     (OUT / "subway_stations.geojson").write_text(fc([{"type": "Feature", "geometry": mapping(transform(to_deg, x["pt"])),
         "properties": {k: x[k] for k in ("name", "lines", "n_lines", "transfer", "inside")}} for x in st]), encoding="utf-8")
     buf = []

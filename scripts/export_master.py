@@ -34,6 +34,7 @@ GUIDE = [
     ("시트: 연도별시계열", "2000~2026 유형별 운영·개업·폐업·누적. 스크린·좌석은 KOFIC 2010~2025, 특별관은 2019~2025만(그 밖은 빈칸 = 자료 미확보)"),
     ("시트: KOFIC연결 / KOFIC에만", "KOFIC 극장-연도와 LOCALDATA 운영구간 연결, LOCALDATA 기록이 없는 KOFIC 극장"),
     ("시트: 인허가기록 / 데이터감사", "LOCALDATA 서울 인허가 기록 원본(정리) 947건과 2026 재검증 감사 결과"),
+    ("시트: 운영기간", "운영구간마다 운영기간(년). 폐업 = 개업일→폐업일(사건), 영업 = 개업일→LOCALDATA 기준일(아직 운영 중, 중도절단). 유형별 생존곡선(Kaplan–Meier) 중앙 생존기간도 함께. 일괄 등록일 의심 개업일은 계산에서 제외 표시"),
     ("key", "영화관명을 정규화한 식별자(공백·괄호 제거, 표기 변형 통일). 같은 key = 같은 극장"),
     ("operator", "직영/위탁 = 대기업 멀티플렉스, ~ = 비해당"),
     ("~", "영진위 원자료의 '해당 없음' 표기"),
@@ -175,6 +176,39 @@ def theater_master(tbl, ev):
     return master, after
 
 
+def km_median(rows):
+    """Kaplan–Meier 중앙 생존기간(년). 생존율이 0.5 이하로 처음 내려가는 시점, 없으면 None."""
+    s, n = 1.0, len(rows)
+    for t in sorted({r[0] for r in rows}):
+        d = sum(1 for x in rows if x[0] == t and x[1])
+        if n and d:
+            s *= 1 - d / n
+            if s <= 0.5:
+                return round(t, 1)
+        n -= sum(1 for x in rows if x[0] == t)
+    return None
+
+
+def survival_sheet(ep):
+    base = pd.Timestamp("2026-09-04")  # LOCALDATA 기준일
+    o, c = pd.to_datetime(ep.open_date, errors="coerce"), pd.to_datetime(ep.close_date, errors="coerce")
+    end = c.where(ep.operation_status != "영업", base)
+    bulk = ep.source_conflict.fillna("").str.contains("일괄 등록일")
+    df = pd.DataFrame({"operation_episode_id": ep.operation_episode_id, "영화관": ep.standardized_name, "유형": ep.analysis_type,
+                       "자치구": ep.gu, "상태": ep.operation_status, "개업일": ep.open_date, "폐업일": ep.close_date,
+                       "운영기간(년)": ((end - o).dt.days / 365.25).round(1),
+                       "관측": ["폐업(사건)" if s != "영업" else "영업 중(중도절단)" for s in ep.operation_status],
+                       "계산 제외": ["일괄 등록일 의심 개업일" if b else ("날짜 없음" if pd.isna(x) else "") for b, x in zip(bulk, (end - o))]})
+    use = df[df["계산 제외"] == ""]
+    rows = []
+    for t in ["멀티플렉스", "독립·예술영화관", "기타"]:
+        u = use[use["유형"] == t]
+        rows.append({"operation_episode_id": f"[요약] {t}", "영화관": f"n={len(u)}(폐업 {int((u['관측'] == '폐업(사건)').sum())})",
+                     "운영기간(년)": km_median([(r["운영기간(년)"], r["관측"] == "폐업(사건)") for _, r in u.iterrows()]),
+                     "관측": "Kaplan–Meier 중앙 생존기간(없으면 빈칸 = 절반 이상이 아직 운영 중)"})
+    return pd.concat([pd.DataFrame(rows), df.sort_values(["유형", "운영기간(년)"], ascending=[True, False])], ignore_index=True)[list(df.columns)]
+
+
 def main():
     tbl = pd.read_csv(CLEAN / "seoul_theater_year.csv")
     ev = pd.read_csv(CLEAN / "seoul_events.csv")
@@ -222,6 +256,8 @@ def main():
                          ("인허가기록", "license_records.csv")]:
             if (CLEAN / f).exists():
                 pd.read_csv(CLEAN / f).to_excel(w, sheet_name=sheet, index=False)
+        if (CLEAN / "venues_episodes.csv").exists():
+            survival_sheet(pd.read_csv(CLEAN / "venues_episodes.csv")).to_excel(w, sheet_name="운영기간", index=False)
         audit_md = ROOT / "data" / "verify" / "data_audit_2026.md"
         if audit_md.exists():
             pd.DataFrame({"데이터 감사(2026)": audit_md.read_text(encoding="utf-8").splitlines()}).to_excel(w, sheet_name="데이터감사", index=False)

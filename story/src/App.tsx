@@ -5,7 +5,7 @@ import SeoulMap from './components/SeoulMap'
 import DataAudit from './components/DataAudit'
 import TypeComparison from './components/TypeComparison'
 import Distribution from './components/Distribution'
-import LocationTabs from './components/LocationTabs'
+import LocationTabs, { LocationSummary } from './components/LocationTabs'
 import TimelineSection from './components/TimelineSection'
 import SurvivalDurationPlot from './components/SurvivalDurationPlot'
 import { DataStatus, StorySection } from './components/ui'
@@ -74,6 +74,7 @@ export default function App() {
       <StorySection id="location" className="tall">
         <h2><span>3</span>각 유형의 영화관은 어떤 입지 특성을 가지는가?</h2>
         <LocationTabs data={data} open={open} />
+        <LocationSummary data={data} open={open} />
       </StorySection>
 
       <StorySection id="change">

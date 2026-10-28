@@ -130,3 +130,17 @@ export function jo(w: string, p: string) {
   const pair: Record<string, [string, string]> = { 은: ['은', '는'], 는: ['은', '는'], 이: ['이', '가'], 가: ['이', '가'], 과: ['과', '와'], 와: ['과', '와'], 을: ['을', '를'], 를: ['을', '를'] }
   return w + (pair[p] ? pair[p][has ? 0 : 1] : p)
 }
+
+// Kaplan–Meier 생존곡선: t = 운영기간(년), event = 폐업했는가(영업 중이면 중도절단)
+export function kaplanMeier(items: { t: number; event: boolean }[]) {
+  const ts = [...new Set(items.map((x) => x.t))].sort((a, b) => a - b)
+  let s = 1, atRisk = items.length
+  const steps = [{ t: 0, s: 1, n: atRisk }]
+  for (const t of ts) {
+    const here = items.filter((x) => x.t === t), d = here.filter((x) => x.event).length
+    if (d && atRisk) { s *= 1 - d / atRisk; steps.push({ t, s, n: atRisk }) }
+    atRisk -= here.length
+  }
+  const med = steps.find((x) => x.s <= 0.5)?.t ?? null
+  return { steps, med, end: ts[ts.length - 1] ?? 0 }
+}

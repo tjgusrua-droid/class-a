@@ -212,14 +212,26 @@ def inherit_lineage(links, t):
 # 건축적 입점 형태: 주소 문자열(LOCALDATA·KOFIC)과 LOCALDATA 건물용도명에 적힌 건물 이름만 근거로 쓴다
 OCCUPANCY = [
     ("백화점 내 입점", r"백화점|AK플라자|에비뉴엘"),
-    ("쇼핑몰·아울렛 내 입점", r"아울렛|아이파크몰|롯데몰|쇼핑몰|월드컵몰|코엑스몰|스타시티|타임스퀘어|파크하비오|굿모닝시티|밀리오레|디큐브시티|메세나폴리스|팜스퀘어|트레지오|테크노\s*마트|스카이시티몰|포도몰|현대시티|스타필드|이스트폴|퀸즈파크|메가스퀘어|와이즈파크|아일렉스|스타피카소|몰오브케이|쇼핑"),
+    ("쇼핑몰·아울렛 내 입점", r"아울렛|아이파크몰|롯데몰|쇼핑몰|월드컵몰|코엑스몰|스타시티|타임스퀘어|파크하비오|굿모닝시티|밀리오레|디큐브시티|메세나폴리스|팜스퀘어|트레지오|테크노\s*마트|스카이시티몰|포도몰|현대시티|스타필드|이스트폴|퀸즈파크|메가스퀘어|와이즈파크|아일렉스|스타피카소|몰오브케이|쇼핑|롯데월드몰|가든파이브|IFC|Noon Square|눈스퀘어"),
     ("복합상업시설 내 입점(대형마트)", r"홈플러스|이마트|롯데마트|건영백화점"),
-    ("복합상업시설 내 입점(역사)", r"민자역사|역사\s*\d|청량리역|신촌역"),
+    ("복합상업시설 내 입점(역사)", r"민자역사|역사\s*\d|청량리역|신촌역|\(봉래동2가,서울역\)|서울역$"),
     ("대학 또는 교육시설 내 입점", r"대학교|대학\s|미디어관|ECC"),
     ("공공·문화시설 내 입점", r"문화회관|아트센터|문화일보홀|명보아트홀|경향아트힐|애니메이션센터|예장동 8-145|아리랑로 82|센트럴시티|구민회관"),
     ("주상복합건물 내 입점", r"롯데캐슬|주상복합|베네치아|자이|래미안|휴포레"),
     ("기타(호텔 내 입점)", r"호텔|이비스"),
 ]
+
+
+# 사용자가 확인 시트(data/manual/occupancy_review.xlsx)에 적은 확정값이 있으면 자동 분류보다 우선한다
+REVIEW = ROOT / "data" / "manual" / "occupancy_review.xlsx"
+
+
+def occupancy_review():
+    if not REVIEW.exists():
+        return {}
+    r = pd.read_excel(REVIEW, sheet_name="확인시트", dtype=str).fillna("")
+    r = r[r["✍ 확정 입점 형태"].str.strip() != ""]
+    return {x["operation_episode_id"]: x for x in r.to_dict("records")}
 
 
 def occupancy(texts, use_names):
@@ -237,6 +249,7 @@ INDIE_WORDS = r"독립영화|시네마테크|아트시네마|아트하우스|예
 
 def build_table(m, links, t):
     ev = pd.read_csv(CLEAN / "seoul_events.csv")
+    review = occupancy_review()
     ref = [x for x in json.load(open(ROOT / "data" / "raw" / "reference" / "ref_homepage_venues.json", encoding="utf-8")) if x["r"] == "S"]
     archive = json.load(open(ROOT / "data" / "raw" / "reference" / "ref_homepage_archive.json", encoding="utf-8"))
     corr = pd.read_csv(ROOT / "data" / "manual" / "corrections.csv", dtype=str).fillna("")
@@ -340,6 +353,11 @@ def build_table(m, links, t):
                 conflicts.append(f"사용자 확인: {user_closed[k]}")
         texts = list(g["지번주소"]) + list(g["도로명주소"]) + list(ky.address.astype(str))
         occ, bname, conf = occupancy(texts, ld_names)
+        occ_url, occ_date, occ_note = "", VERIFIED if bname else "", "주소 문자열의 건물명 키워드로 분류(웹 출처 미확인)" if bname else "근거 자료 없음"
+        rv = review.get(e)
+        if rv is not None:  # 사용자 확인값
+            occ, bname = rv["✍ 확정 입점 형태"].strip(), rv["✍ 건물명"].strip() or bname
+            occ_url, occ_date, conf, occ_note = rv["✍ 근거 출처(URL·현장)"], rv["✍ 확인일"] or VERIFIED, "높(사용자 확인)", "확인 시트: " + rv["✍ 메모"]
         kys25 = ky[ky.year == 2025]
         out.append(dict(
             operation_episode_id=e, venue_id=g.venue_id.iloc[0], license_record_ids=";".join(g.license_record_id),
@@ -364,9 +382,8 @@ def build_table(m, links, t):
             source_conflict=" | ".join(conflicts),
             verification_date=VERIFIED,
             verification_note="상태·개업·폐업일 = LOCALDATA(1차 기준). " + ("충돌은 두 값을 보존" if conflicts else ""),
-            building_occupancy_type=occ, building_name=bname, combined_use="", occupancy_source_url="",
-            occupancy_verification_date=VERIFIED if bname else "", occupancy_confidence=conf,
-            occupancy_note="주소 문자열의 건물명 키워드로 분류(웹 출처 미확인)" if bname else "근거 자료 없음",
+            building_occupancy_type=occ, building_name=bname, combined_use="", occupancy_source_url=occ_url,
+            occupancy_verification_date=occ_date, occupancy_confidence=conf, occupancy_note=occ_note,
         ))
     return pd.DataFrame(out)
 

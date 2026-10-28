@@ -12,7 +12,7 @@ function shade(hex: string, k: number) {
 }
 
 // 직육면체: 윗면·왼쪽 앞면·오른쪽 앞면
-function Box({ x, y, z, w, d, h, color, line = '#333' }: { x: number; y: number; z: number; w: number; d: number; h: number; color: string; line?: string }) {
+export function Box({ x, y, z, w, d, h, color, line = '#333' }: { x: number; y: number; z: number; w: number; d: number; h: number; color: string; line?: string }) {
   return (
     <g stroke={line} strokeWidth="0.7" strokeLinejoin="round">
       <polygon points={pts([[x, y + d, z], [x + w, y + d, z], [x + w, y + d, z + h], [x, y + d, z + h]])} fill={shade(color, -0.12)} />
@@ -38,7 +38,7 @@ function Label({ x, y, z, t, dx = 0 }: { x: number; y: number; z: number; t: str
 export function TypeIsometric({ type, screens }: { type: VenueType; screens: number | null }) {
   const c = TYPE_STYLE[type].color, n = Math.max(1, Math.min(16, Math.round(screens ?? 1)))
   return (
-    <svg viewBox="-90 -8 440 218" role="img" aria-label={`${type} 개념도`} className="iso">
+    <svg viewBox="-90 -8 470 218" role="img" aria-label={`${type} 개념도`} className="iso">
       <title>{type} 개념도 — 상영관 {screens ?? '자료 없음'}개(중앙값)</title>
       <polygon points={pts([[-4, -4, 0], [22, -4, 0], [22, 22, 0], [-4, 22, 0]])} fill="#f1f1ee" stroke="#ddd" />
       {type === '멀티플렉스' && <>
@@ -62,8 +62,45 @@ export function TypeIsometric({ type, screens }: { type: VenueType; screens: num
         <Box x={14} y={2} z={0} w={0.4} d={6} h={4} color="#fafafa" />
         <Box x={17} y={4} z={0} w={2.4} d={1.4} h={0.9} color="#888" />
         <Box x={17} y={7} z={0} w={2.4} d={1.4} h={0.9} color="#888" />
-        <Label x={19.4} y={8.4} z={0.9} t="자동차극장·이동상영관" dx={10} />
+        <Label x={19.4} y={4} z={0.9} t="자동차극장·이동상영관" dx={26} />
       </>}
     </svg>
+  )
+}
+
+// 입점 형태별 건물 모식도(작은 그림 여러 개). 색칠한 덩어리 = 영화관이 들어선 자리
+const F = 1.3 // 한 층 높이
+function Floors({ x, y, w, d, from, n, color = '#d9d9d5' }: { x: number; y: number; w: number; d: number; from: number; n: number; color?: string }) {
+  return <>{Array.from({ length: n }, (_, i) => <Box key={i} x={x} y={y} z={(from + i) * F} w={w} d={d} h={F} color={color} />)}</>
+}
+const SCENE: Record<string, (c: string) => JSX.Element> = {
+  '백화점 내 입점': (c) => <><Floors x={0} y={0} w={16} d={12} from={0} n={6} /><Box x={0} y={0} z={6 * F} w={16} d={12} h={2 * F} color={c} /></>,
+  '쇼핑몰·아울렛 내 입점': (c) => <><Floors x={-2} y={0} w={22} d={16} from={0} n={3} /><Box x={6} y={0} z={3 * F} w={12} d={10} h={1.6 * F} color={c} /></>,
+  '복합상업시설 내 입점(대형마트)': (c) => <><Floors x={-2} y={0} w={20} d={15} from={0} n={2} /><Box x={8} y={2} z={2 * F} w={9} d={9} h={1.5 * F} color={c} />
+    {[0, 4, 8].map((k) => <Box key={k} x={-2 + k} y={17} z={0} w={2.4} d={1.4} h={0.8} color="#999" />)}</>,
+  '복합상업시설 내 입점(역사)': (c) => <><Box x={-4} y={7} z={0} w={26} d={0.6} h={0.3} color="#777" /><Box x={-4} y={9} z={0} w={26} d={0.6} h={0.3} color="#777" />
+    <Floors x={2} y={0} w={14} d={12} from={1} n={3} /><Box x={2} y={0} z={4 * F} w={14} d={12} h={1.6 * F} color={c} /></>,
+  '주상복합건물 내 입점': (c) => <><Floors x={0} y={0} w={16} d={12} from={0} n={3} /><Box x={0} y={0} z={3 * F} w={16} d={12} h={F} color={c} />
+    <Floors x={4} y={3} w={6} d={6} from={4} n={8} color="#ecebe6" /></>,
+  '공공·문화시설 내 입점': (c) => <><Floors x={0} y={0} w={18} d={12} from={0} n={3} color="#e6e1d6" /><Box x={0} y={0} z={F} w={8} d={12} h={F} color={c} /></>,
+  '대학 또는 교육시설 내 입점': (c) => <><Floors x={-2} y={0} w={8} d={14} from={0} n={4} color="#e6e1d6" /><Floors x={10} y={0} w={8} d={8} from={0} n={3} color="#e6e1d6" />
+    <Box x={10} y={0} z={3 * F} w={8} d={8} h={F} color={c} /></>,
+  '기타(호텔 내 입점)': (c) => <><Box x={2} y={2} z={0} w={10} d={10} h={F} color={c} /><Floors x={2} y={2} w={10} d={10} from={1} n={10} color="#ecebe6" /></>,
+  '업무·근린상업 건물 내 입점': (c) => <><Floors x={2} y={2} w={10} d={10} from={0} n={5} /><Box x={2} y={2} z={5 * F} w={10} d={10} h={2 * F} color={c} /><Floors x={2} y={2} w={10} d={10} from={7} n={2} /></>,
+  '단독 건물(영화관 전용·중심)': (c) => <Box x={0} y={0} z={0} w={14} d={12} h={4 * F} color={c} />,
+}
+
+export function OccupancyTiles({ items }: { items: { label: string; color: string; counts: string; n: number }[] }) {
+  return (
+    <div className="occtiles">
+      {items.filter((x) => SCENE[x.label]).map((x) => (
+        <figure key={x.label} className={x.n ? '' : 'none'}>
+          <svg viewBox="40 -30 240 220" role="img" aria-label={`${x.label} 모식도`}>
+            <polygon points={pts([[-6, -4, 0], [24, -4, 0], [24, 20, 0], [-6, 20, 0]])} fill="#f3f3f0" />
+            {SCENE[x.label](x.color)}
+          </svg>
+          <figcaption><b style={{ color: x.color === '#c4c4c4' ? '#666' : x.color }}>{x.label.replace(' 내 입점', '')}</b><br />{x.counts}</figcaption>
+        </figure>))}
+    </div>
   )
 }

@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
 import type maplibregl from 'maplibre-gl'
 import { NEAR_BANDS, OCCUPANCY, SOURCES, TYPE_STYLE, TYPES, type VenueType } from '../config'
-import { distM, duration, f1, located, median, type DataSet, type Venue } from '../data'
-import { BoxDot, DataTable } from './charts'
+import { DATA_DATE } from '../config'
+import { distM, duration, f1, jo, kaplanMeier, located, median, type DataSet, type Venue } from '../data'
+import { BoxDot, DataTable, SurvivalCurves } from './charts'
 import SeoulMap from './SeoulMap'
 import { MapLegend, savePng, saveSvg, Seg, SourceNote, TypeToggles } from './ui'
 
@@ -45,7 +46,31 @@ export default function SurvivalDurationPlot({ data, all }: { data: DataSet; all
   const sentences = groups.filter((g) => g.items.length).map((g) => `${g.key}(n=${g.items.length})의 폐업 전 운영기간 중앙값은 ${f1(median(g.items.map((x) => x.v)))}년이었다${g.items.length < 5 ? ' — 표본이 적어 해석에 주의가 필요하다' : ''}.`)
   const pts = closed.filter((v) => on.includes(v.type))
 
-  return (
+  // 생존곡선: 영업 중 = 기준일까지 관측(중도절단), 폐업 = 사건. 일괄 등록일 의심 개업일·날짜 없음은 제외
+  const END = new Date(DATA_DATE)
+  const life = (v: Venue) => (v.openD && !v.bulkOpen ? ((v.status === '영업' ? END : v.closeD)?.getTime() ?? NaN) - v.openD.getTime() : NaN) / 3.15576e10
+  const surv = TYPES.map((t) => { const xs = all.filter((v) => v.type === t && isFinite(life(v)))
+    return { key: t, n: xs.length, closed: xs.filter((v) => v.status !== '영업').length, ...kaplanMeier(xs.map((v) => ({ t: +life(v).toFixed(2), event: v.status !== '영업' }))) } })
+  const at = (k: typeof surv[number], y: number) => [...k.steps].reverse().find((p) => p.t <= y)?.s ?? 1
+  const longest = [...surv].sort((a, b) => (b.med ?? 99) - (a.med ?? 99))[0], shortest = [...surv].sort((a, b) => (a.med ?? 99) - (b.med ?? 99))[0]
+
+  return (<>
+    <div className="survival">
+      <p className="chart-title">유형별 생존곡선 — 개업 후 t년이 지나도 운영 중인 비율(Kaplan–Meier)</p>
+      <div className="two wide">
+        <SurvivalCurves title="유형별 생존곡선" xmax={50} series={surv} />
+        <div>
+          <table className="mini-table"><thead><tr><th>유형</th><th>운영구간</th><th>폐업</th><th>중앙 생존기간</th><th>10년 뒤 운영 비율</th></tr></thead>
+            <tbody>{surv.map((k) => <tr key={k.key}><td>{TYPE_STYLE[k.key].mark} {k.key}</td><td>{k.n}</td><td>{k.closed}</td><td>{k.med == null ? '50% 미도달' : `${f1(k.med)}년`}</td><td>{f1(at(k, 10) * 100)}%</td></tr>)}</tbody></table>
+          <div className="finding"><p className="f-title">결론</p>
+            <p className="f-head">{longest.med == null ? `${jo(longest.key, '는')} 아직 절반 이상이 운영 중이라 중앙 생존기간이 나오지 않는다.` : `${jo(longest.key, '의')} 중앙 생존기간이 ${f1(longest.med)}년으로 가장 길다.`}</p>
+            <p className="f-mean">{shortest.key !== longest.key && shortest.med != null ? `${jo(shortest.key, '는')} 개업 후 ${f1(shortest.med)}년이면 절반이 문을 닫아 가장 짧다.` : ''} 곡선이 오래 높게 유지될수록 오래 운영된다는 뜻이다.</p></div>
+          <p className="note">중앙 생존기간 = 생존곡선이 50%로 내려오는 시점. 영업 중인 곳은 ‘기준일({DATA_DATE})까지 운영 중’으로 넣고(중도절단) 폐업으로 세지 않습니다. 2000년대 이전 개업 기록이 적어 오래된 영화관은 덜 잡힐 수 있습니다.</p>
+        </div>
+      </div>
+      <DataTable caption="운영구간별 운영기간(영업 중은 기준일까지)" head={['영화관', '유형', '자치구', '상태', '개업일', '폐업일', '운영기간(년)']}
+        rows={[...all].filter((v) => isFinite(life(v))).sort((a, b) => life(b) - life(a)).map((v) => [v.name, v.type, v.gu, v.status, v.open, v.close || '영업 중', +life(v).toFixed(1)])} />
+    </div>
     <div className="split">
       <div className="mapcol">
         <TypeToggles value={on} onChange={setOn} counts={Object.fromEntries(TYPES.map((t) => [t, closed.filter((v) => v.type === t).length]))} />
@@ -82,5 +107,5 @@ export default function SurvivalDurationPlot({ data, all }: { data: DataSet; all
         <p className="note">유형별 폐업 운영구간: {TYPES.map((t) => `${TYPE_STYLE[t].mark} ${t} ${closed.filter((v) => v.type === t).length}`).join(' · ')}</p>
       </div>
     </div>
-  )
+  </>)
 }

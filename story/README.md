@@ -19,6 +19,8 @@ npm run build    # dist/ 에 정적 파일 생성 (어느 경로에 올려도 �
 | `cultural_facilities.geojson` | 있음 | 서울시 문화공간 + 공연장 인허가 (`scripts/build_culture_data.py`) |
 | `seoul_2040_centers.csv` | 명칭만 | 위치 자료 없음 |
 | `subway_stations.geojson`, `subway_buffers.geojson` | 있음 | 서울열린데이터광장 역 정보 → `scripts/build_subway.py`. 노선 형상은 없어 그리지 않음 |
+| `subway_lines.geojson` | 있음 | OpenStreetMap 노선 선형(ODbL, kimmdr2/metroscope 추출본) → `scripts/build_subway.py` |
+| `seoul_grid_250.json` | 있음 | 3-6 밀도 지도용 250m 격자 → `scripts/build_grid.py` |
 | `seoul_centers.geojson` | 개략 | 2040 중심지 대표 역 기준 개략 영역(공식 범위 아님) → `scripts/build_subway.py` |
 | `commerce.geojson` | 없음 | 상권 지표 확정 후. `area_id`, `indicator`, `value`, `year` (제안: `data/verify/commerce_proposal.md`) |
 

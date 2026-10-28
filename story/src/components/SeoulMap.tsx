@@ -12,11 +12,16 @@ export type Point = { v: Venue; mark: Mark; color?: string } // color: 유형 �
 // label: 지물 이름표(캔버스 글자). 영화관 점보다 아래에 놓인다
 export type Overlay = { id: string; data: any; layers: any[]; place: 'under' | 'over'; hover?: (p: any) => string; label?: { text: (p: any) => string; color: string } }
 
-// 지하철역(서울열린데이터광장). 일반역 작은 원, 환승역 큰 이중 원. 영화관보다 아래
-export const stationOverlay = (data: DataSet): Overlay[] => data.stations.status !== 'ok' ? [] : [{ id: 'stations', place: 'over', data: data.stations.data,
-  hover: (p) => `${p.name}역 · ${(Array.isArray(p.lines) ? p.lines : JSON.parse(p.lines)).join(', ')}`,
-  layers: [{ type: 'circle', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['case', ['get', 'transfer'], 2.8, 1.6], 14, ['case', ['get', 'transfer'], 7, 4.5]],
-    'circle-color': '#fff', 'circle-stroke-color': '#8a8a8a', 'circle-stroke-width': ['case', ['get', 'transfer'], 1.8, 0.9] } }] }]
+// 지하철 노선(OSM 선형, 노선 고유색, 반투명)과 역(서울열린데이터광장). 영화관 점이 가장 먼저 보이도록 둘 다 영화관 아래·옅게
+export const stationOverlay = (data: DataSet, dark = false): Overlay[] => [
+  ...(data.lines.status === 'ok' ? [{ id: 'sublines', place: 'over' as const, data: data.lines.data, hover: (p: any) => p.name,
+    layers: [{ type: 'line', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-opacity': dark ? 0.5 : 0.38,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.6, 14, 4] } }] }] : []),
+  ...(data.stations.status === 'ok' ? [{ id: 'stations', place: 'over' as const, data: data.stations.data,
+    hover: (p: any) => `${p.name}역 · ${(Array.isArray(p.lines) ? p.lines : JSON.parse(p.lines)).join(', ')}`,
+    layers: [{ type: 'circle', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['case', ['get', 'transfer'], 2.2, 1.3], 14, ['case', ['get', 'transfer'], 6, 4]],
+      'circle-color': dark ? '#333' : '#fff', 'circle-opacity': 0.9, 'circle-stroke-color': dark ? '#888' : '#9a9a9a', 'circle-stroke-width': ['case', ['get', 'transfer'], 1, 0.5] } }] }] : []),
+]
 
 type Props = {
   data: DataSet
@@ -30,6 +35,8 @@ type Props = {
   reveal?: boolean
   height?: string
   showGu?: boolean // 행정구역 경계·이름
+  resetKey?: unknown // 값이 바뀌면 처음 범위로 돌아간다(장면 전환 등)
+  dark?: boolean // 어두운 바탕(밀도 지도)
 }
 
 const BASE = ['gu', 'gulabel', 'river', 'boundary', 'venues', 'link']
@@ -98,7 +105,8 @@ export default function SeoulMap(p: Props) {
   latest.current = p
   const [tip, setTip] = useState<{ items: Venue[]; lngLat: [number, number]; pinned: boolean } | null>(null)
   const [hint, setHint] = useState<{ x: number; y: number; t: string } | null>(null) // 역 등 보조 레이어 이름
-  const [, force] = useState(0) // 지도·페이지 이동 시 고정 툴팁 위치 갱신
+  const [, force] = useState(0)
+  const home = () => { const m = map.current; m && m.fitBounds(bbox(p.data.boundary.data), { padding: 18, duration: 600 }) } // 지도·페이지 이동 시 고정 툴팁 위치 갱신
 
   useEffect(() => {
     const d = p.data
@@ -180,6 +188,13 @@ export default function SeoulMap(p: Props) {
   }, [])
 
   useEffect(() => { if (map.current) apply(map.current, p) })
+  useEffect(() => { home(); setTip(null) }, [p.resetKey])
+  // 지도가 화면 밖으로 나가면 처음 범위로 되돌려 둔다
+  useEffect(() => {
+    const io = new IntersectionObserver(([e]) => { if (!e.isIntersecting) { const m = map.current; m && m.fitBounds(bbox(p.data.boundary.data), { padding: 18, duration: 0 }) } })
+    io.observe(box.current!)
+    return () => io.disconnect()
+  }, [])
 
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setTip(null); latest.current.onSelect?.(null) } }
@@ -199,6 +214,7 @@ export default function SeoulMap(p: Props) {
     <div className="mapwrap">
       <div className="map" ref={box} role="application" aria-label={p.label} style={p.height ? { height: p.height } : undefined} />
       {hint && <div className="maphint" style={{ left: hint.x, top: hint.y }}>{hint.t}</div>}
+      <button className="maphome ui" onClick={home} title="처음 범위로" aria-label="지도를 처음 범위로">⤢ 처음 범위</button>
       {tipEl}
     </div>
   )
@@ -242,14 +258,21 @@ function apply(m: maplibregl.Map, p: Props) {
   }
   src.setData(pointsFC(p.points, p.selectedId) as any)
   if (p.reveal !== false) m.setPaintProperty('venues', 'icon-opacity', 1)
+  m.setPaintProperty('bg', 'background-color', p.dark ? '#1e1e1e' : '#f4f4f2')
+  if (m.getLayer('gu-fill')) m.setPaintProperty('gu-fill', 'fill-color', p.dark ? '#2a2a2a' : '#ffffff')
+  if (m.getLayer('gu-line')) m.setPaintProperty('gu-line', 'line-color', p.dark ? '#4a4a4a' : '#bdbdbd')
+  if (m.getLayer('boundary')) m.setPaintProperty('boundary', 'line-color', p.dark ? '#888' : '#444')
+  if (m.getLayer('gu-label')) m.setPaintProperty('gu-label', 'icon-opacity', p.dark ? 0.35 : 1)
   for (const id of ['gu-line', 'gu-label']) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', p.showGu === false ? 'none' : 'visible')
   ;(m.getSource('link') as maplibregl.GeoJSONSource).setData({ type: 'FeatureCollection',
     features: p.line ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: p.line } }] : [] })
   const on = new Set((p.extras ?? []).map((o) => o.id))
   for (const o of p.extras ?? []) {
     const s = m.getSource(o.id) as maplibregl.GeoJSONSource | undefined
-    if (s) s.setData(o.data)
-    else {
+    if (s) {
+      s.setData(o.data)
+      o.layers.forEach((l, i) => { for (const [k, v] of Object.entries(l.paint ?? {})) m.setPaintProperty(`${o.id}-${i}`, k, v) }) // 색·투명도·굵기 즉시 반영
+    } else {
       m.addSource(o.id, { type: 'geojson', data: o.data })
       o.layers.forEach((l, i) => m.addLayer({ ...l, id: `${o.id}-${i}`, source: o.id }, o.place === 'under' ? 'anchor-under' : 'anchor-over'))
       if (o.label) {
