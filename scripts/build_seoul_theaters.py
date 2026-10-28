@@ -117,7 +117,7 @@ def apply_corrections(tbl, ev, errors):
         src = c.source + (f" — {c.note}" if c.note else "")
         if c.type == "rename":
             nk = key(c.new)
-            m = (ev.key == ok) & (ev.year >= y) & ev.event.str.startswith("폐관")
+            m = (ev.key == ok) & (ev.year >= y) & (ev.event.str.startswith("폐관") | (ev.event == "전환(목록비교)"))
             ev.loc[m, ["year", "event", "note"]] = [y, "전환", f"→ {c.new} ({src})"]
             if not m.any():
                 ev = add(ev, year=y, key=ok, name=c.old, event="전환", date=c.date, note=f"→ {c.new} ({src})")
@@ -262,6 +262,8 @@ def main():
                     came.remove(c)
                     events.append(dict(year=y, key=c, name=str(mkeys[c]).strip(), event="전환(목록비교)", date="",
                                        note=f"(구){names_by_year[y - 1][g]} 같은 주소"))
+                    events.append(dict(year=y, key=g, name=str(names_by_year[y - 1][g]).strip(), event="전환(목록비교)",
+                                       date="", note=f"→ {str(mkeys[c]).strip()} 같은 주소"))
                     if y >= 2020:
                         errors.append(f"{y}: {names_by_year[y - 1][g]} → {mkeys[c]} — 같은 주소에서 이름이 바뀌었는데 휴폐관·신규 시트에 기록 없음")
                 else:

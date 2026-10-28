@@ -2,6 +2,7 @@
 
 먼저 build_seoul_theaters.py 를 실행해 data/clean/*.csv 를 만든 뒤 실행한다.
 """
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -22,7 +23,8 @@ GUIDE = [
     ("보정", "확인된 사실은 data/manual/corrections.csv 에 기록하고 '보정내역' 시트에 그대로 싣는다."),
     ("시트: 연도별집계", "연도별 극장 수(영업/휴관), 스크린·좌석 합계, 멀티플렉스 수, 특별관 스크린 수(2019~)"),
     ("시트: 극장연도", "연도 × 극장 한 행. 상태, 주소, 스크린·좌석, 특별관, 3D/4D/IMAX(2010~2018), 독립예술 전용관, 작은영화관"),
-    ("시트: 극장목록", "극장(key)마다 한 행. 처음·마지막 등장 연도, 최근 상태, 마지막 이벤트"),
+    ("시트: 극장목록", "극장(key)마다 한 행. 처음·마지막 연도, 2025 상태, 스크린·좌석·특별관, 전환 계보(다음·최종 후속 극장), 폐관 후 변화"),
+    ("시트: 폐관이후", "2025년 기준 영업 중이 아닌 극장(폐관·전환·휴관)과 이후 소식이 있는 극장. 폐관 후 변화·현재 용도를 정리하고, 모르는 칸은 비워 둠(추가조사 필요 = Y)"),
     ("시트: 이벤트", "개관·폐관·휴관·전환·부분폐관. '(목록비교)'는 시트 기록 없이 전년 목록과 비교해 추정한 것"),
     ("시트: 계보", "전환 이벤트만 모은 것(옛 이름 → 새 이름)"),
     ("시트: 휴관진행", "휴관 기간별 한 행(연속 휴관 연도, 결말)"),
@@ -56,6 +58,118 @@ def screens_detail():
         }))
     return pd.concat(frames, ignore_index=True)
 
+# 휴폐관 비고의 전환 대상 표기 → 데이터의 key
+SUCC_ALIASES = {"씨네큐신도림": "씨네Q신도림"}
+
+
+def successor(note):
+    """전환 이벤트 비고에서 다음 극장 이름을 뽑는다."""
+    note = "" if pd.isna(note) else str(note)
+    m = re.search(r"→\s*(.+?)(?:\s+\(|\s*같은 주소|$)", note)
+    if not m:
+        m = re.search(r"([^/]+?)(?:으로|로)\s*전환", note)
+    if not m:
+        return None
+    name = re.sub(r"^[\d.\s월]+", "", m.group(1)).strip()
+    return name or None
+
+
+def theater_master(tbl, ev):
+    """극장(key)마다 한 행 + 폐관·전환 극장의 '폐관 이후' 표."""
+    incoming = ev.event.str.startswith("전환") & ev.note.astype(str).str.startswith("(구)")
+    out = ev[(ev.event.str.startswith("폐관") | ev.event.str.startswith("전환")) & ~incoming].sort_values("year")
+    last_out = out.groupby("key").tail(1).set_index("key")
+    last = tbl.sort_values("year").groupby("key").tail(1).set_index("key")
+    keys = list(last.index) + [k for k in last_out.index if k not in last.index]
+
+    def succ_key(k):
+        if k not in last_out.index or not last_out.loc[k, "event"].startswith("전환"):
+            return None, None
+        n = successor(last_out.loc[k, "note"])
+        if not n:
+            return None, None
+        sk = key(n)
+        return SUCC_ALIASES.get(sk, sk), n
+
+    def final_of(k):
+        seen, cur, yr = {k}, k, last_out.loc[k, "year"] if k in last_out.index else 0
+        while True:
+            nk, _ = succ_key(cur)
+            if not nk or nk in seen:
+                return cur
+            if nk in last_out.index and last_out.loc[nk, "year"] < yr:
+                return nk  # 이후 전환이 아님(같은 key 의 옛 기록)
+            seen.add(nk)
+            cur, yr = nk, last_out.loc[nk, "year"] if nk in last_out.index else yr
+
+    def state(k):
+        if k in last.index and last.loc[k, "year"] == 2025:
+            return last.loc[k, "status"]
+        if k in last_out.index:
+            e = last_out.loc[k]
+            d = re.match(r"\d{4}", str(e.date)) if pd.notna(e.date) else None
+            return ("전환" if e.event.startswith("전환") else "폐관") + f" ({d.group(0) if d else int(e.year)})"
+        return ""
+
+    def name_of(k):
+        return last.loc[k, "name"] if k in last.index else last_out.loc[k, "name"]
+
+    path = ROOT / "data" / "manual" / "after_closure.csv"
+    manual = pd.read_csv(path, dtype=str).fillna("") if path.exists() else pd.DataFrame(columns=["name"])
+    manual["key"] = manual["name"].map(key)
+    manual = manual.set_index("key")
+
+    rows = []
+    for k in keys:
+        lt = last.loc[k] if k in last.index else None
+        lo = last_out.loc[k] if k in last_out.index else None
+        st = state(k)
+        nk, nname = succ_key(k)
+        fk = final_of(k)
+        m = manual.loc[k] if k in manual.index else None
+        fm = manual.loc[fk] if fk in manual.index and fk != k else None
+        kind = m["변화유형"] if m is not None else ""
+        change = m["폐관후_변화"] if m is not None else ""
+        now = m["현재_용도"] if m is not None else ""
+        src = m["출처"] if m is not None else ""
+        if nk and fk != k:
+            fstate = state(fk)
+            kind = kind or "극장 유지 (이름·브랜드 전환)"
+            change = change or f"→ {name_of(nk) if nk in last.index or nk in last_out.index else nname}"
+            if not now:
+                if fstate in ("영업", "휴관"):
+                    now = f"극장 {fstate} 중: {name_of(fk)}"
+                elif fm is not None and fm["현재_용도"]:
+                    now = fm["현재_용도"] + f" (최종 극장 {name_of(fk)} 기준)"
+            src = src or "영진위 목록·휴폐관 비고"
+        rows.append({
+            "key": k, "극장명": name_of(k),
+            "자치구": lt["gu"] if lt is not None else "",
+            "주소(마지막)": lt["address"] if lt is not None else "",
+            "목록 첫해": int(tbl[tbl.key == k].year.min()) if lt is not None else "",
+            "목록 마지막해": int(lt["year"]) if lt is not None else "",
+            "2025 상태": st,
+            "스크린(마지막)": lt["screens"] if lt is not None else "",
+            "좌석(마지막)": lt["seats"] if lt is not None else "",
+            "특별관(마지막)": lt["special_desc"] if lt is not None else "",
+            "운영(마지막)": lt["operator"] if lt is not None else "",
+            "폐관·전환 이벤트": lo["event"] if lo is not None else "",
+            "폐관·전환일": lo["date"] if lo is not None and pd.notna(lo["date"]) else "",
+            "영진위 비고": lo["note"] if lo is not None else "",
+            "다음 극장": (name_of(nk) if (nk in last.index or nk in last_out.index) else nname) if nk else "",
+            "최종 후속 극장": name_of(fk) if fk != k else "",
+            "최종 후속 상태": state(fk) if fk != k else "",
+            "변화유형": kind, "폐관 후 변화": change, "현재 용도": now, "출처": src,
+        })
+    master = pd.DataFrame(rows)
+    closed = master["2025 상태"] != "영업"
+    master["추가조사 필요"] = (closed & (master["현재 용도"] == "")).map({True: "Y", False: ""})
+    after = master[closed | master.key.isin(manual.index)].copy()
+    master = master.sort_values(["2025 상태", "자치구", "극장명"]).reset_index(drop=True)
+    after["_y"] = after["2025 상태"].str.extract(r"(\d{4})")[0].fillna("9999")
+    after = after.sort_values(["_y", "폐관·전환일", "극장명"], key=lambda s: s.astype(str)).drop(columns="_y").reset_index(drop=True)
+    return master, after
+
 
 def main():
     tbl = pd.read_csv(CLEAN / "seoul_theater_year.csv")
@@ -84,20 +198,7 @@ def main():
     summary = summary.merge(sp, on="year", how="left").merge(art, on="year", how="left")
     summary[["스크린", "좌석"]] = summary[["스크린", "좌석"]].astype(int)
 
-    last = tbl.sort_values("year").groupby("key").tail(1).set_index("key")
-    first = tbl.groupby("key").year.min()
-    last_ev = ev[ev.event.str.match(r"^(폐관|전환)")].sort_values("year").groupby("key").tail(1).set_index("key")
-    master = pd.DataFrame({
-        "name": last.name, "gu": last.gu, "address": last.address,
-        "first_year": first, "last_year": last.year,
-        "status_2025": ["영업" if (y == 2025 and s == "영업") else "휴관" if y == 2025 else "폐관/전환"
-                        for y, s in zip(last.year, last.status)],
-        "operator": last.operator, "screens": last.screens, "seats": last.seats,
-        "special_desc": last.special_desc,
-        "end_event": last_ev.event.reindex(last.index), "end_year": last_ev.year.reindex(last.index),
-        "end_date": last_ev.date.reindex(last.index), "end_note": last_ev.note.reindex(last.index),
-    }).reset_index().sort_values(["status_2025", "gu", "name"])
-
+    master, after = theater_master(tbl, ev)
     lineage = ev[ev.event.str.startswith("전환")].sort_values(["year", "name"])
 
     with pd.ExcelWriter(OUT, engine="openpyxl") as w:
@@ -105,6 +206,7 @@ def main():
         summary.to_excel(w, sheet_name="연도별집계", index=False)
         tbl.drop(columns="is_multiplex").to_excel(w, sheet_name="극장연도", index=False)
         master.to_excel(w, sheet_name="극장목록", index=False)
+        after.to_excel(w, sheet_name="폐관이후", index=False)
         ev.to_excel(w, sheet_name="이벤트", index=False)
         lineage.to_excel(w, sheet_name="계보", index=False)
         hyu.to_excel(w, sheet_name="휴관진행", index=False)
@@ -117,6 +219,7 @@ def main():
                 width = max(len(str(c.value or "")) for c in list(column)[:200])
                 ws.column_dimensions[column[0].column_letter].width = min(max(8, width * 1.2), 60)
     print(summary.to_string(index=False))
+    print(after.groupby("2025 상태").size().to_string())
     print(f"\n→ {OUT.relative_to(ROOT)}  (극장 {len(master)}곳, 극장연도 {len(tbl)}행, 스크린상세 {len(scr)}행)")
 
 
