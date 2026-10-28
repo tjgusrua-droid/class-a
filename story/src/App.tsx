@@ -5,12 +5,13 @@ import SeoulMap from './components/SeoulMap'
 import DataAudit from './components/DataAudit'
 import TypeComparison from './components/TypeComparison'
 import Distribution from './components/Distribution'
-import LocationTabs, { LocationSummary } from './components/LocationTabs'
+import LocationTabs from './components/LocationTabs'
+import LocationProfile from './components/LocationProfile'
 import TimelineSection from './components/TimelineSection'
 import SurvivalDurationPlot from './components/SurvivalDurationPlot'
 import { DataStatus, StorySection } from './components/ui'
 
-const SCENES = [['intro', '시작'], ['audit', '자료 검증'], ['types', '1 유형'], ['where', '2 분포'], ['location', '3 입지'], ['change', '4 변화'], ['closed', '5 폐업'], ['sources', '출처']]
+const SCENES = [['intro', '시작'], ['audit', '자료 검증'], ['types', '1 유형'], ['where', '2 분포'], ['location', '3 입지'], ['profile', '3 정리'], ['change', '4 변화'], ['closed', '5 폐업'], ['sources', '출처']]
 
 export default function App() {
   const [data, setData] = useState<DataSet | null>(null)
@@ -74,7 +75,10 @@ export default function App() {
       <StorySection id="location" className="tall">
         <h2><span>3</span>각 유형의 영화관은 어떤 입지 특성을 가지는가?</h2>
         <LocationTabs data={data} open={open} />
-        <LocationSummary data={data} open={open} />
+      </StorySection>
+
+      <StorySection id="profile" className="profile-scene">
+        <LocationProfile data={data} open={open} />
       </StorySection>
 
       <StorySection id="change">

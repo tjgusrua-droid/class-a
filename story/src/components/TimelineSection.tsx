@@ -4,7 +4,7 @@ import { ALL_COLOR, DATA_DATE, ERAS, SOURCES, TYPE_STYLE, TYPES, YEAR_MIN, type 
 import { closedIn, f1, openedIn, operatingIn, type DataSet, type Venue } from '../data'
 import { DataTable, MetricChart } from './charts'
 import SeoulMap, { type Point } from './SeoulMap'
-import { MapLegend, savePng, saveSvg, Seg, SourceNote, TypeSelect } from './ui'
+import { Finding, MapLegend, savePng, saveSvg, Seg, SourceNote, TypeSelect } from './ui'
 
 const LAST = new Date(DATA_DATE)
 const YEARS = Array.from({ length: LAST.getFullYear() - YEAR_MIN + 1 }, (_, i) => YEAR_MIN + i)
@@ -47,46 +47,53 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
   const unsure = YEARS.reduce((a, y) => a + (row(y)?.opened_unsure ?? 0), 0)
   const color = sel ? TYPE_STYLE[sel].color : ALL_COLOR
 
+  const eraRows = ERAS.map((e) => { const n = Math.min(e.to, LAST.getFullYear()) - e.from + 1; return { e, n, o: sumR('opened', e), c: sumR('closed', e) } })
+  const a0 = row(YEAR_MIN)?.operating, a1 = row(2025)?.operating
+
   return (
-    <div className="split">
-      <div className="mapcol">
+    <div className="tl">
+      <div className="tl-map">
         <SeoulMap data={data} label={`${range[0]}–${range[1]} 영화관 운영·개업·폐업 지도`} points={points} onMap={(m) => (map.current = m)} />
         <MapLegend types={sel ? [sel] : [...TYPES]} marks={['fill', 'new', 'hollow']} />
         <p className="note">{E ? `${E.label}: 구간 끝 해에 운영 중(채움), 구간 안 개업(검은 테), 구간 안 폐업(외곽선)` : `${year}년: 운영 중(채움), 이 해 개업(검은 테), 이 해 폐업(외곽선)`} · 지도 {points.filter((p) => p.v.lon != null).length}곳(좌표 없음 {points.filter((p) => p.v.lon == null).length}곳)</p>
       </div>
-      <div className="chart">
+      <div className="tl-side">
         <div className="row"><TypeSelect value={sel} onChange={setSel} /></div>
         <div className="row ui">
           <label className="slider">연도 <input type="range" min={YEAR_MIN} max={YEARS[YEARS.length - 1]} value={year} onChange={(e) => { setYear(+e.target.value); setEra(null) }} /> <b>{year}</b></label>
           <Seg label="시기" value={era ?? ''} onChange={(v) => setEra(v === era ? null : v || null)} options={ERAS.map((e) => ({ v: e.id, label: e.label }))} />
         </div>
         <div className="keyfig">
-          <div><b>{yr?.operating ?? '—'}</b><span>{year}년 운영 영화관</span></div>
-          <div><b>{yr?.opened ?? '—'}</b><span>개업{yr?.opened_unsure ? ` (+개업일 불확실 ${yr.opened_unsure})` : ''}</span></div>
+          <div><b>{yr?.operating ?? '—'}</b><span>{year}년 운영</span></div>
+          <div><b>{yr?.opened ?? '—'}</b><span>개업{yr?.opened_unsure ? ` (+불확실 ${yr.opened_unsure})` : ''}</span></div>
           <div><b>{yr?.closed ?? '—'}</b><span>폐업</span></div>
           <div><b>{yr?.screens ?? '자료 미확보'}</b><span>스크린(KOFIC)</span></div>
         </div>
+        {a0 != null && a1 != null && <Finding items={[
+          { head: <>{sel ?? '전체'} 운영 영화관은 {YEAR_MIN}년 {a0}곳에서 2025년 {a1}곳이 되었다.</>,
+            mean: <>연평균 개업은 {eraRows.map((x) => `${x.e.label} ${f1(x.o / x.n)}곳`).join(' → ')}, 연평균 폐업은 {eraRows.map((x) => `${f1(x.c / x.n)}곳`).join(' → ')}로 바뀌었다.</> }]} />}
         <div className="row ui metricpick" role="group" aria-label="지표 선택">
-          {(Object.keys(METRICS) as MetricKey[]).map((k) => <button key={k} aria-pressed={metric === k} onClick={() => setMetric(k)}>{METRICS[k].label.replace(/\(.*\)/, '')}</button>)}
+          {(Object.keys(METRICS) as MetricKey[]).map((k) => <button key={k} aria-pressed={metric === k} onClick={() => setMetric(k)}>{METRICS[k].label.replace(/\(.*\)/, '').replace('연도별 ', '')}</button>)}
         </div>
         <MetricChart ref={svg} title={M.label} label={`${M.label} — ${sel ?? '전체'}`} years={YEARS} values={values} down={metric === 'flow' ? series('closed') : undefined}
           kind={M.kind} color={color}
-          parts={sel ? undefined : TYPES.map((t) => ({ key: t, values: series(metric === 'flow' ? 'opened' : metric, t), down: metric === 'flow' ? series('closed', t) : undefined }))} unit={M.unit} year={year} onYear={(y) => { setYear(y); setEra(null) }} range={E ? range : null} partialYear={LAST.getFullYear()} />
-        <table className="mini-table">
-          <thead><tr><th>시기</th><th>기간</th><th>개업 총수 (연평균)</th><th>폐업 총수 (연평균)</th></tr></thead>
-          <tbody>{ERAS.map((e) => { const n = Math.min(e.to, LAST.getFullYear()) - e.from + 1, o = sumR('opened', e), c = sumR('closed', e)
-            return <tr key={e.id} className={era === e.id ? 'on' : ''}><td>{e.label}</td><td>{n}년{e.to >= LAST.getFullYear() ? '(2026은 9월까지)' : ''}</td><td>{o} ({f1(o / n)})</td><td>{c} ({f1(c / n)})</td></tr> })}</tbody>
-        </table>
-        <p className="takeaway">{(() => { const a = row(YEAR_MIN)?.operating, b = row(2025)?.operating
-          return a != null && b != null ? `${sel ?? '전체'} 운영 영화관은 ${YEAR_MIN}년 ${a}곳에서 2025년 ${b}곳이 되었다. 같은 기간 개업 ${YEARS.filter((y) => y <= 2025).reduce((s, y) => s + (row(y)?.opened ?? 0), 0)}곳, 폐업 ${YEARS.filter((y) => y <= 2025).reduce((s, y) => s + (row(y)?.closed ?? 0), 0)}곳이 기록되었다.` : '' })()}</p>
+          parts={sel ? undefined : TYPES.map((t) => ({ key: t, values: series(metric === 'flow' ? 'opened' : metric, t), down: metric === 'flow' ? series('closed', t) : undefined }))}
+          unit={M.unit} year={year} onYear={(y) => { setYear(y); setEra(null) }} range={E ? range : null} partialYear={LAST.getFullYear()} />
         <div className="ui">
           <button className="link" onClick={() => savePng(map.current?.getCanvas(), `4_지도_${range.join('-')}`)}>지도 PNG 저장</button>
           <button className="link" onClick={() => saveSvg(svg.current, `4_${metric}`)}>그래프 SVG 저장</button>
         </div>
-        <SourceNote source={SOURCES.venues}
-          n={`운영구간 ${vs.length}개(${sel ?? '전체'})`}
-          method={<>t년 운영 = 개업일 ≤ t년 말 이고 (영업 중이거나 폐업일 ≥ t년 1월 1일). 개업·폐업 = LOCALDATA 날짜. 스크린·좌석 = KOFIC 2010~2025, 특별관 = 2019~2025(그 밖은 자료 미확보, 현재 값을 과거로 옮기지 않음)</>}
-          caution={<>같은 구에서 4곳 이상이 같은 날 인허가된 날짜(1998-03-09 강남, 2003-02-12 종로, 2003-05-20 중구)는 일괄 등록일로 보고 개업 수에서 뺐습니다(전체 {unsure}건, 운영 수에는 포함). 그래서 2003년 운영 수가 크게 오르지만 실제 개업 증가가 아닙니다. 음영(금융위기·코로나19)은 시기 표시일 뿐 원인을 뜻하지 않습니다.</>} />
+        <details className="table ui">
+          <summary>시기별 개업·폐업 표 · 자료 기준</summary>
+          <table className="mini-table">
+            <thead><tr><th>시기</th><th>기간</th><th>개업 총수 (연평균)</th><th>폐업 총수 (연평균)</th></tr></thead>
+            <tbody>{eraRows.map(({ e, n, o, c }) => <tr key={e.id} className={era === e.id ? 'on' : ''}><td>{e.label}</td><td>{n}년{e.to >= LAST.getFullYear() ? '(2026은 9월까지)' : ''}</td><td>{o} ({f1(o / n)})</td><td>{c} ({f1(c / n)})</td></tr>)}</tbody>
+          </table>
+          <SourceNote source={SOURCES.venues}
+            n={`운영구간 ${vs.length}개(${sel ?? '전체'})`}
+            method={<>t년 운영 = 개업일 ≤ t년 말 이고 (영업 중이거나 폐업일 ≥ t년 1월 1일). 개업·폐업 = LOCALDATA 날짜. 스크린·좌석 = KOFIC 2010~2025, 특별관 = 2019~2025(그 밖은 자료 미확보, 현재 값을 과거로 옮기지 않음)</>}
+            caution={<>같은 구에서 4곳 이상이 같은 날 인허가된 날짜(1998-03-09 강남, 2003-02-12 종로, 2003-05-20 중구)는 일괄 등록일로 보고 개업 수에서 뺐습니다(전체 {unsure}건, 운영 수에는 포함). 그래서 2003년 운영 수가 크게 오르지만 실제 개업 증가가 아닙니다. 음영(금융위기·코로나19)은 시기 표시일 뿐 원인을 뜻하지 않습니다. 값이 두 무리로 떨어지면 세로축 중간을 생략합니다.</>} />
+        </details>
         <DataTable caption={`연도별 지표 — ${sel ?? '전체'}`} head={['연도', '운영', '개업', '폐업', '누적 개업', '누적 폐업', '스크린', '좌석', '특별관']}
           rows={YEARS.map((y) => { const r = row(y); return [y, r?.operating, r?.opened, r?.closed, r?.cum_opened, r?.cum_closed, r?.screens, r?.seats, r?.special] })} />
       </div>

@@ -4,7 +4,7 @@ import { NEAR_BANDS, OCCUPANCY, SOURCES, TYPE_STYLE, TYPES, type VenueType } fro
 import { DATA_DATE } from '../config'
 import { distM, duration, f1, jo, kaplanMeier, located, median, type DataSet, type Venue } from '../data'
 import { BoxDot, DataTable, SurvivalCurves } from './charts'
-import SeoulMap from './SeoulMap'
+import SeoulMap, { regionOverlay } from './SeoulMap'
 import { MapLegend, savePng, saveSvg, Seg, SourceNote, TypeToggles } from './ui'
 
 // 서울시 5개 생활권(도시기본계획의 권역 구분)
@@ -74,9 +74,9 @@ export default function SurvivalDurationPlot({ data, all }: { data: DataSet; all
     <div className="split">
       <div className="mapcol">
         <TypeToggles value={on} onChange={setOn} counts={Object.fromEntries(TYPES.map((t) => [t, closed.filter((v) => v.type === t).length]))} />
-        <SeoulMap data={data} label="폐업 영화관 지도" onMap={(m) => (map.current = m)} selectedId={pick} onSelect={(v) => setPick(v?.id ?? null)}
+        <SeoulMap data={data} label="폐업 영화관 지도" onMap={(m) => (map.current = m)} selectedId={pick} onSelect={(v) => setPick(v?.id ?? null)} extras={crit === '권역' ? regionOverlay(data) : []}
           points={pts.map((v) => ({ v, mark: group && keyOf(v) !== group ? 'dim' : 'hollow' }))} />
-        <MapLegend types={on} marks={group ? ['hollow', 'dim'] : ['hollow']} />
+        <MapLegend types={on} marks={group ? ['hollow', 'dim'] : ['hollow']} extra={crit === '권역' && <span>┅ 5개 생활권(권역) 경계</span>} />
         <p className="note">폐업·취소 운영구간 {pts.length}개(좌표 없음 {pts.filter((v) => !located(v)).length}). 집단을 누르면 지도에서 강조됩니다.</p>
       </div>
       <div className="chart">

@@ -65,7 +65,7 @@
   - 일괄 등록일 의심: 같은 구에서 4개 장소 이상이 같은 인허가일(1998-03-09 강남, 2003-02-12 종로, 2003-05-20 중구) → 개업 수에서 제외
 - `audit_venues.py`: `data_audit_2026.md`, `story/public/data/audit.json`
 - `build_subway.py`: `data/raw/subway/seoul_subway_stations_src.csv`(서울열린데이터광장 역 정보, 공공누리 1유형, kyckang/SeoulTransitMap_data 2026-10-28 재배포본) + `data/raw/subway/osm_lines_network.json`(OSM 노선 선형, ODbL) → 역·노선·역세권 버퍼(EPSG:5186 합집합)·2040 중심지 개략 영역
-- `build_grid.py`: 3-6 밀도 지도용 서울 250m 격자 중심점(`story/public/data/seoul_grid_250.json`)
+- `build_regions.py`: 자치구 경계를 5개 생활권(도심·동북·서북·서남·동남권)으로 합친 경계(`story/public/data/seoul_regions.geojson`)
 - `make_occupancy_review.py`: 건축적 입점 형태 확인 시트 `data/manual/occupancy_review.xlsx`(✍ 칸만 사람이 채움, 다시 실행해도 입력값 보존). 채운 뒤 `build_venues.py` → `build_web_data.py` → `export_master.py`로 반영
 - `export_master.py`: 엑셀에 `운영기간` 시트(운영구간별 운영기간, 유형별 Kaplan–Meier 중앙 생존기간) 추가
 - `data/manual/seoul_2040_centers.csv`: 2040 중심지 명칭·위계·대표 역. 개략 영역 = 대표 역 반경(도심 1.2km·광역 0.9km·지역 0.6km, 표현값이며 공식 범위 아님). `commerce_proposal.md`: 상권 변수 제안

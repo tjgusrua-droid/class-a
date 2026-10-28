@@ -10,7 +10,7 @@ export type Mark = 'fill' | 'hollow' | 'new' | 'dim' // 영업 / 폐업 / 이 �
 export type Point = { v: Venue; mark: Mark; color?: string } // color: 유형 색 대신 쓸 색(예: 입점 형태)
 // place: under = 행정경계 아래(버퍼·중심지 영역), over = 경계·지명 위, 영화관 아래(역·문화시설)
 // label: 지물 이름표(캔버스 글자). 영화관 점보다 아래에 놓인다
-export type Overlay = { id: string; data: any; layers: any[]; place: 'under' | 'over'; hover?: (p: any) => string; label?: { text: (p: any) => string; color: string } }
+export type Overlay = { id: string; data: any; layers: any[]; place: 'under' | 'over'; hover?: (p: any) => string; label?: { text: (p: any) => string; color: string; size?: number } }
 
 // 지하철 노선(OSM 선형, 노선 고유색, 반투명)과 역(서울열린데이터광장). 영화관 점이 가장 먼저 보이도록 둘 다 영화관 아래·옅게
 export const stationOverlay = (data: DataSet, dark = false): Overlay[] => [
@@ -22,6 +22,11 @@ export const stationOverlay = (data: DataSet, dark = false): Overlay[] => [
     layers: [{ type: 'circle', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['case', ['get', 'transfer'], 2.2, 1.3], 14, ['case', ['get', 'transfer'], 6, 4]],
       'circle-color': dark ? '#333' : '#fff', 'circle-opacity': 0.9, 'circle-stroke-color': dark ? '#888' : '#9a9a9a', 'circle-stroke-width': ['case', ['get', 'transfer'], 1, 0.5] } }] }] : []),
 ]
+
+// 서울시 5개 생활권(권역) 경계와 이름
+export const regionOverlay = (data: DataSet): Overlay[] => data.regions.status !== 'ok' ? [] : [{ id: 'regions', place: 'over', data: data.regions.data,
+  label: { text: (p) => p.name, color: '#7a4a1e', size: 1.5 },
+  layers: [{ type: 'line', paint: { 'line-color': '#8a5a2b', 'line-width': 2.6, 'line-dasharray': [3, 2], 'line-opacity': 0.85 } }] }]
 
 type Props = {
   data: DataSet
@@ -37,6 +42,7 @@ type Props = {
   showGu?: boolean // 행정구역 경계·이름
   resetKey?: unknown // 값이 바뀌면 처음 범위로 돌아간다(장면 전환 등)
   dark?: boolean // 어두운 바탕(밀도 지도)
+  pointScale?: number // 영화관 기호 크기 배율(밀도 지도에서는 작게)
 }
 
 const BASE = ['gu', 'gulabel', 'river', 'boundary', 'venues', 'link']
@@ -258,6 +264,8 @@ function apply(m: maplibregl.Map, p: Props) {
   }
   src.setData(pointsFC(p.points, p.selectedId) as any)
   if (p.reveal !== false) m.setPaintProperty('venues', 'icon-opacity', 1)
+  const k = p.pointScale ?? 1
+  for (const id of ['venues', 'venues-sel']) m.setLayoutProperty(id, 'icon-size', ['interpolate', ['linear'], ['zoom'], 9, 0.62 * k, 14, 1 * k])
   m.setPaintProperty('bg', 'background-color', p.dark ? '#1e1e1e' : '#f4f4f2')
   if (m.getLayer('gu-fill')) m.setPaintProperty('gu-fill', 'fill-color', p.dark ? '#2a2a2a' : '#ffffff')
   if (m.getLayer('gu-line')) m.setPaintProperty('gu-line', 'line-color', p.dark ? '#4a4a4a' : '#bdbdbd')
@@ -279,7 +287,7 @@ function apply(m: maplibregl.Map, p: Props) {
         const L = o.label
         o.data.features.forEach((f: any) => { const t = L.text(f.properties); if (!m.hasImage(`lbl:${t}`)) m.addImage(`lbl:${t}`, textIcon(t, L.color, 700), { pixelRatio: 2 }) })
         m.addSource(`${o.id}-lbl`, { type: 'geojson', data: { type: 'FeatureCollection', features: o.data.features.map((f: any) => ({ type: 'Feature', properties: { t: L.text(f.properties) }, geometry: { type: 'Point', coordinates: f.properties.label } })) } })
-        m.addLayer({ id: `${o.id}-lbl`, type: 'symbol', source: `${o.id}-lbl`, layout: { 'icon-image': ['concat', 'lbl:', ['get', 't']], 'icon-allow-overlap': true, 'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.8, 13, 1.1] } }, 'anchor-over')
+        m.addLayer({ id: `${o.id}-lbl`, type: 'symbol', source: `${o.id}-lbl`, layout: { 'icon-image': ['concat', 'lbl:', ['get', 't']], 'icon-allow-overlap': true, 'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.8 * (L.size ?? 1), 13, 1.1 * (L.size ?? 1)] } }, 'anchor-over')
       }
     }
   }

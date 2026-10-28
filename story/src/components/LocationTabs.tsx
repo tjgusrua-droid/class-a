@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { CENTER_COLOR, CENTER_LEVELS, CULTURE_CATS, CULTURE_RADII, OCC_COLOR, OCCUPANCY, RADII, SOURCES, TYPES, TYPE_STYLE, type VenueType } from '../config'
 import { distM, f1, jo, located, median, nearest, pct, type DataSet, type Venue } from '../data'
-import { CountBars, CumLines, DataTable, Donut, Dumbbell } from './charts'
+import { CountBars, DataTable, Donut, MeanBars } from './charts'
 import { OccupancyTiles } from './Isometric'
-import SeoulMap, { stationOverlay, type Overlay } from './SeoulMap'
-import { DataStatus, Finding, MapLegend, saveSvg, Seg, SourceNote, Sym, TypeToggles } from './ui'
+import SeoulMap, { regionOverlay, stationOverlay, type Overlay } from './SeoulMap'
+import { DataStatus, Finding, MapLegend, Seg, SourceNote, Sym, TypeToggles } from './ui'
 
 const STEPS = ['지하철 접근성', '서울시 중심지 체계', '상권 특성', '건축적 입점 형태', '문화시설 인접성', '영화관 간 인접성']
 const NO_MAP = [2, 3] // 지도가 필요 없는 단계(상권 자료 없음, 입점 형태는 모식도로)
-const GRAYS = ['#222', '#777', '#c9c9c9']
+const GRAYS = ['#222', '#6a6a6a', '#aaa', '#dcdcdc']
+const BANDS = ['500m 이내', '0.5~1km', '1~2km', '2km 초과']
+const band = (m: number) => BANDS[m <= 500 ? 0 : m <= 1000 ? 1 : m <= 2000 ? 2 : 3]
 const BUF = { 일반역: { color: '#5b8fb9', opacity: 0.16 }, 환승역: { color: '#d0703c', opacity: 0.22 } }
 
 // 유형별 범주 구성비(100% 막대)
@@ -30,8 +32,8 @@ function CategoryBars({ vs, cats, of, title }: { vs: Venue[]; cats: string[]; of
 }
 
 const pt = (f: any) => ({ lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] })
-const mix = (a: string, b: string, k: number) => { const h = (x: string) => [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16))
-  const [p, q] = [h(a), h(b)]; return `rgb(${p.map((v, i) => Math.round(v + (q[i] - v) * k)).join(',')})` }
+const mix = (a: string, b: string, k: number, alpha = 1) => { const h = (x: string) => [1, 3, 5].map((i) => parseInt(x.slice(i, i + 2), 16))
+  const [p, q] = [h(a), h(b)]; return `rgba(${p.map((v, i) => Math.round(v + (q[i] - v) * k)).join(',')},${alpha})` }
 const narrowNow = () => matchMedia('(max-width: 1000px)').matches
 
 export default function LocationTabs({ data, open }: { data: DataSet; open: Venue[] }) {
@@ -47,9 +49,9 @@ export default function LocationTabs({ data, open }: { data: DataSet; open: Venu
   const [cultR, setCultR] = useState<number | 'nearest'>(500)
   const [nnMetric, setNnMetric] = useState<'same' | 'other' | 'any'>('same')
   const [dens, setDens] = useState<VenueType>('독립·예술영화관')
+  const [subOn, setSubOn] = useState(true) // 3-6 배경 지하철
   const [pick, setPick] = useState<string | null>(null)
   const wrap = useRef<HTMLDivElement>(null)
-  const svg = useRef<SVGSVGElement>(null)
   const pts = open.filter(located)
 
   // 넓은 화면: 이 장면 높이 안에서 스크롤 위치로 단계를 고른다(지도·그래프가 한 화면에서 항상 같은 단계를 보여줌)
@@ -93,18 +95,6 @@ export default function LocationTabs({ data, open }: { data: DataSet; open: Venu
   const nn = useMemo(() => Object.fromEntries(pts.map((v) => [v.id, {
     any: nearest(v, pts), same: nearest(v, pts, (o) => o.type === v.type), other: nearest(v, pts, (o) => o.type !== v.type),
     count: pts.filter((o) => o.id !== v.id && distM(v, o) <= 1000).length }])), [open])
-  // 3-6 밀도: 250m 격자 중심에서 반경 1km 안 해당 유형 영화관 수
-  const grid = useMemo(() => {
-    if (data.grid.status !== 'ok') return null
-    const g = data.grid.data, hy = g.size / 2 / 111320, xs = pts.filter((v) => v.type === dens)
-    const feats = g.centers.map(([lon, lat]: number[]) => {
-      const n = xs.filter((v) => distM(v, { lon, lat }) <= 1000).length
-      if (!n) return null
-      const hx = g.size / 2 / (111320 * Math.cos((lat * Math.PI) / 180))
-      return { type: 'Feature', properties: { n }, geometry: { type: 'Polygon', coordinates: [[[lon - hx, lat - hy], [lon + hx, lat - hy], [lon + hx, lat + hy], [lon - hx, lat + hy], [lon - hx, lat - hy]]] } }
-    }).filter(Boolean)
-    return { fc: { type: 'FeatureCollection', features: feats }, max: Math.max(1, ...feats.map((f: any) => f.properties.n)) }
-  }, [open, dens, data.grid.status])
   const picked = pts.find((v) => v.id === pick)
   const pn = picked ? nn[picked.id][nnMetric] : null
   // 3-2: 중심지 개략 영역(대표 역 반경). 겹치면 높은 위계 우선
@@ -117,18 +107,21 @@ export default function LocationTabs({ data, open }: { data: DataSet; open: Venu
   const best = <T,>(xs: T[], f: (x: T) => number, hi = true) => [...xs].sort((a, b) => (hi ? f(b) - f(a) : f(a) - f(b)))[0]
   const nT = (t: VenueType, p = '') => `${t}(n=${ofType(t).length})` + jo(t, p).slice(t.length)
   const gus = (t: VenueType) => new Set(ofType(t).map((v) => v.gu)).size
-  const nnMed = (t: VenueType, k: 'any' | 'same' | 'other') => median(ofType(t).map((v) => nn[v.id][k]?.dist).filter((x): x is number => x != null)) / 1000
-  const cntMed = (t: VenueType) => median(ofType(t).map((v) => nn[v.id].count))
+  const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN)
+  const nnMean = (t: VenueType, k: 'any' | 'same' | 'other') => avg(ofType(t).map((v) => nn[v.id][k]?.dist).filter((x): x is number => x != null)) / 1000
+  const cntMean = (t: VenueType) => avg(ofType(t).map((v) => nn[v.id].count))
   const occTop = (t: VenueType) => { const xs = ofType(t).filter((v) => v.occupancy !== '확인 불가'); const o = OCCUPANCY.map((c) => ({ c, k: xs.filter((v) => v.occupancy === c).length })).sort((a, b) => b.k - a.k)[0]
     return { n: xs.length, ...o } }
   const occShort = (c: string) => c.replace(' 내 입점', '').replace('복합상업시설(', '').replace(')', '').replace('기타(', '').replace('(영화관 전용·중심', '')
 
+  const dc = TYPE_STYLE[dens].color
   const extras: Overlay[] = []
   if (step === 0 && data.buffers.status === 'ok') extras.push({ id: 'buffers', place: 'under',
     data: { ...data.buffers.data, features: data.buffers.data.features.filter((f: any) => f.properties.radius === radius && (bufKinds as any)[f.properties.kind]) },
     layers: [{ type: 'fill', paint: { 'fill-color': ['match', ['get', 'kind'], '환승역', buf.환승역.color, buf.일반역.color], 'fill-opacity': ['match', ['get', 'kind'], '환승역', buf.환승역.opacity, buf.일반역.opacity] } },
       { type: 'line', paint: { 'line-color': bufLine.color, 'line-width': bufLine.width, 'line-opacity': 0.6 } }] })
-  if (step === 0 || step === 5) extras.push(...stationOverlay(data, step === 5))
+  if (step === 0 || (step === 5 && subOn)) extras.push(...stationOverlay(data, step === 5))
+  if (step === 1) extras.push(...regionOverlay(data))
   const lvColor = ['match', ['get', 'level'], '3도심', CENTER_COLOR['3도심'], '7광역중심', CENTER_COLOR['7광역중심'], CENTER_COLOR['12지역중심']]
   if (step === 1 && centers.length) extras.push({ id: 'centers', place: 'under', data: data.centers.data,
     hover: (p) => `${p.name} · ${p.level} (대표 역: ${(Array.isArray(p.anchor_names) ? p.anchor_names : JSON.parse(p.anchor_names)).join(', ')})`,
@@ -137,11 +130,11 @@ export default function LocationTabs({ data, open }: { data: DataSet; open: Venu
       { type: 'fill', paint: { 'fill-color': lvColor, 'fill-opacity': 0.3 } }] })
   if (step === 4 && cult.length) extras.push({ id: 'culture', place: 'over', data: { type: 'FeatureCollection', features: cult },
     layers: [{ type: 'circle', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 1.8, 14, 4], 'circle-color': '#fff', 'circle-stroke-color': '#555', 'circle-stroke-width': 1 } }] })
-  const dc = TYPE_STYLE[dens].color
-  if (step === 5 && grid) extras.push({ id: 'density', place: 'under', data: grid.fc,
-    layers: [{ type: 'fill', paint: { 'fill-color': ['interpolate', ['linear'], ['get', 'n'], 1, mix(dc, '#1e1e1e', 0.6), Math.max(2, grid.max / 2), dc, Math.max(3, grid.max), mix(dc, '#ffffff', 0.6)],
-      'fill-opacity': 0.92, 'fill-outline-color': 'rgba(0,0,0,0.25)' } }] })
-
+    // 3-6 밀도: 영화관 점의 커널 밀도(히트맵). 반경은 확대 수준에 맞춰 약 1.5km
+  if (step === 5) extras.push({ id: 'density', place: 'under', data: { type: 'FeatureCollection', features: ofType(dens).map((v) => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [v.lon, v.lat] } })) },
+    layers: [{ type: 'heatmap', paint: { 'heatmap-weight': 1, 'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 9, 0.9, 14, 1.5],
+      'heatmap-radius': ['interpolate', ['exponential', 2], ['zoom'], 9, 15, 14, 480], 'heatmap-opacity': 0.95,
+      'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'], 0, 'rgba(0,0,0,0)', 0.08, mix(dc, '#1e1e1e', 0.55, 0.55), 0.35, mix(dc, '#1e1e1e', 0.15), 0.7, dc, 1, mix(dc, '#ffffff', 0.7)] } }] })
   const mapPts = pts.filter((v) => (step === 5 ? v.type === dens : on.includes(v.type))).map((v) => ({ v, mark: 'fill' as const }))
   const line: [number, number][] | null = step === 5 && picked && pn ? [[picked.lon!, picked.lat!], [pn.venue.lon!, pn.venue.lat!]] : null
 
@@ -221,39 +214,40 @@ export default function LocationTabs({ data, open }: { data: DataSet; open: Venu
             return <td key={x.t}><span className="bar" style={{ width: `${r.share * 0.6}px`, background: TYPE_STYLE[x.t].color }} /> {f1(r.share)}%</td> })}</tr>)}</tbody>
         </table></div>}
         {cultStats ? (() => {
-          const any = (t: VenueType) => pct(cultStats.find((x) => x.t === t)!.all.filter((k) => k > 0).length, cultStats.find((x) => x.t === t)!.n)
-          const md = (t: VenueType) => median(cultStats.find((x) => x.t === t)!.all), hi = best(TYPES, md), lo = best(TYPES, md, false)
-          return <Finding items={[{ head: <>반경 {cultR}m 안 문화시설 수(중앙값)는 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${md(t)}곳`).join(', ')}이었다.</>,
-            mean: <>{hi} 주변에 문화시설이 가장 촘촘하고, {lo} 주변은 상대적으로 적다. 1곳 이상 있는 비율은 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${f1(any(t))}%`).join(', ')}이다.</> }]} />
-        })() : (() => { const md = (t: VenueType) => median(ofType(t).map(cultNearest)), lo = best(TYPES, md, false)
-          return <Finding items={[{ head: <>최근접 문화시설까지 거리(중앙값)는 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${Math.round(md(t))}m`).join(', ')}였다.</>, mean: <>{jo(lo, '가')} 문화시설과 가장 가까이 자리한다.</> }]} /> })()}
+          const rank = (t: VenueType) => [...cultStats.find((x) => x.t === t)!.cats].sort((a, b) => b.share - a.share)
+          const winner = (c: string) => best(TYPES, (t) => cultStats.find((x) => x.t === t)!.cats.find((y) => y.c === c)!.share)
+          const byType = TYPES.map((t) => ({ t, cats: cultOn.filter((c) => winner(c) === t && cultStats.find((x) => x.t === t)!.cats.find((y) => y.c === c)!.share > 0) })).filter((x) => x.cats.length)
+          return <Finding items={[
+            ...TYPES.map((t) => { const [a, b] = rank(t)
+              return { head: <>{jo(t, '는')} {a.c}과 가장 많이 인접해 있다.</>,
+                mean: <>반경 {cultR}m 안에 {a.c}이 있는 비율 {f1(a.share)}%{b && b.share > 0 ? `, 다음은 ${b.c} ${f1(b.share)}%` : ''}.</> } }),
+            { head: <>시설 분류별로 가장 가까이 있는 유형</>, mean: <>{byType.map((x) => `${x.t} — ${x.cats.join('·')}`).join(' / ')}</> },
+          ]} />
+        })() : (() => { const md = (t: VenueType) => avg(ofType(t).map(cultNearest)), lo = best(TYPES, md, false)
+          return <Finding items={[{ head: <>최근접 문화시설까지 평균 거리는 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${Math.round(md(t))}m`).join(', ')}였다.</>, mean: <>{jo(lo, '가')} 문화시설과 가장 가까이 자리한다.</> }]} /> })()}
         <p className="note">문화시설 {cult.length.toLocaleString()}곳(선택 분류). 가깝다는 사실이 시설 간 협력이나 이용 연계를 뜻하지 않습니다.</p>
       </>
     }
-    const lab = { same: '같은 유형', other: '다른 유형', any: '어떤 영화관이든' }[nnMetric]
-    const ch = best(TYPES, cntMed), cl = best(TYPES, cntMed, false), sf = best(TYPES, (t) => nnMed(t, 'same')), sn = best(TYPES, (t) => nnMed(t, 'same'), false)
+    const lab = { same: '같은 유형', other: '다른 유형', any: '아무' }[nnMetric]
+    const ch = best(TYPES, cntMean), cl = best(TYPES, cntMean, false), sf = best(TYPES, (t) => nnMean(t, 'same')), sn = best(TYPES, (t) => nnMean(t, 'same'), false)
     return <>
       <div className="ctrl ui">
-        <span>밀도 지도</span>
         <Seg label="밀도 지도 유형" value={dens} onChange={(t) => { setDens(t); setPick(null) }} options={TYPES.map((t) => ({ v: t, label: TYPE_STYLE[t].short }))} />
-        {grid && <span className="ramp">1<i style={{ background: `linear-gradient(90deg, ${mix(dc, '#1e1e1e', 0.6)}, ${dc}, ${mix(dc, '#ffffff', 0.6)})` }} />{grid.max}곳</span>}
+        <label><input type="checkbox" checked={subOn} onChange={() => setSubOn(!subOn)} /> 지하철 노선·역</label>
+        <span className="ramp">옅음<i style={{ background: `linear-gradient(90deg, ${mix(dc, '#1e1e1e', 0.55)}, ${dc}, ${mix(dc, '#ffffff', 0.7)})` }} />진함 = 많이 모임</span>
       </div>
-      <p className="chart-title">가장 가까운 {lab} 영화관이 d km 안에 있는 비율</p>
-      <Seg label="거리 기준" value={nnMetric} onChange={setNnMetric} options={[{ v: 'same' as const, label: '같은 유형' }, { v: 'other' as const, label: '다른 유형' }, { v: 'any' as const, label: '전체' }]} />
-      <CumLines ref={svg} title={`가장 가까운 ${lab} 영화관까지 거리 누적 비율`} xmax={3} xlabel="거리(km)"
-        series={TYPES.map((t) => ({ key: t, values: ofType(t).map((v) => nn[v.id][nnMetric]?.dist).filter((x): x is number => x != null).map((x) => x / 1000) }))} />
-      <p className="chart-title">거리 중앙값 — 같은 유형(●)과 다른 유형(○)</p>
-      <Dumbbell title="유형별 같은 유형·다른 유형 영화관까지 거리 중앙값" a="같은 유형" b="다른 유형" unit="km"
-        rows={TYPES.map((t) => ({ key: t, a: nnMed(t, 'same'), b: nnMed(t, 'other') }))} />
-      {picked && pn && <p className="note"><b>{picked.name}</b> → {pn.venue.name} ({pn.venue.type}) {f1(pn.dist / 1000)}km</p>}
+      <p className="chart-title">① 반경 1km 안에 다른 영화관이 평균 몇 곳 있나</p>
+      <MeanBars title="반경 1km 안 다른 영화관 수 평균" unit="곳" rows={TYPES.map((t) => ({ key: t, value: cntMean(t) }))} />
+      <p className="chart-title">② 가장 가까운 {lab} 영화관이 얼마나 떨어져 있나 <Seg label="거리 기준" value={nnMetric} onChange={setNnMetric} options={[{ v: 'same' as const, label: '같은 유형' }, { v: 'other' as const, label: '다른 유형' }]} /></p>
+      <CategoryBars vs={pts} cats={BANDS} title={`가장 가까운 ${lab} 영화관까지 거리 구간`} of={(v) => { const d = nn[v.id][nnMetric]?.dist; return d == null ? null : band(d) }} />
       <Finding items={[
-        { head: <>반경 1km 안 다른 영화관 수(중앙값)는 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${cntMed(t)}곳`).join(', ')}으로, {nT(ch, '이')} 가장 높은 밀집도를 보였다.</>,
-          mean: <>{jo(ch, '은')} 여러 영화관이 모인 곳에 함께 자리하고, {jo(cl, '는')} 주변에 다른 영화관이 적은 곳에 흩어져 있다.</> },
-        { head: <>{jo(sf, '는')} 같은 유형과의 인접성이 가장 낮았다(같은 유형까지 중앙값 {f1(nnMed(sf, 'same'))}km).</>,
-          mean: <>이는 {jo(sf, '가')} {gus(sf) === 25 ? '서울 25개 자치구 모두에' : `25개 자치구 중 ${gus(sf)}개에`} 퍼져 있는 분포와 맞닿아 있다. 반대로 {jo(sn, '은')} 같은 유형끼리 {f1(nnMed(sn, 'same'))}km 안팎에 모여 있다.</> },
+        { head: <>{jo(ch, '은')} 반경 1km 안에 다른 영화관이 평균 {f1(cntMean(ch))}곳으로 가장 많이 모여 있다.</>,
+          mean: <>{jo(cl, '는')} 평균 {f1(cntMean(cl))}곳으로 주변에 다른 영화관이 적다.</> },
+        { head: <>같은 유형끼리 평균 거리: {TYPES.map((t) => `${TYPE_STYLE[t].short} ${f1(nnMean(t, 'same'))}km`).join(' · ')}</>,
+          mean: <>{jo(sf, '는')} 같은 유형과 평균적으로 가장 멀리 떨어져 있고, {jo(sn, '은')} 가장 가깝다. 다만 중앙값은 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${f1(median(ofType(t).map((v) => nn[v.id].same?.dist).filter((x): x is number => x != null)) / 1000)}km`).join(' · ')}로, 멀리 떨어진 몇 곳이 평균을 끌어올린다.</> },
       ]} />
-      <p className="note">밀도 = 250m 격자마다 반경 1km 안 해당 유형 영화관 수. 직선거리, 같은 건물은 0km. 가깝다는 것을 경쟁으로 해석하지 않습니다. 표본 20곳 미만인 유형은 경향으로만 봅니다.
-        <button className="ui link" onClick={() => saveSvg(svg.current, '3-6_누적비율')}>SVG 저장</button></p>
+      <p className="note">밀도 = 영화관 점의 커널 밀도(반경 약 2km, 색이 진할수록 많이 모임). 거리 = 직선거리, 같은 건물은 0km. 가깝다는 것을 경쟁으로 해석하지 않습니다.
+        {picked && pn && <> · <b>{picked.name}</b> → {pn.venue.name} {f1(pn.dist / 1000)}km</>}</p>
     </>
   }
 
@@ -271,13 +265,14 @@ export default function LocationTabs({ data, open }: { data: DataSet; open: Venu
               <label><input type="checkbox" checked={showGu} onChange={() => setShowGu(!showGu)} /> 행정구역 경계</label>
             </div>
             <SeoulMap data={data} label={`입지 특성 지도 — 3-${step + 1} ${STEPS[step]}`} extras={extras} points={mapPts} line={line} selectedId={pick} showGu={showGu}
-              onSelect={(v) => setPick(v?.id ?? null)} resetKey={step} dark={step === 5} />
+              onSelect={(v) => setPick(v?.id ?? null)} resetKey={step} dark={step === 5} pointScale={step === 5 ? 0.5 : 1} />
             <MapLegend types={step === 5 ? [dens] : on} marks={['fill']} extra={<>
               {extras.some((e) => e.id === 'stations') && <span>━ 노선(반투명) · ○ 역</span>}
               {extras.some((e) => e.id === 'buffers') && (['일반역', '환승역'] as const).filter((k) => bufKinds[k]).map((k) => <span key={k}><i className="lg-box" style={{ background: buf[k].color, opacity: Math.min(1, buf[k].opacity * 3) }} /> {k} {radius}m</span>)}
               {extras.some((e) => e.id === 'centers') && CENTER_LEVELS.map((lv) => <span key={lv}><i className="lg-box" style={{ background: CENTER_COLOR[lv] }} /> {lv}</span>)}
               {extras.some((e) => e.id === 'culture') && <span>○ 문화시설({cult.length})</span>}
-              {extras.some((e) => e.id === 'density') && <span>칸 색 = 반경 1km 안 {TYPE_STYLE[dens].short} 수</span>}
+              {extras.some((e) => e.id === 'density') && <span>색의 진하기 = {TYPE_STYLE[dens].short} 영화관 밀도</span>}
+              {extras.some((e) => e.id === 'regions') && <span>┅ 5개 생활권(권역) 경계</span>}
               {line && <span>- - 최근접 연결선</span>}
             </>} />
           </div>}
@@ -289,33 +284,6 @@ export default function LocationTabs({ data, open }: { data: DataSet; open: Venu
           </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-// 3장 정리: 각 유형이 어떤 모습으로 자리하는지 한 문단씩(입지 장면 뒤에 붙인다)
-export function LocationSummary({ data, open }: { data: DataSet; open: Venue[] }) {
-  const pts = open.filter(located)
-  const stations = data.stations.status === 'ok' ? data.stations.data.features : []
-  const centers: any[] = data.centers.status === 'ok' ? data.centers.data.features : []
-  const of = (t: VenueType) => pts.filter((v) => v.type === t)
-  const share = (t: VenueType, f: (v: Venue) => boolean) => f1(pct(of(t).filter(f).length, of(t).length))
-  const nearSt = (v: Venue) => stations.some((f: any) => distM(v, pt(f)) <= 500)
-  const doc = (v: Venue) => centers.some((c) => c.properties.level === '3도심' && c.properties.anchors.some((a: number[]) => distM(v, { lon: a[0], lat: a[1] }) <= c.properties.radius))
-  const sameMed = (t: VenueType) => f1(median(of(t).map((v) => nearest(v, pts, (o) => o.type === v.type)?.dist).filter((x): x is number => x != null)) / 1000)
-  return (
-    <div className="summary3">
-      <h3>정리 — 각 유형의 영화관은 어떤 모습으로 자리하는가</h3>
-      {TYPES.map((t) => { const xs = of(t).filter((v) => v.occupancy !== '확인 불가')
-        const o = OCCUPANCY.map((c) => ({ c, k: xs.filter((v) => v.occupancy === c).length })).sort((a, b) => b.k - a.k)[0]
-        return <div key={t} className="s-type" style={{ borderColor: TYPE_STYLE[t].color }}>
-          <p className="find-big"><Sym type={t} /> {t} <small>n={of(t).length}</small></p>
-          <p>{stations.length > 0 && <>{share(t, nearSt)}%가 역 500m 안에 있고, </>}{centers.length > 0 && <>{share(t, doc)}%가 3도심에 있다. </>}
-            {xs.length ? <>입점 형태가 확인된 곳은 주로 {o.c.replace(' 내 입점', '')}에 있으며({o.k}/{xs.length}곳), </> : <>입점 형태는 아직 확인되지 않았고, </>}
-            같은 유형 영화관과는 중앙값 {sameMed(t)}km 떨어져 있다.</p>
-        </div> })}
-      <p className="note">역 500m·3도심 개략 영역 기준. 분포의 차이를 기술한 것이며 원인을 뜻하지 않습니다. 상권(3-3)은 지표가 정해지지 않아 넣지 않았습니다.</p>
-      <DataTable caption="영업 영화관 입지 속성" head={['영화관', '유형', '자치구', '입점 형태']} rows={pts.map((v) => [v.name, v.type, v.gu, v.occupancy])} />
     </div>
   )
 }

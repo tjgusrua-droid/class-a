@@ -50,7 +50,7 @@ export const FILES = {
   culture: { file: 'cultural_facilities.geojson', fields: ['name', 'category'] },
   stations: { file: 'subway_stations.geojson', fields: ['name', 'transfer', 'n_lines'] },
   lines: { file: 'subway_lines.geojson', fields: ['name', 'color'] },
-  grid: { file: 'seoul_grid_250.json', fields: [] },
+  regions: { file: 'seoul_regions.geojson', fields: ['name'] },
   buffers: { file: 'subway_buffers.geojson', fields: ['radius', 'kind'] },
   centers: { file: 'seoul_centers.geojson', fields: ['name', 'level'] },
   centerNames: { file: 'seoul_2040_centers.csv', fields: [] },

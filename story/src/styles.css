@@ -294,3 +294,49 @@ details caption { text-align: left; font-weight: 600; padding: 4px 0; }
 .survival { margin-bottom: 36px; }
 #types .split.even { grid-template-columns: 44fr 56fr; gap: 40px; }
 #types .split.even > div:first-child svg { max-width: 520px; }
+
+/* ---- 3장 정리 페이지(다이어그램) ---- */
+.profile h3 { font-size: var(--fs-h2); margin: 0 0 14px; }
+.profile-grid { display: grid; grid-template-columns: 110px repeat(3, minmax(0, 1fr)); gap: 0 18px; }
+.profile-rowhead { display: grid; grid-template-rows: 86px 92px 82px 140px 140px; }
+.profile-rowhead span { font-size: var(--fs-small); color: var(--muted); font-weight: 700; border-top: 1px solid var(--line); padding-top: 8px; }
+.profile-rowhead span:first-child { border: 0; }
+.profile-col { display: grid; grid-template-rows: 86px 92px 82px 140px 140px; border-top: 5px solid; }
+.p-head { padding-top: 8px; }
+.p-head .find-big { margin: 0; }
+.p-head small { font-size: var(--fs-small); color: var(--muted); font-weight: 400; }
+.p-portrait { font-size: var(--fs-body); line-height: 1.5; margin: 4px 0 0; font-weight: 600; }
+.p-cell { border-top: 1px solid var(--line); padding: 8px 0 4px; display: flex; flex-direction: column; justify-content: center; gap: 6px; min-height: 0; }
+.p-cell p { margin: 0; font-size: var(--fs-small); color: #444; }
+.p-cell p b { font-size: var(--fs-body); color: var(--ink); }
+.waffle { display: grid; grid-template-columns: repeat(10, 16px); gap: 3px; }
+.waffle i { width: 16px; height: 16px; border-radius: 3px; }
+.lvbar { display: flex; height: 26px; width: 100%; }
+.lvbar i { display: flex; align-items: center; justify-content: center; color: #fff; font-style: normal; font-size: 11px; font-weight: 700; }
+.occicon { height: 96px; width: auto; align-self: flex-start; }
+.nb { height: 104px; width: auto; align-self: flex-start; }
+.profile-key { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-small); color: var(--muted); margin: 10px 0 0; }
+.profile-key i { display: inline-block; width: 12px; height: 12px; vertical-align: -2px; }
+@media (max-width: 1000px) {
+  .profile-grid { grid-template-columns: 1fr; gap: 18px; }
+  .profile-rowhead { display: none; }
+  .profile-col { grid-template-rows: auto; }
+}
+
+/* ---- 4장: 한 화면 ---- */
+#change, #profile { padding-top: 28px; }
+#change .lead { margin-bottom: 10px; }
+.tl { display: grid; grid-template-columns: 48fr 52fr; gap: 28px; height: calc(100vh - 150px); min-height: 560px; }
+.tl > * { min-width: 0; min-height: 0; }
+.tl-map { display: flex; flex-direction: column; }
+.tl-map .mapwrap { flex: 1; min-height: 0; }
+.tl-map .map { height: 100%; min-height: 0; }
+.tl-map .note { margin: 2px 0 0; }
+.tl-side { overflow-y: auto; padding-right: 6px; }
+.tl-side .row { margin-bottom: 8px; }
+.tl-side .keyfig { margin: 4px 0 6px; }
+.tl-side .finding { margin: 6px 0 8px; padding-top: 6px; }
+.tl-side .finding .f-head { margin: 4px 0 2px; }
+.tl-side .metricpick button { padding: 3px 7px; }
+@media (max-width: 1000px) { .tl { grid-template-columns: 1fr; height: auto; } .tl-map .map { height: 50vh; } .tl-side { overflow: visible; } }
+.chart-title .seg { margin-left: 8px; vertical-align: middle; font-weight: 400; }

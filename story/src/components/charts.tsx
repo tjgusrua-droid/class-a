@@ -299,3 +299,19 @@ export function SurvivalCurves({ series, xmax, title }: { series: { key: VenueTy
     </svg>
   )
 }
+
+// 단순 가로 막대(평균값 비교). 막대 끝에 값
+export function MeanBars({ rows, unit, title }: { rows: { key: VenueType; value: number; note?: string }[]; unit: string; title: string }) {
+  const l = 128, r = 120, rowH = 30, H = rows.length * rowH + 6, max = Math.max(0.001, ...rows.map((x) => x.value))
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
+      <title>{title}</title>
+      {rows.map((x, i) => { const y = 4 + i * rowH, w = (x.value / max) * (W - l - r)
+        return <g key={x.key}>
+          <text x={0} y={y + 15} fontSize="12" fontWeight="600">{TYPE_STYLE[x.key].mark} {x.key}</text>
+          <rect x={l} y={y + 2} width={w} height={rowH - 10} fill={TYPE_STYLE[x.key].color} />
+          <text x={l + w + 6} y={y + 16} fontSize="12" fontWeight="700">{f1(x.value)}{unit}<tspan fontWeight="400" fill="#777">{x.note ? ` ${x.note}` : ''}</tspan></text>
+        </g> })}
+    </svg>
+  )
+}

@@ -104,3 +104,14 @@ export function OccupancyTiles({ items }: { items: { label: string; color: strin
     </div>
   )
 }
+
+// 입점 형태 하나의 모식도(정리 페이지용)
+export function OccupancyIcon({ label, color }: { label: string; color: string }) {
+  if (!SCENE[label]) return <svg viewBox="40 -30 240 220" className="occicon" role="img" aria-label="입점 형태 확인 불가"><text x="160" y="90" textAnchor="middle" fontSize="16" fill="#999">확인 불가</text></svg>
+  return (
+    <svg viewBox="40 -30 240 220" className="occicon" role="img" aria-label={`${label} 모식도`}>
+      <polygon points={pts([[-6, -4, 0], [24, -4, 0], [24, 20, 0], [-6, 20, 0]])} fill="#f3f3f0" />
+      {SCENE[label](color)}
+    </svg>
+  )
+}
