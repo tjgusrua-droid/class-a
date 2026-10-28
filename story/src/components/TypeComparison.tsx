@@ -1,8 +1,16 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { SOURCES, TYPE_STYLE, TYPES, type VenueType } from '../config'
-import { f1, mean, median, pct, sum, topBy, type Venue } from '../data'
+import { f1, jo, mean, median, pct, sum, topBy, type Venue } from '../data'
 import { BoxDot, DataTable, ShareBars } from './charts'
 import { saveSvg, SourceNote, Sym } from './ui'
+import { TypeIsometric } from './Isometric'
+
+// 한두 문장으로 된 쉬운 설명
+const EASY: Record<VenueType, string> = {
+  멀티플렉스: '한 건물 안에 상영관(스크린)이 여러 개 있는 대형 체인 영화관이다. CGV·롯데시네마·메가박스처럼 대기업이 직접 또는 위탁으로 운영한다.',
+  '독립·예술영화관': '흥행 대작보다 독립영화·예술영화·고전영화를 주로 트는 작은 영화관이다. 상영관 수가 적고, 개인·단체·공공기관이 운영하는 경우가 많다.',
+  기타: '위 두 유형에 들지 않는 영화관이다. 대기업 체인이 아닌 단관·소규모 상영관, 자동차극장, 이동상영관 등이 여기에 속한다.',
+}
 
 // 분류 차원별 설명. 법적 지위 칸은 원문을 이 환경에서 확인하지 못해 '확인 필요'로 둔다
 const DEF: Record<VenueType, { legal: string; analytic: string; rule: string }> = {
@@ -23,7 +31,8 @@ const DEF: Record<VenueType, { legal: string; analytic: string; rule: string }> 
   },
 }
 
-export default function TypeComparison({ open, sel, setSel }: { open: Venue[]; sel: VenueType | null; setSel: (t: VenueType | null) => void }) {
+export default function TypeComparison({ open }: { open: Venue[] }) {
+  const [sel, setSel] = useState<VenueType | null>(null) // 이 장면에서만 쓰는 선택
   const svg = useRef<SVGSVGElement>(null), svg2 = useRef<SVGSVGElement>(null)
   const by = (t: VenueType) => open.filter((v) => v.type === t)
   const k = (t: VenueType) => by(t).filter((v) => v.screens25 != null) // KOFIC 2025 속성이 있는 곳
@@ -47,6 +56,10 @@ export default function TypeComparison({ open, sel, setSel }: { open: Venue[]; s
             <div key={t} className={`col ${sel && sel !== t ? 'dim' : ''}`} role="rowgroup" onClick={() => setSel(sel === t ? null : t)} tabIndex={0}
               onKeyDown={(e) => e.key === 'Enter' && setSel(sel === t ? null : t)}>
               <h3 style={{ borderColor: TYPE_STYLE[t].color }}><Sym type={t} /> {t} <small>{S[t].n}곳</small></h3>
+              <p className="easy">{EASY[t]}</p>
+              <TypeIsometric type={t} screens={xs.length ? median(xs.map((v) => v.screens25!)) : null} />
+              <p className="easy-num">시설당 상영관 중앙값 <b>{xs.length ? `${+median(xs.map((v) => v.screens25!)).toFixed(1)}개` : '자료 없음'}</b> <small>(KOFIC 2025 수록 {xs.length}곳)</small>{o ? <> · 확인된 입점 형태 중 최다 <b>{o[0]}</b></> : ''}</p>
+              <details onClick={(e) => e.stopPropagation()}><summary>분류 근거·세부 특성</summary>
               <dl>
                 <dt>법적·제도적 지위</dt><dd>{DEF[t].legal}</dd>
                 <dt>분석용 분류 여부</dt><dd>{DEF[t].analytic}</dd>
@@ -58,7 +71,7 @@ export default function TypeComparison({ open, sel, setSel }: { open: Venue[]; s
                 <dt>특별관 보유</dt><dd>{S[t].special}곳 / {xs.length}곳 ({f1(pct(S[t].special, xs.length))}%)</dd>
                 <dt>대표 입점 형태</dt><dd>{o ? `${o[0]} ${o[1]}곳` : '확인 불가'} <small>(확인 불가 {by(t).filter((v) => v.occupancy === '확인 불가').length}곳)</small></dd>
                 <dt>대표 사례(스크린 상위)</dt><dd>{ex(t) || '자료 없음'}</dd>
-              </dl>
+              </dl></details>
             </div>)
         })}
       </div>
@@ -83,7 +96,7 @@ export default function TypeComparison({ open, sel, setSel }: { open: Venue[]; s
       </div>
       <p className="takeaway">{TYPES.map((t) => {
         const a = pct(S[t].n, open.length), b = pct(S[t].screens, sum(TYPES.map((x) => S[x].screens)))
-        return `${t}는 영업 영화관의 ${f1(a)}%, KOFIC 수록 스크린의 ${f1(b)}%로 스크린 비중이 개소 비중보다 ${b > a ? '컸다' : b < a ? '작았다' : '같았다'}.`
+        return `${jo(t, '는')} 영업 영화관의 ${f1(a)}%, KOFIC 수록 스크린의 ${f1(b)}%로 스크린 비중이 개소 비중보다 ${b > a ? '컸다' : b < a ? '작았다' : '같았다'}.`
       }).join(' ')}</p>
       <SourceNote source={SOURCES.venues} n={<>영업 {open.length}곳(유형별 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${S[t].n}`).join(' · ')}), 스크린·좌석은 KOFIC 2025 수록분만({TYPES.map((t) => `${TYPE_STYLE[t].short} ${S[t].nk}`).join(' · ')})</>}
         caution="LOCALDATA에만 있는 영업 기록은 스크린·좌석 자료가 없어 그래프에서 빠집니다. 유형은 분석용 분류이며 법적 구분이 아닙니다." />

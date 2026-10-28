@@ -114,3 +114,13 @@ function download(href: string, name: string) {
   const a = document.createElement('a')
   a.href = href; a.download = name; a.click()
 }
+
+// 연구 결과 문장: 소제목과 같은 크기의 큰 글씨. head = 결과, mean = 의미
+export function Finding({ title = '결론', items }: { title?: string; items: { head: ReactNode; mean?: ReactNode }[] }) {
+  return (
+    <div className="finding">
+      <p className="f-title">{title}</p>
+      {items.map((x, i) => <div key={i}><p className="f-head">{x.head}</p>{x.mean && <p className="f-mean">{x.mean}</p>}</div>)}
+    </div>
+  )
+}

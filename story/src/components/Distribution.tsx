@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react'
 import { SOURCES, TYPE_STYLE, TYPES, type VenueType } from '../config'
-import { f1, located, pct, sum, topBy, type DataSet, type Venue } from '../data'
+import { distM, f1, located, pct, sum, topBy, type DataSet, type Venue } from '../data'
 import { DataTable, ShareBars } from './charts'
-import SeoulMap from './SeoulMap'
-import { DataStatus, MapLegend, saveSvg, SourceNote, Sym, TypeToggles } from './ui'
+import SeoulMap, { stationOverlay } from './SeoulMap'
+import { MapLegend, saveSvg, SourceNote, Sym, TypeToggles } from './ui'
 
 // 계산으로 만든 해석문. '군집' 대신 '상대적으로 많이 분포'
 function sentence(t: VenueType, xs: Venue[]) {
@@ -16,7 +16,9 @@ function sentence(t: VenueType, xs: Venue[]) {
     (xs.length < 10 ? ' 표본이 적어 해석에 주의가 필요하다.' : '')
 }
 
-export default function Distribution({ data, open, sel, setSel }: { data: DataSet; open: Venue[]; sel: VenueType | null; setSel: (t: VenueType | null) => void }) {
+export default function Distribution({ data, open }: { data: DataSet; open: Venue[] }) {
+  const [sel, setSel] = useState<VenueType | null>(null) // 이 장면에서만 쓰는 선택
+  const [showSt, setShowSt] = useState(true)
   const [on, setOn] = useState<VenueType[]>([...TYPES])
   const [pick, setPick] = useState<Venue | null>(null)
   const svg = useRef<SVGSVGElement>(null)
@@ -24,14 +26,21 @@ export default function Distribution({ data, open, sel, setSel }: { data: DataSe
   const known = (t: VenueType) => by(t).filter((v) => v.screens25 != null)
   const shown = open.filter((v) => on.includes(v.type))
   const focus = sel ?? null
+  const stations: any[] = data.stations.status === 'ok' ? data.stations.data.features.filter((f: any) => f.properties.inside) : []
+  const stationTop = (t: VenueType) => {
+    const xs = by(t).filter(located)
+    return stations.map((f) => ({ n: f.properties.name, c: xs.filter((v) => distM(v, { lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] }) <= 500).length }))
+      .filter((x) => x.c > 0).sort((a, b) => b.c - a.c).slice(0, 3).map((x) => `${x.n}역 ${x.c}곳`).join(', ') || '반경 500m 안에 영화관이 있는 역 없음'
+  }
   const guRows = topBy(open, (v) => v.gu, 25).map(([gu]) => [gu, ...TYPES.map((t) => by(t).filter((v) => v.gu === gu).length), open.filter((v) => v.gu === gu).length])
   return (
     <div className="split">
       <div className="mapcol">
         <TypeToggles value={on} onChange={setOn} counts={Object.fromEntries(TYPES.map((t) => [t, by(t).length]))} />
-        <SeoulMap data={data} label="유형별 영화관 분포 지도" selectedId={pick?.id}
+        <label className="ui chk"><input type="checkbox" checked={showSt} onChange={() => setShowSt(!showSt)} /> 지하철역 표시</label>
+        <SeoulMap data={data} label="유형별 영화관 분포 지도" selectedId={pick?.id} extras={showSt ? stationOverlay(data) : []}
           points={shown.map((v) => ({ v, mark: focus && v.type !== focus ? 'dim' : 'fill' }))} onSelect={setPick} />
-        <MapLegend types={on} marks={focus ? ['fill', 'dim'] : ['fill']} />
+        <MapLegend types={on} marks={focus ? ['fill', 'dim'] : ['fill']} extra={showSt && <span>○ 일반역 · ◎ 환승역(역에 마우스를 올리면 역명)</span>} />
         <p className="note">좌표 없는 영업 영화관 {open.filter((v) => !located(v)).length}곳은 지도에서 빠졌습니다. 같은 건물의 영화관은 확대하면 둥글게 펼쳐 보입니다(실제 좌표는 동일).</p>
       </div>
       <div className="chart">
@@ -51,7 +60,10 @@ export default function Distribution({ data, open, sel, setSel }: { data: DataSe
               </div>)
           })}
         </div>
-        <DataStatus data={data} need={['stations']} title="인접 지하철역: 자료 없음" note="공식 역 좌표가 들어오면 유형별 상위 지역 주변 역(반경 500m 안 영화관 수)을 계산해 보여줍니다." />
+        {stations.length > 0 && <div className="interp">
+          <p className="sub"><b>영화관이 많이 모인 역 주변</b> — 역 반경 500m 안 영업 영화관 수 상위</p>
+          {(focus ? [focus] : TYPES).map((t) => <p key={t}><Sym type={t} /> {t}: {stationTop(t)}</p>)}
+        </div>}
         <button className="ui link" onClick={() => saveSvg(svg.current, '2_비중')}>SVG 저장</button>
         <DataTable caption="자치구별 영업 영화관 수" head={['자치구', ...TYPES, '계']} rows={guRows} />
         <SourceNote source={SOURCES.venues} n={`영업 ${open.length}곳(${TYPES.map((t) => `${TYPE_STYLE[t].short} ${by(t).length}`).join(' · ')})`}

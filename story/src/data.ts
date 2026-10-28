@@ -122,3 +122,11 @@ export function topBy(vs: Venue[], key: (v: Venue) => string, n = 3) {
   vs.forEach((v) => { const k = key(v); if (k) c.set(k, (c.get(k) ?? 0) + 1) })
   return [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, n)
 }
+
+// 조사: 받침 여부에 따라 은/는, 이/가, 과/와, 을/를. jo('독립·예술영화관', '는') → '독립·예술영화관은'
+export function jo(w: string, p: string) {
+  const c = w.charCodeAt(w.length - 1) - 0xac00
+  const has = c >= 0 && c <= 11171 && c % 28 !== 0
+  const pair: Record<string, [string, string]> = { 은: ['은', '는'], 는: ['은', '는'], 이: ['이', '가'], 가: ['이', '가'], 과: ['과', '와'], 와: ['과', '와'], 을: ['을', '를'], 를: ['을', '를'] }
+  return w + (pair[p] ? pair[p][has ? 0 : 1] : p)
+}

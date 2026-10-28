@@ -21,7 +21,8 @@ const METRICS = {
 } as const
 type MetricKey = keyof typeof METRICS
 
-export default function TimelineSection({ data, all, sel, setSel }: { data: DataSet; all: Venue[]; sel: VenueType | null; setSel: (t: VenueType | null) => void }) {
+export default function TimelineSection({ data, all }: { data: DataSet; all: Venue[] }) {
+  const [sel, setSel] = useState<VenueType | null>(null) // 이 장면에서만 쓰는 선택
   const [year, setYear] = useState(2025)
   const [era, setEra] = useState<string | null>(null)
   const [metric, setMetric] = useState<MetricKey>('operating')
@@ -29,7 +30,7 @@ export default function TimelineSection({ data, all, sel, setSel }: { data: Data
   const svg = useRef<SVGSVGElement>(null)
   const yearly: any[] = data.yearly.status === 'ok' ? data.yearly.data : []
   const row = (y: number) => yearly.find((r) => r.year === y && r.type === (sel ?? '전체'))
-  const series = (k: string) => YEARS.map((y) => row(y)?.[k] ?? null)
+  const series = (k: string, t: string = sel ?? '전체') => YEARS.map((y) => yearly.find((r) => r.year === y && r.type === t)?.[k] ?? null)
   const M = METRICS[metric]
   const values = metric === 'flow' ? series('opened') : series(metric)
   const E = ERAS.find((e) => e.id === era)
@@ -69,7 +70,8 @@ export default function TimelineSection({ data, all, sel, setSel }: { data: Data
           {(Object.keys(METRICS) as MetricKey[]).map((k) => <button key={k} aria-pressed={metric === k} onClick={() => setMetric(k)}>{METRICS[k].label.replace(/\(.*\)/, '')}</button>)}
         </div>
         <MetricChart ref={svg} title={M.label} label={`${M.label} — ${sel ?? '전체'}`} years={YEARS} values={values} down={metric === 'flow' ? series('closed') : undefined}
-          kind={M.kind} color={color} unit={M.unit} year={year} onYear={(y) => { setYear(y); setEra(null) }} range={E ? range : null} partialYear={LAST.getFullYear()} />
+          kind={M.kind} color={color}
+          parts={sel ? undefined : TYPES.map((t) => ({ key: t, values: series(metric === 'flow' ? 'opened' : metric, t), down: metric === 'flow' ? series('closed', t) : undefined }))} unit={M.unit} year={year} onYear={(y) => { setYear(y); setEra(null) }} range={E ? range : null} partialYear={LAST.getFullYear()} />
         <table className="mini-table">
           <thead><tr><th>시기</th><th>기간</th><th>개업 총수 (연평균)</th><th>폐업 총수 (연평균)</th></tr></thead>
           <tbody>{ERAS.map((e) => { const n = Math.min(e.to, LAST.getFullYear()) - e.from + 1, o = sumR('opened', e), c = sumR('closed', e)

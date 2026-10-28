@@ -151,10 +151,7 @@ details caption { text-align: left; font-weight: 600; padding: 4px 0; }
 
 /* ---- 2차 개편 ---- */
 .mapwrap { position: relative; }
-.mapmode { display: flex; gap: 10px; align-items: center; font-size: 12px; color: #555; margin-top: 6px; flex-wrap: wrap; }
-.mapmode button { border: 1px solid #111; background: #fff; padding: 4px 10px; cursor: pointer; font-size: 12px; }
-.exploring .mapmode button { background: #111; color: #fff; }
-.exploring .map { outline: 2px solid #111; }
+.maphint { position: absolute; z-index: 5; pointer-events: none; background: #fff; border: 1px solid #555; padding: 2px 7px; font-size: 12px; white-space: nowrap; }
 .tip { position: fixed; z-index: 1000; width: 300px; max-height: 70vh; overflow: auto; background: #fff; border: 1px solid #222; padding: 10px 12px; font-size: 12.5px; pointer-events: auto; }
 .tip:not(.pinned) { pointer-events: none; }
 .tipline { position: fixed; inset: 0; z-index: 999; pointer-events: none; }
@@ -217,3 +214,23 @@ details caption { text-align: left; font-weight: 600; padding: 4px 0; }
   .keyfig { grid-template-columns: repeat(2, 1fr); }
   .auditlist div { grid-template-columns: 1fr; gap: 0; }
 }
+
+/* ---- 3차 개편 ---- */
+.chk { display: inline-flex; gap: 5px; align-items: center; font-size: 12.5px; margin: 0 0 6px; cursor: pointer; }
+.easy { font-size: 15px; line-height: 1.6; margin: 6px 0 4px; color: #111; }
+.easy-num { font-size: 12.5px; color: #444; margin: 0 0 8px; }
+.iso { width: 100%; max-width: 380px; display: block; margin: 0 auto; }
+.deftable details summary { cursor: pointer; font-size: 12.5px; color: #555; margin: 4px 0; }
+.finding { border-top: 3px solid #111; margin: 22px 0 10px; padding-top: 10px; }
+.finding .f-title { font-size: 13px; letter-spacing: .08em; color: #666; margin: 0 0 6px; font-weight: 700; }
+.finding .f-head { font-size: clamp(18px, 2.1vw, 22px); font-weight: 700; line-height: 1.5; margin: 10px 0 4px; }
+.finding .f-mean { font-size: clamp(16px, 1.8vw, 19px); line-height: 1.6; margin: 0 0 8px; color: #333; }
+.finding .f-mean::before { content: '→ '; color: #999; }
+.donuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.donut { width: 100%; }
+.occkey { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; margin: 6px 0; }
+.occkey i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -2px; margin-right: 4px; }
+.summary3 { margin-top: 40px; }
+.summary3 h3 { font-size: clamp(22px, 2.6vw, 28px); margin: 0 0 8px; }
+.summary3 .s-type { border-left: 6px solid; padding: 4px 0 4px 14px; margin: 18px 0; }
+.summary3 .s-type p { font-size: clamp(17px, 1.9vw, 20px); line-height: 1.65; margin: 4px 0; }

@@ -18,8 +18,8 @@ npm run build    # dist/ 에 정적 파일 생성 (어느 경로에 올려도 �
 | `venues.geojson`, `yearly.json`, `audit.json` | 있음 | LOCALDATA(1차 기준) 운영구간·2000년~ 시계열·재검증 결과 (`scripts/build_venues.py` 등) |
 | `cultural_facilities.geojson` | 있음 | 서울시 문화공간 + 공연장 인허가 (`scripts/build_culture_data.py`) |
 | `seoul_2040_centers.csv` | 명칭만 | 위치 자료 없음 |
-| `subway_stations.geojson`, `subway_buffers.geojson` | 없음 | 공식 역 좌표 → `scripts/build_subway.py` |
-| `seoul_centers.geojson` | 없음 | 중심지 **범위 폴리곤**, 필드 `name`, `level`(도심·광역중심·지역중심) |
+| `subway_stations.geojson`, `subway_buffers.geojson` | 있음 | 서울열린데이터광장 역 정보 → `scripts/build_subway.py`. 노선 형상은 없어 그리지 않음 |
+| `seoul_centers.geojson` | 개략 | 2040 중심지 대표 역 기준 개략 영역(공식 범위 아님) → `scripts/build_subway.py` |
 | `commerce.geojson` | 없음 | 상권 지표 확정 후. `area_id`, `indicator`, `value`, `year` (제안: `data/verify/commerce_proposal.md`) |
 
 - 영화관 자료는 `scripts/`의 파이프라인으로 다시 만든다(`data/verify/README.md`). 경계·한강·도로는 `scripts/build_story_data.py`.
@@ -30,7 +30,7 @@ npm run build    # dist/ 에 정적 파일 생성 (어느 경로에 올려도 �
 
 - `src/config.ts`: 역세권 500m, 문화시설 반경 500m, 인접 기준 500m, 기준 연도, 유형 색·모양, 파일 목록, 출처
 - `src/data.ts`: 로딩·좌표 검증·필드 매핑과 계산(개업·폐업·최근접·운영기간)
-- `src/analysis.ts`: 3장 입지 지표 어댑터(지하철·중심지·건축물·문화시설·상권)
+- `src/components/Isometric.tsx`: 1장 유형 개념도(상영관 칸 수 = 스크린 중앙값)
 - `src/components/`: `SeoulMap`, `TheaterTooltip`, `TypeComparison`, `Distribution`, `LocationTabs`, `TimelineSection`(+`charts.tsx`의 `TimelineChart`), `SurvivalDurationPlot`, `ui.tsx`(`StorySection`, `MapLegend`, `DataStatus` …)
 
 ## 분석 기준(화면에도 표시)

@@ -64,5 +64,5 @@
   - 운영구간: 인허가 기간이 겹치는 기록 묶음. 같은 날 인계·공백 뒤 재개관은 다른 구간. 같은 건물 동시 운영(KOFIC 기준)은 상호로 분리
   - 일괄 등록일 의심: 같은 구에서 4개 장소 이상이 같은 인허가일(1998-03-09 강남, 2003-02-12 종로, 2003-05-20 중구) → 개업 수에서 제외
 - `audit_venues.py`: `data_audit_2026.md`, `story/public/data/audit.json`
-- `build_subway.py`: 공식 역 좌표가 들어오면 역·역세권 버퍼(EPSG:5186 합집합) 생성
-- `data/manual/seoul_2040_centers.csv`: 2040 중심지 명칭(위치 자료 없음), `commerce_proposal.md`: 상권 변수 제안
+- `build_subway.py`: `data/raw/subway/seoul_subway_stations_src.csv`(서울열린데이터광장 역 정보, 공공누리 1유형, kyckang/SeoulTransitMap_data 2026-10-28 재배포본) → 역·역세권 버퍼(EPSG:5186 합집합)·2040 중심지 개략 영역
+- `data/manual/seoul_2040_centers.csv`: 2040 중심지 명칭·위계·대표 역. 개략 영역 = 대표 역 반경(도심 1.2km·광역 0.9km·지역 0.6km, 표현값이며 공식 범위 아님). `commerce_proposal.md`: 상권 변수 제안

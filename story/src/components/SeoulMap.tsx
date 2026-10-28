@@ -7,9 +7,16 @@ import type { DataSet, Venue } from '../data'
 import { TooltipBody } from './TheaterTooltip'
 
 export type Mark = 'fill' | 'hollow' | 'new' | 'dim' // 영업 / 폐업 / 이 해 개업 / 흐리게
-export type Point = { v: Venue; mark: Mark }
+export type Point = { v: Venue; mark: Mark; color?: string } // color: 유형 색 대신 쓸 색(예: 입점 형태)
 // place: under = 행정경계 아래(버퍼·중심지 영역), over = 경계·지명 위, 영화관 아래(역·문화시설)
-export type Overlay = { id: string; data: any; layers: any[]; place: 'under' | 'over' }
+// label: 지물 이름표(캔버스 글자). 영화관 점보다 아래에 놓인다
+export type Overlay = { id: string; data: any; layers: any[]; place: 'under' | 'over'; hover?: (p: any) => string; label?: { text: (p: any) => string; color: string } }
+
+// 지하철역(서울열린데이터광장). 일반역 작은 원, 환승역 큰 이중 원. 영화관보다 아래
+export const stationOverlay = (data: DataSet): Overlay[] => data.stations.status !== 'ok' ? [] : [{ id: 'stations', place: 'over', data: data.stations.data,
+  hover: (p) => `${p.name}역 · ${(Array.isArray(p.lines) ? p.lines : JSON.parse(p.lines)).join(', ')}`,
+  layers: [{ type: 'circle', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, ['case', ['get', 'transfer'], 2.8, 1.6], 14, ['case', ['get', 'transfer'], 7, 4.5]],
+    'circle-color': '#fff', 'circle-stroke-color': '#8a8a8a', 'circle-stroke-width': ['case', ['get', 'transfer'], 1.8, 0.9] } }] }]
 
 type Props = {
   data: DataSet
@@ -50,13 +57,13 @@ function shapeIcon(shape: string, color: string, mark: Mark | 'sel') {
 }
 
 // 자치구 이름을 캔버스 이미지로 만들어 심볼 레이어에 쓴다(글꼴 서버 없이, 영화관 점보다 아래에 놓기 위해)
-function textIcon(t: string) {
+function textIcon(t: string, color = '#8c8c8c', weight = 500) {
   const c = document.createElement('canvas'), g = c.getContext('2d')!
-  g.font = '500 22px "Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif'
+  g.font = `${weight} 22px "Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif`
   c.width = Math.ceil(g.measureText(t).width) + 8; c.height = 30
-  g.font = '500 22px "Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif'
+  g.font = `${weight} 22px "Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif`
   g.lineWidth = 5; g.strokeStyle = 'rgba(255,255,255,.9)'; g.strokeText(t, 4, 22)
-  g.fillStyle = '#8c8c8c'; g.fillText(t, 4, 22)
+  g.fillStyle = color; g.fillText(t, 4, 22)
   return g.getImageData(0, 0, c.width, c.height)
 }
 
@@ -78,7 +85,7 @@ function pointsFC(points: Point[], selectedId?: string | null) {
   groups.forEach((g) => g.forEach((p, i) => {
     const n = g.length, rr = n > 1 ? 10 + n * 2 : 0, a = (i / n) * Math.PI * 2 - Math.PI / 2
     feats.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [p.v.lon, p.v.lat] },
-      properties: { id: p.v.id, icon: `${p.v.type}-${p.mark}`, selicon: `${p.v.type}-sel`, sel: p.v.id === selectedId, stack: n,
+      properties: { id: p.v.id, icon: p.color ? `${p.v.type}-${p.mark}-${p.color}` : `${p.v.type}-${p.mark}`, selicon: `${p.v.type}-sel`, sel: p.v.id === selectedId, stack: n,
         off: [Math.round(rr * Math.cos(a)), Math.round(rr * Math.sin(a))], z: p.mark === 'dim' ? 0 : p.mark === 'hollow' ? 1 : 2 } })
   }))
   return { type: 'FeatureCollection', features: feats }
@@ -89,8 +96,8 @@ export default function SeoulMap(p: Props) {
   const map = useRef<maplibregl.Map>()
   const latest = useRef(p)
   latest.current = p
-  const [explore, setExplore] = useState(false)
   const [tip, setTip] = useState<{ items: Venue[]; lngLat: [number, number]; pinned: boolean } | null>(null)
+  const [hint, setHint] = useState<{ x: number; y: number; t: string } | null>(null) // 역 등 보조 레이어 이름
   const [, force] = useState(0) // 지도·페이지 이동 시 고정 툴팁 위치 갱신
 
   useEffect(() => {
@@ -100,10 +107,10 @@ export default function SeoulMap(p: Props) {
       style: { version: 8, sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#f4f4f2' } }] },
       bounds: bbox(d.boundary.data), fitBoundsOptions: { padding: 18 },
       attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false,
-      scrollZoom: false, preserveDrawingBuffer: true,
+      preserveDrawingBuffer: true,
     })
     m.touchZoomRotate.disableRotation()
-    if (matchMedia('(pointer: coarse)').matches) m.dragPan.disable() // 손가락 한 개는 페이지 스크롤, 두 손가락은 확대·축소
+    if (matchMedia('(pointer: coarse)').matches) m.dragPan.disable() // 손가락 한 개는 페이지 스크롤, 두 손가락은 확대·축소·이동
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     map.current = m
     ;((window as any).__maps ??= []).push(m) // 자동 점검(브라우저 테스트)용
@@ -151,6 +158,13 @@ export default function SeoulMap(p: Props) {
       const its = items(e), ll = e.features[0].geometry.coordinates // 이벤트 객체는 나중에 비워지므로 바로 계산
       setTip((t) => (t?.pinned ? t : { items: its, lngLat: ll, pinned: false }))
     })
+    m.on('mousemove', (e) => {
+      const hov = (latest.current.extras ?? []).filter((o) => o.hover)
+      const ids = hov.flatMap((o) => o.layers.map((_, i) => `${o.id}-${i}`)).filter((id) => m.getLayer(id))
+      const f = ids.length && !m.queryRenderedFeatures(e.point, { layers: ['venues'] }).length ? m.queryRenderedFeatures([[e.point.x - 4, e.point.y - 4], [e.point.x + 4, e.point.y + 4]], { layers: ids })[0] : null
+      const o = f && hov.find((x) => (f.layer.id as string).startsWith(x.id + '-'))
+      setHint(o ? { x: e.point.x + 10, y: e.point.y - 26, t: o.hover!(f!.properties) } : null)
+    })
     m.on('mouseleave', 'venues', () => { m.getCanvas().style.cursor = ''; setTip((t) => (t?.pinned ? t : null)) })
     m.on('click', (e) => {
       const f = m.queryRenderedFeatures(e.point, { layers: ['venues'] })
@@ -167,16 +181,11 @@ export default function SeoulMap(p: Props) {
 
   useEffect(() => { if (map.current) apply(map.current, p) })
 
-  // 지도 탐색 모드: 휠 확대·축소와(터치) 한 손가락 이동을 켠다. Esc 로 끝낸다
   useEffect(() => {
-    const m = map.current
-    if (!m) return
-    explore ? m.scrollZoom.enable() : m.scrollZoom.disable()
-    if (matchMedia('(pointer: coarse)').matches) explore ? m.dragPan.enable() : m.dragPan.disable()
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setExplore(false); setTip(null) } }
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setTip(null); latest.current.onSelect?.(null) } }
     addEventListener('keydown', esc)
     return () => removeEventListener('keydown', esc)
-  }, [explore])
+  }, [])
 
   let tipEl = null
   if (tip && map.current) {
@@ -187,12 +196,9 @@ export default function SeoulMap(p: Props) {
   }
 
   return (
-    <div className={`mapwrap ${explore ? 'exploring' : ''}`}>
+    <div className="mapwrap">
       <div className="map" ref={box} role="application" aria-label={p.label} style={p.height ? { height: p.height } : undefined} />
-      <div className="mapmode ui">
-        <button onClick={() => setExplore(!explore)} aria-pressed={explore}>{explore ? '지도 탐색 종료 (Esc)' : '지도 탐색 시작'}</button>
-        <span>{explore ? '지도 탐색 중 · 휠로 확대·축소, 끌어서 이동' : '페이지 스크롤 모드 · +/− 버튼·더블클릭으로 확대'}</span>
-      </div>
+      {hint && <div className="maphint" style={{ left: hint.x, top: hint.y }}>{hint.t}</div>}
       {tipEl}
     </div>
   )
@@ -230,6 +236,10 @@ function Tip({ x, y, items, pinned, close }: { x: number; y: number; items: Venu
 function apply(m: maplibregl.Map, p: Props) {
   const src = m.getSource('venues') as maplibregl.GeoJSONSource | undefined
   if (!src) return
+  for (const x of p.points) if (x.color) {
+    const id = `${x.v.type}-${x.mark}-${x.color}`
+    if (!m.hasImage(id)) m.addImage(id, shapeIcon(TYPE_STYLE[x.v.type].shape, x.color, x.mark), { pixelRatio: 2 })
+  }
   src.setData(pointsFC(p.points, p.selectedId) as any)
   if (p.reveal !== false) m.setPaintProperty('venues', 'icon-opacity', 1)
   for (const id of ['gu-line', 'gu-label']) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', p.showGu === false ? 'none' : 'visible')
@@ -242,10 +252,16 @@ function apply(m: maplibregl.Map, p: Props) {
     else {
       m.addSource(o.id, { type: 'geojson', data: o.data })
       o.layers.forEach((l, i) => m.addLayer({ ...l, id: `${o.id}-${i}`, source: o.id }, o.place === 'under' ? 'anchor-under' : 'anchor-over'))
+      if (o.label) {
+        const L = o.label
+        o.data.features.forEach((f: any) => { const t = L.text(f.properties); if (!m.hasImage(`lbl:${t}`)) m.addImage(`lbl:${t}`, textIcon(t, L.color, 700), { pixelRatio: 2 }) })
+        m.addSource(`${o.id}-lbl`, { type: 'geojson', data: { type: 'FeatureCollection', features: o.data.features.map((f: any) => ({ type: 'Feature', properties: { t: L.text(f.properties) }, geometry: { type: 'Point', coordinates: f.properties.label } })) } })
+        m.addLayer({ id: `${o.id}-lbl`, type: 'symbol', source: `${o.id}-lbl`, layout: { 'icon-image': ['concat', 'lbl:', ['get', 't']], 'icon-allow-overlap': true, 'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.8, 13, 1.1] } }, 'anchor-over')
+      }
     }
   }
   for (const l of m.getStyle().layers) {
     const sid = (l as any).source
-    if (sid && !BASE.includes(sid)) m.setLayoutProperty(l.id, 'visibility', on.has(sid) ? 'visible' : 'none')
+    if (sid && !BASE.includes(sid)) m.setLayoutProperty(l.id, 'visibility', on.has(sid.replace(/-lbl$/, '')) ? 'visible' : 'none')
   }
 }

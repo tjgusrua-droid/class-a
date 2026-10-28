@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { DATA_LABEL, SOURCES, type VenueType } from './config'
+import { DATA_LABEL, SOURCES } from './config'
 import { isOpen, loadAll, located, toVenues, type DataSet } from './data'
 import SeoulMap from './components/SeoulMap'
 import DataAudit from './components/DataAudit'
@@ -14,7 +14,6 @@ const SCENES = [['intro', '시작'], ['audit', '자료 검증'], ['types', '1 �
 
 export default function App() {
   const [data, setData] = useState<DataSet | null>(null)
-  const [sel, setSel] = useState<VenueType | null>(null) // 장면들이 함께 쓰는 유형 선택
   const [present, setPresent] = useState(false)
   const [cur, setCur] = useState('intro')
   const [reveal, setReveal] = useState(false)
@@ -35,13 +34,12 @@ export default function App() {
 
   const all = toVenues(data.venues.data)
   const open = all.filter(isOpen)
-  const common = { data, sel, setSel }
 
   return (
     <div className={present ? 'present' : ''} key={key}>
       <div className="toolbar">
         <button onClick={() => setPresent(!present)} aria-pressed={present}>{present ? '발표 모드 끄기' : '발표/내보내기 모드'}</button>
-        <button className="ui" onClick={() => { setSel(null); setKey(key + 1); scrollTo({ top: 0 }) }}>초기화</button>
+        <button className="ui" onClick={() => { setKey(key + 1); scrollTo({ top: 0 }) }}>초기화</button>
       </div>
       <nav className="progress ui" aria-label="장면 이동">
         {SCENES.map(([id, label]) => <a key={id} href={`#${id}`} aria-current={cur === id ? 'step' : undefined}><i /> <span>{label}</span></a>)}
@@ -64,24 +62,24 @@ export default function App() {
       <StorySection id="types">
         <h2><span>1</span>영화관의 분류는 어떻게 다른가?</h2>
         <p className="lead">법적 구분이 아니라 연구를 위한 분석용 분류입니다. 개소 수와 스크린·좌석 규모가 유형마다 어떻게 다른지 봅니다.</p>
-        <TypeComparison open={open} sel={sel} setSel={setSel} />
+        <TypeComparison open={open} />
       </StorySection>
 
       <StorySection id="where">
         <h2><span>2</span>각 유형은 서울 어디에 모여 있는가?</h2>
         <p className="lead">유형을 켜고 끄며 분포를 비교하고, 오른쪽에서 계산된 상위 지역을 확인합니다.</p>
-        <Distribution {...common} open={open} />
+        <Distribution data={data} open={open} />
       </StorySection>
 
       <StorySection id="location" className="tall">
         <h2><span>3</span>각 유형의 영화관은 어떤 입지 특성을 가지는가?</h2>
-        <LocationTabs data={data} open={open} sel={sel} />
+        <LocationTabs data={data} open={open} />
       </StorySection>
 
       <StorySection id="change">
         <h2><span>4</span>언제, 어디에서 생기고 얼마나 유지되었는가?</h2>
         <p className="lead">2000년부터 연도를 움직이면 지도와 그래프가 함께 바뀝니다.</p>
-        <TimelineSection {...common} all={all} />
+        <TimelineSection data={data} all={all} />
       </StorySection>
 
       <StorySection id="closed">
@@ -97,7 +95,7 @@ export default function App() {
           <li>분석 단위: 운영구간(한 장소에서 인허가 기간이 이어진 개업~폐업 한 번). 장소(venue)·인허가 기록·운영구간을 구분하며, 재개관·새 인허가는 다른 운영구간입니다.</li>
           <li>자료 충돌: 두 원자료 값을 모두 보존하고 최종값은 LOCALDATA. 충돌 내용은 각 영화관 정보와 감사표에 표시합니다.</li>
           <li>거리·버퍼: 직선거리(구면). 역세권 버퍼 합집합은 EPSG:5186(m)에서 계산 후 EPSG:4326으로 표시.</li>
-          <li>지도는 외부 지도 타일 없이 위 공간자료만으로 그립니다. 지하철 노선·역, 2040 중심지, 상권 자료는 아직 없습니다.</li>
+          <li>지도는 외부 지도 타일 없이 위 공간자료만으로 그립니다. 지하철 노선 형상은 공식 자료가 없어 역만 표시합니다. 2040 중심지는 대표 역 기준 개략 영역이며, 상권 자료는 아직 없습니다.</li>
         </ul>
       </StorySection>
     </div>

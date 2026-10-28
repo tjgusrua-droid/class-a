@@ -33,6 +33,11 @@ export const EVENTS = [
 export const CULTURE_CATS = ['공연시설', '전시시설', '도서시설', '지역문화활동시설', '문화 보급·전수시설', '종합시설', '문학관·창작공간']
 export const OCCUPANCY = ['백화점 내 입점', '쇼핑몰·아울렛 내 입점', '복합상업시설 내 입점(대형마트)', '복합상업시설 내 입점(역사)',
   '주상복합건물 내 입점', '공공·문화시설 내 입점', '대학 또는 교육시설 내 입점', '기타(호텔 내 입점)', '확인 불가']
+// 입점 형태 색(유형 색인 파랑·빨강·노랑과 겹치지 않게). 확인 불가 = 회색
+export const OCC_COLOR = ['#0f9d8a', '#7b4fb3', '#e05fa0', '#5a9e2f', '#8c5a2b', '#00a3c4', '#ef7d2d', '#6b6b2a', '#c4c4c4']
+// 2040 중심지 위계 색(개략 영역)
+export const CENTER_LEVELS = ['3도심', '7광역중심', '12지역중심']
+export const CENTER_COLOR: Record<string, string> = { '3도심': '#6a3d9a', '7광역중심': '#9e6fc0', '12지역중심': '#c9a8de', '중심지 밖': '#e6e6e6' }
 
 // 각 장면이 필요로 하는 파일과 필수 필드. 없으면 DataStatus가 이 정보를 보여준다
 export const FILES = {
@@ -59,4 +64,6 @@ export const SOURCES = {
   boundary: '통계청 행정동 경계 2023.7(vuski/admdongkor) → 자치구 병합 · 한강: Natural Earth 1:10m(개략)',
   culture: '서울시 문화공간 정보 + 행정안전부 공연장 인허가(2025년 말 영업, 같은 건물 홀 1곳). 영화관 제외',
   kofic: '영화진흥위원회 전국 극장 현황 2010~2025(연말 기준)',
+  subway: '서울열린데이터광장 지하철역 정보(공공누리 1유형, kyckang/SeoulTransitMap_data 재배포본 2026-10-28) — 역만, 노선 형상 없음',
+  centers: '2040 서울도시기본계획 중심지 체계(명칭) + 대표 역 기준 개략 영역(반경 도심 1.2km·광역 0.9km·지역 0.6km는 표현값, 공식 범위 아님)',
 }

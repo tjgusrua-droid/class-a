@@ -95,8 +95,9 @@ export const MetricChart = forwardRef<SVGSVGElement, {
   years: number[]; values: (number | null)[]; down?: (number | null)[]; kind: 'bar' | 'line' | 'flow'
   color: string; unit: string; label: string; year: number; onYear: (y: number) => void
   range: [number, number] | null; partialYear?: number; title: string
-}>(function MetricChart({ years, values, down, kind, color, unit, label, year, onYear, range, partialYear, title }, ref) {
-  const H = 300, l = 44, r = 12, t = 26, b = 36
+  parts?: { key: VenueType; values: (number | null)[]; down?: (number | null)[] }[] // '전체'일 때 유형별 계열(선 = 유형별 선, 막대 = 유형별 누적)
+}>(function MetricChart({ years, values, down, kind, color, unit, label, year, onYear, range, partialYear, title, parts }, ref) {
+  const H = 300, l = 44, r = 12, t = parts ? 44 : 26, b = 36
   const bw = (W - l - r) / years.length
   const bx = (i: number) => l + i * bw
   const vmax = Math.max(1, ...values.map((v) => v ?? 0), ...(down ?? []).map((v) => v ?? 0))
@@ -105,6 +106,11 @@ export const MetricChart = forwardRef<SVGSVGElement, {
   const span = kind === 'flow' ? (H - t - b) / 2 : H - t - b
   const sy = (v: number) => (v / top) * span
   const xi = (y: number) => years.indexOf(y)
+  // 누적 막대 조각: 값을 아래부터 쌓아 draw(아래 높이 px, 높이 px, 순번)로 그린다
+  const stack = (vs: (number | null)[], draw: (y0: number, h: number, k: number) => JSX.Element) => {
+    let acc = 0
+    return vs.map((v, k) => { if (!v) return null; const el = draw(sy(acc), sy(v), k); acc += v; return el })
+  }
   const missing = values.map((v, i) => (v == null ? i : -1)).filter((i) => i >= 0)
   return (
     <svg ref={ref} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
@@ -123,16 +129,23 @@ export const MetricChart = forwardRef<SVGSVGElement, {
       {years.map((y, i) => (
         <g key={y} onClick={() => onYear(y)} style={{ cursor: 'pointer' }}>
           <rect x={bx(i)} y={t} width={bw} height={H - t - b} fill="transparent" />
-          {(kind === 'bar' || kind === 'flow') && values[i] != null && <rect x={bx(i) + 2} y={mid - sy(values[i]!)} width={bw - 4} height={sy(values[i]!)} fill={color} />}
-          {kind === 'flow' && down?.[i] != null && <rect x={bx(i) + 2} y={mid} width={bw - 4} height={sy(down[i]!)} fill="#fff" stroke={color} />}
+          {(kind === 'bar' || kind === 'flow') && values[i] != null && !parts && <rect x={bx(i) + 2} y={mid - sy(values[i]!)} width={bw - 4} height={sy(values[i]!)} fill={color} />}
+          {kind === 'flow' && down?.[i] != null && !parts && <rect x={bx(i) + 2} y={mid} width={bw - 4} height={sy(down[i]!)} fill="#fff" stroke={color} />}
+          {kind !== 'line' && parts && stack(parts.map((q) => q.values[i]), (y0, h, k) => <rect key={k} x={bx(i) + 2} y={mid - y0 - h} width={bw - 4} height={h} fill={TYPE_STYLE[parts[k].key].color} stroke="#fff" strokeWidth="0.5" />)}
+          {kind === 'flow' && parts && stack(parts.map((q) => q.down?.[i] ?? null), (y0, h, k) => <rect key={k} x={bx(i) + 2} y={mid + y0} width={bw - 4} height={h} fill="#fff" stroke={TYPE_STYLE[parts[k].key].color} strokeWidth="1.2" />)}
           {(y % 5 === 0 || y === year) && <text x={bx(i) + bw / 2} y={H - b + 14} fontSize="10" textAnchor="middle" fontWeight={y === year ? 700 : 400}>{y}</text>}
           {y === partialYear && <text x={bx(i) + bw / 2} y={H - b + 26} fontSize="9" textAnchor="middle" fill="#888">~9.4</text>}
         </g>))}
-      {kind === 'line' && <polyline fill="none" stroke={color} strokeWidth="2.2"
-        points={values.map((v, i) => (v == null ? '' : `${bx(i) + bw / 2},${mid - sy(v)}`)).filter(Boolean).join(' ')} />}
-      {kind === 'line' && values.map((v, i) => v != null && <circle key={i} cx={bx(i) + bw / 2} cy={mid - sy(v)} r={2.6} fill={color} />)}
+      {kind === 'line' && [...(parts ?? []).map((q) => ({ vs: q.values, c: TYPE_STYLE[q.key].color, w: 1.8 })), { vs: values, c: color, w: 2.6 }].map(({ vs, c, w }) => <g key={c}>
+        <polyline fill="none" stroke={c} strokeWidth={w} points={vs.map((v, i) => (v == null ? '' : `${bx(i) + bw / 2},${mid - sy(v)}`)).filter(Boolean).join(' ')} />
+        {vs.map((v, i) => v != null && <circle key={i} cx={bx(i) + bw / 2} cy={mid - sy(v)} r={w} fill={c} />)}</g>)}
+      {kind !== 'line' && parts && values.map((v, i) => v != null && v > 0 && <text key={i} x={bx(i) + bw / 2} y={mid - sy(v) - 3} fontSize="8.5" textAnchor="middle" fill="#111">{v}</text>)}
+      {parts && <g fontSize="10" transform={`translate(${l},18)`}>
+        {[{ k: '전체', c: color }, ...parts.map((q) => ({ k: q.key as string, c: TYPE_STYLE[q.key].color }))].map((x, j) => (kind === 'line' || j > 0) &&
+          <g key={x.k} transform={`translate(${j * 112},0)`}><rect width="9" height="9" fill={x.c} /><text x="13" y="8.5">{x.k}</text></g>)}
+      </g>}
       <line x1={bx(xi(year)) + bw / 2} x2={bx(xi(year)) + bw / 2} y1={t} y2={H - b} stroke="#c8423b" strokeWidth="1.5" />
-      <text x={l} y={12} fontSize="11" fontWeight="600">{label}{kind === 'flow' ? ' — 위: 개업, 아래: 폐업' : ''}</text>
+      <text x={l} y={12} fontSize="11" fontWeight="600">{label}{kind === 'flow' ? ' — 위: 개업, 아래: 폐업' : ''}{parts && kind !== 'line' ? ' (유형별로 쌓은 높이 = 전체)' : ''}</text>
       <text x={W - r} y={12} fontSize="10" textAnchor="end" fill="#555">단위: {unit} · {year}년 {values[xi(year)] == null ? '자료 미확보' : `${values[xi(year)]!.toLocaleString()}${unit}`}{kind === 'flow' && down?.[xi(year)] != null ? ` / 폐업 ${down[xi(year)]}` : ''}</text>
     </svg>
   )
@@ -149,3 +162,51 @@ export function DataTable({ head, rows, caption }: { head: string[]; rows: (stri
     </details>
   )
 }
+
+// 원(도넛) 그래프: 한 유형 안의 범주 구성. 조각 = 개수, 가운데 = n
+export function Donut({ parts, title, n, sub }: { parts: { label: string; value: number; color: string }[]; title: string; n: number; sub?: string }) {
+  const R = 52, r = 30, c = 64
+  let a = -Math.PI / 2
+  const arc = (v: number) => {
+    const a0 = a, a1 = (a += (v / n) * Math.PI * 2), big = a1 - a0 > Math.PI ? 1 : 0
+    const p = (rad: number, t: number) => `${c + rad * Math.cos(t)},${c + rad * Math.sin(t)}`
+    return v >= n ? `M${c - R},${c}a${R},${R} 0 1,0 ${R * 2},0a${R},${R} 0 1,0 ${-R * 2},0M${c - r},${c}a${r},${r} 0 1,1 ${r * 2},0a${r},${r} 0 1,1 ${-r * 2},0`
+      : `M${p(R, a0)}A${R},${R} 0 ${big} 1 ${p(R, a1)}L${p(r, a1)}A${r},${r} 0 ${big} 0 ${p(r, a0)}Z`
+  }
+  return (
+    <svg viewBox="0 0 128 156" role="img" aria-label={title} className="donut">
+      <title>{title}</title>
+      {n === 0 ? <circle cx={c} cy={c} r={(R + r) / 2} fill="none" stroke="#eee" strokeWidth={R - r} /> :
+        parts.filter((x) => x.value > 0).map((x) => <path key={x.label} d={arc(x.value)} fill={x.color} stroke="#fff" strokeWidth="1.2" fillRule="evenodd"><title>{x.label} {x.value}곳 ({f1((x.value / n) * 100)}%)</title></path>)}
+      <text x={c} y={c + 2} textAnchor="middle" fontSize="17" fontWeight="700">{n}</text>
+      <text x={c} y={c + 15} textAnchor="middle" fontSize="9" fill="#666">곳</text>
+      <text x={c} y={140} textAnchor="middle" fontSize="11" fontWeight="600">{title}</text>
+      {sub && <text x={c} y={150} textAnchor="middle" fontSize="9" fill="#666">{sub}</text>}
+    </svg>
+  )
+}
+
+// 가로 누적 막대(개수): 행 = 범주, 조각 = 유형
+export const CountBars = forwardRef<SVGSVGElement, { rows: { label: string; values: Record<VenueType, number>; color?: string }[]; title: string; unit: string }>(
+  function CountBars({ rows, title, unit }, ref) {
+    const x0 = 112, rowH = 30, max = Math.max(1, ...rows.map((r) => TYPES.reduce((a, t) => a + r.values[t], 0)))
+    const sx = (v: number) => (v / max) * (W - x0 - 60)
+    return (
+      <svg ref={ref} viewBox={`0 0 ${W} ${rows.length * rowH + 30}`} role="img" aria-label={title}>
+        <title>{title}</title>
+        <g fontSize="10.5">{TYPES.map((t, i) => <g key={t} transform={`translate(${x0 + i * 140},8)`}><rect width="10" height="10" fill={TYPE_STYLE[t].color} /><text x="14" y="9">{t}</text></g>)}</g>
+        {rows.map((r, j) => {
+          let x = x0
+          const tot = TYPES.reduce((a, t) => a + r.values[t], 0)
+          return (
+            <g key={r.label} transform={`translate(0,${28 + j * rowH})`}>
+              {r.color && <rect x={0} y={4} width={10} height={14} fill={r.color} />}
+              <text x={r.color ? 15 : 0} y={15} fontSize="11.5" fontWeight="600">{r.label}</text>
+              {TYPES.map((t) => { const w = sx(r.values[t]), g = <g key={t}><rect x={x} y={2} width={w} height={18} fill={TYPE_STYLE[t].color} stroke="#fff" />
+                {w > 16 && <text x={x + w / 2} y={15} fontSize="10" fill="#fff" textAnchor="middle" fontWeight="600">{r.values[t]}</text>}</g>; x += w; return g })}
+              <text x={x + 5} y={15} fontSize="11">{tot}{unit}</text>
+            </g>)
+        })}
+      </svg>
+    )
+  })
