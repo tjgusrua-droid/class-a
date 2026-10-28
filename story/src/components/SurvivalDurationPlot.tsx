@@ -1,11 +1,11 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import type maplibregl from 'maplibre-gl'
 import { NEAR_BANDS, OCCUPANCY, SOURCES, TYPE_STYLE, TYPES, type VenueType } from '../config'
-import { DATA_DATE } from '../config'
-import { distM, duration, f1, jo, kaplanMeier, located, median, type DataSet, type Venue } from '../data'
-import { BoxDot, DataTable, SurvivalCurves } from './charts'
+import { distM, duration, f1, located, median, type DataSet, type Venue } from '../data'
+import { BoxDot, ConditionBars, DataTable } from './charts'
+import { atYear, life, survOf } from './SurvivalSection'
 import SeoulMap, { regionOverlay } from './SeoulMap'
-import { MapLegend, savePng, saveSvg, Seg, SourceNote, TypeToggles } from './ui'
+import { Finding, MapLegend, savePng, saveSvg, Seg, SourceNote, TypeToggles } from './ui'
 
 // 서울시 5개 생활권(도시기본계획의 권역 구분)
 const REGION: Record<string, string> = Object.fromEntries([
@@ -46,40 +46,55 @@ export default function SurvivalDurationPlot({ data, all }: { data: DataSet; all
   const sentences = groups.filter((g) => g.items.length).map((g) => `${g.key}(n=${g.items.length})의 폐업 전 운영기간 중앙값은 ${f1(median(g.items.map((x) => x.v)))}년이었다${g.items.length < 5 ? ' — 표본이 적어 해석에 주의가 필요하다' : ''}.`)
   const pts = closed.filter((v) => on.includes(v.type))
 
-  // 생존곡선: 영업 중 = 기준일까지 관측(중도절단), 폐업 = 사건. 일괄 등록일 의심 개업일·날짜 없음은 제외
-  const END = new Date(DATA_DATE)
-  const life = (v: Venue) => (v.openD && !v.bulkOpen ? ((v.status === '영업' ? END : v.closeD)?.getTime() ?? NaN) - v.openD.getTime() : NaN) / 3.15576e10
-  const surv = TYPES.map((t) => { const xs = all.filter((v) => v.type === t && isFinite(life(v)))
-    return { key: t, n: xs.length, closed: xs.filter((v) => v.status !== '영업').length, ...kaplanMeier(xs.map((v) => ({ t: +life(v).toFixed(2), event: v.status !== '영업' }))) } })
-  const at = (k: typeof surv[number], y: number) => [...k.steps].reverse().find((p) => p.t <= y)?.s ?? 1
-  const longest = [...surv].sort((a, b) => (b.med ?? 99) - (a.med ?? 99))[0], shortest = [...surv].sort((a, b) => (a.med ?? 99) - (b.med ?? 99))[0]
+  // 조건별 생존율(제언의 근거): 영업 중 포함 모든 운영구간의 생존곡선에서 10·20년 뒤 운영 비율
+  const stations: any[] = data.stations.status === 'ok' ? data.stations.data.features : []
+  const centers: any[] = data.centers.status === 'ok' ? data.centers.data.features : []
+  const base = all.filter((v) => located(v) && isFinite(life(v)))
+  const nearAtOpen = useMemo(() => Object.fromEntries(base.map((v) => [v.id, base.filter((o) => o.id !== v.id && o.openD! <= v.openD! && (o.status === '영업' || (o.closeD && o.closeD >= v.openD!)) && distM(v, o) <= 1000).length])), [all])
+  const COM = OCCUPANCY.slice(0, 4)
+  const factor = (name: string, defs: [string, (v: Venue) => boolean][]) => ({ factor: name, groups: defs.map(([label, f]) => { const xs = base.filter(f), k = survOf(xs)
+    return { label, n: xs.length, s10: atYear(k, 10) * 100, s20: atYear(k, 20) * 100 } }) })
+  const inCenter = (v: Venue) => centers.some((c) => c.properties.anchors.some((a: number[]) => distM(v, { lon: a[0], lat: a[1] }) <= c.properties.radius))
+  const nearSt = (v: Venue) => stations.some((f: any) => distM(v, { lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] }) <= 500)
+  const F = [
+    factor('입점 형태', [['상업시설 안', (v) => COM.includes(v.occupancy)], ['그 밖·확인 불가', (v) => !COM.includes(v.occupancy)]]),
+    factor('개업 당시 1km 안 영화관', [['없음', (v) => nearAtOpen[v.id] === 0], ['1~2곳', (v) => nearAtOpen[v.id] >= 1 && nearAtOpen[v.id] <= 2], ['3곳 이상(밀집)', (v) => nearAtOpen[v.id] >= 3]]),
+    factor('2040 중심지', [['중심지 안', inCenter], ['중심지 밖', (v) => !inCenter(v)]]),
+    factor('지하철역', [['역 500m 안', nearSt], ['역 500m 밖', (v) => !nearSt(v)]]),
+  ]
+  const g = (fi: number, gi: number) => F[fi].groups[gi]
+  const diff = (a: { s10: number; s20: number }, b: { s10: number; s20: number }, k: 's10' | 's20') => a[k] - b[k]
+  const advice: { head: ReactNode; mean: ReactNode }[] = []
+  { const a = g(0, 0), b = g(0, 1), d = diff(a, b, 's10')
+    advice.push(d >= 10 ? { head: <>① 상업시설과 결합한 영화관이 오래 남았다.</>, mean: <>상업시설 안 영화관은 10년 뒤 {f1(a.s10)}%가 운영 중으로, 그 밖({f1(b.s10)}%)보다 {f1(d)}%p 높다. 신규 영화관은 집객시설과 결합한 입지를, 단독 영화관은 주변 상업·문화시설과의 연계 프로그램을 검토할 만하다.</> }
+      : { head: <>① 상업시설 결합 여부에 따른 차이는 크지 않았다.</>, mean: <>10년 뒤 {f1(a.s10)}% 대 {f1(b.s10)}%.</> }) }
+  { const none = g(1, 0), dense = g(1, 2), d = diff(none, dense, 's20')
+    advice.push(d >= 5 ? { head: <>② ‘뭉치면 산다’는 확인되지 않았다 — 밀집한 곳일수록 오래 버티지 못했다.</>, mean: <>개업 당시 반경 1km 안에 영화관이 3곳 이상이던 곳은 20년 뒤 {f1(dense.s20)}%만 남아, 주변에 영화관이 없던 곳({f1(none.s20)}%)보다 낮다. 이미 영화관이 많은 곳에 같은 방식으로 들어서기보다, 비어 있는 생활권을 찾거나 밀집지에서는 특화 프로그램으로 차별화하는 편이 오래 운영된 사례와 맞닿아 있다. 정책은 밀집지의 ‘영화관 거리’를 특화 상영·축제로 묶는 지원을 검토할 수 있다.</> }
+      : d <= -5 ? { head: <>② ‘뭉치면 산다’ — 밀집한 곳이 더 오래 남았다.</>, mean: <>개업 당시 1km 안에 영화관이 3곳 이상이던 곳은 20년 뒤 {f1(dense.s20)}%로, 없던 곳({f1(none.s20)}%)보다 높다. 영화관 거리 단위의 공동 홍보·축제 지원을 검토할 만하다.</> }
+      : { head: <>② 주변 영화관 밀집 여부에 따른 차이는 뚜렷하지 않았다.</>, mean: <>20년 뒤 {f1(dense.s20)}%(3곳 이상) 대 {f1(none.s20)}%(없음).</> }) }
+  { const a = g(2, 0), b = g(2, 1), d = diff(a, b, 's10')
+    advice.push(d >= 5 ? { head: <>③ 중심지 안 영화관이 더 오래 남았다.</>, mean: <>10년 뒤 {f1(a.s10)}%(중심지 안) 대 {f1(b.s10)}%(밖). 신규 공급은 2040 중심지 체계와 맞춘 입지를, 중심지 밖 영화관에는 생활권 문화시설로서의 공공 지원을 검토할 수 있다.</> }
+      : { head: <>③ 중심지 안팎의 차이는 크지 않았다.</>, mean: <>10년 뒤 {f1(a.s10)}% 대 {f1(b.s10)}%.</> }) }
+  { const a = g(3, 0), b = g(3, 1), d = diff(a, b, 's10')
+    advice.push(Math.abs(d) < 5 || d < 0 ? { head: <>④ 역에 가깝다는 것만으로는 오래 남지 않았다.</>, mean: <>역 500m 안 {f1(a.s10)}% 대 밖 {f1(b.s10)}%(10년 뒤). 대부분이 이미 역 가까이 있어 역세권은 차별 요인이 되지 못한다 — 역 접근성은 기본 조건이고, 무엇과 결합하느냐가 더 중요하다.</> }
+      : { head: <>④ 역 가까운 영화관이 더 오래 남았다.</>, mean: <>10년 뒤 {f1(a.s10)}% 대 {f1(b.s10)}%.</> }) }
 
-  return (<>
-    <div className="survival">
-      <p className="chart-title">유형별 생존곡선 — 개업 후 t년이 지나도 운영 중인 비율(Kaplan–Meier)</p>
-      <div className="two wide">
-        <SurvivalCurves title="유형별 생존곡선" xmax={50} series={surv} />
-        <div>
-          <table className="mini-table"><thead><tr><th>유형</th><th>운영구간</th><th>폐업</th><th>중앙 생존기간</th><th>10년 뒤 운영 비율</th></tr></thead>
-            <tbody>{surv.map((k) => <tr key={k.key}><td>{TYPE_STYLE[k.key].mark} {k.key}</td><td>{k.n}</td><td>{k.closed}</td><td>{k.med == null ? '50% 미도달' : `${f1(k.med)}년`}</td><td>{f1(at(k, 10) * 100)}%</td></tr>)}</tbody></table>
-          <div className="finding"><p className="f-title">결론</p>
-            <p className="f-head">{longest.med == null ? `${jo(longest.key, '는')} 아직 절반 이상이 운영 중이라 중앙 생존기간이 나오지 않는다.` : `${jo(longest.key, '의')} 중앙 생존기간이 ${f1(longest.med)}년으로 가장 길다.`}</p>
-            <p className="f-mean">{shortest.key !== longest.key && shortest.med != null ? `${jo(shortest.key, '는')} 개업 후 ${f1(shortest.med)}년이면 절반이 문을 닫아 가장 짧다.` : ''} 곡선이 오래 높게 유지될수록 오래 운영된다는 뜻이다.</p></div>
-          <p className="note">중앙 생존기간 = 생존곡선이 50%로 내려오는 시점. 영업 중인 곳은 ‘기준일({DATA_DATE})까지 운영 중’으로 넣고(중도절단) 폐업으로 세지 않습니다. 2000년대 이전 개업 기록이 적어 오래된 영화관은 덜 잡힐 수 있습니다.</p>
-        </div>
-      </div>
-      <DataTable caption="운영구간별 운영기간(영업 중은 기준일까지)" head={['영화관', '유형', '자치구', '상태', '개업일', '폐업일', '운영기간(년)']}
-        rows={[...all].filter((v) => isFinite(life(v))).sort((a, b) => life(b) - life(a)).map((v) => [v.name, v.type, v.gu, v.status, v.open, v.close || '영업 중', +life(v).toFixed(1)])} />
-    </div>
-    <div className="split">
+  return (
+    <div className="split advice">
       <div className="mapcol">
         <TypeToggles value={on} onChange={setOn} counts={Object.fromEntries(TYPES.map((t) => [t, closed.filter((v) => v.type === t).length]))} />
         <SeoulMap data={data} label="폐업 영화관 지도" onMap={(m) => (map.current = m)} selectedId={pick} onSelect={(v) => setPick(v?.id ?? null)} extras={crit === '권역' ? regionOverlay(data) : []}
           points={pts.map((v) => ({ v, mark: group && keyOf(v) !== group ? 'dim' : 'hollow' }))} />
         <MapLegend types={on} marks={group ? ['hollow', 'dim'] : ['hollow']} extra={crit === '권역' && <span>┅ 5개 생활권(권역) 경계</span>} />
-        <p className="note">폐업·취소 운영구간 {pts.length}개(좌표 없음 {pts.filter((v) => !located(v)).length}). 집단을 누르면 지도에서 강조됩니다.</p>
+        <p className="note">폐업·취소 운영구간 {pts.length}개(좌표 없음 {pts.filter((v) => !located(v)).length}).</p>
       </div>
       <div className="chart">
+        <p className="chart-title">어떤 조건에서 오래 남았나 — 조건별 개업 10년·20년 뒤 운영 비율</p>
+        <ConditionBars title="조건별 생존율" rows={F} />
+        <Finding title="제언 — 영화관을 오래 운영하려면" items={advice} />
+        <p className="note">영업 중인 곳을 포함한 운영구간 {base.length}개의 생존곡선(Kaplan–Meier)으로 계산. 관찰된 차이이며 원인이라고 단정할 수 없습니다(유형·개업 시기가 함께 작용하고, 역·중심지는 현재 기준). 상업시설 = 백화점·쇼핑몰·대형마트·역사. 입점 형태는 확인 불가가 많아 ‘그 밖’에 포함됩니다. 빨간 n은 20곳 미만.</p>
+        <details className="table ui more">
+          <summary>입지 조건별 폐업 영화관 운영기간 분포 자세히 보기</summary>
         <label className="ui">입지 조건 <select value={crit} onChange={(e) => { setCrit(e.target.value as Crit); setGroup(null) }}>
           {(['유형', '개업 시기', '건축적 입점 형태', '최근접 영화관 거리', '권역', '지하철 접근성', '중심지 위계', '문화시설 인접'] as Crit[]).map((c) =>
             <option key={c} value={c} disabled={!!OFF[c]}>{c}{OFF[c] ? ` (${OFF[c]})` : ''}</option>)}
@@ -105,7 +120,8 @@ export default function SurvivalDurationPlot({ data, all }: { data: DataSet; all
         <DataTable caption="폐업 영화관 운영기간" head={['영화관', '유형', '자치구', '개업일', '폐업일', '운영기간(년)', crit]}
           rows={[...sel].sort((a, b) => duration(a)! - duration(b)!).map((v) => [v.name, v.type, v.gu, v.open, v.close, +duration(v)!.toFixed(1), keyOf(v)])} />
         <p className="note">유형별 폐업 운영구간: {TYPES.map((t) => `${TYPE_STYLE[t].mark} ${t} ${closed.filter((v) => v.type === t).length}`).join(' · ')}</p>
+        </details>
       </div>
     </div>
-  </>)
+  )
 }

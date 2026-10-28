@@ -89,7 +89,7 @@ export default function TypeComparison({ open }: { open: Venue[] }) {
         <div>
           <p className="chart-title">유형별 규모의 범위 — 점 = 영화관, 상자 = 가운데 50%, 굵은 선 = 중앙값</p>
           <Seg label="범위 지표" value={rangeOf} onChange={setRangeOf} options={[{ v: 'screens' as const, label: '시설당 스크린' }, { v: 'seats' as const, label: '시설당 좌석' }, { v: 'per' as const, label: '1관당 좌석' }]} />
-          <BoxDot ref={svg2} title="유형별 규모의 범위" unit={rangeOf === 'screens' ? '개' : rangeOf === 'seats' ? '석' : '석/관'} rowH={44}
+          <BoxDot ref={svg2} title="유형별 규모의 범위" unit={rangeOf === 'screens' ? '개' : rangeOf === 'seats' ? '석' : '석/관'} rowH={34}
             groups={metric(rangeOf === 'screens' ? (v) => v.screens25 : rangeOf === 'seats' ? (v) => v.seats25 : (v) => (v.seats25 && v.screens25 ? v.seats25 / v.screens25 : null))} />
         </div>
       </div>

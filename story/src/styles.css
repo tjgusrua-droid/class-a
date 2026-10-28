@@ -1,7 +1,7 @@
 :root {
   --ink: #161616; --ink2: #555; --line: #e2e2e2; --bg: #fafafa;
   /* 글꼴 위계는 다섯 단계만: 표제 / 장 제목 / 소제목·결론 / 본문 / 보조(주석·범례·조작) */
-  --fs-display: clamp(30px, 3.6vw, 50px); --fs-h2: clamp(24px, 2.4vw, 32px); --fs-h3: 19px; --fs-body: 15.5px; --fs-small: 12.5px;
+  --fs-display: clamp(30px, 3.6vw, 50px); --fs-h2: clamp(24px, 2.4vw, 32px); --fs-h3: 19px; --fs-body: 15.5px; --fs-small: 11.5px;
   --muted: #777;
   font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', system-ui, sans-serif;
   color: var(--ink); background: #fff;
@@ -222,7 +222,7 @@ details caption { text-align: left; font-weight: 600; padding: 4px 0; }
 .chk { display: inline-flex; gap: 5px; align-items: center; font-size: var(--fs-small); margin: 0 0 6px; cursor: pointer; }
 .easy { font-size: var(--fs-body); line-height: 1.6; margin: 6px 0 4px; color: #111; }
 .easy-num { font-size: var(--fs-small); color: #444; margin: 0 0 8px; }
-.iso { width: 100%; max-width: 380px; display: block; margin: 0 auto; }
+.iso { width: 100%; max-width: 300px; display: block; margin: 0 auto; }
 .deftable details summary { cursor: pointer; font-size: var(--fs-small); color: #555; margin: 4px 0; }
 .finding { border-top: 3px solid #111; margin: 22px 0 10px; padding-top: 10px; }
 .finding .f-title { font-size: var(--fs-small); letter-spacing: .08em; color: #666; margin: 0 0 6px; font-weight: 700; }
@@ -340,3 +340,23 @@ details caption { text-align: left; font-weight: 600; padding: 4px 0; }
 .tl-side .metricpick button { padding: 3px 7px; }
 @media (max-width: 1000px) { .tl { grid-template-columns: 1fr; height: auto; } .tl-map .map { height: 50vh; } .tl-side { overflow: visible; } }
 .chart-title .seg { margin-left: 8px; vertical-align: middle; font-weight: 400; }
+.tnum { display: inline-block; margin: 0 10px 0 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.source { font-size: 10.5px; color: #8a8a8a; }
+.eracards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 6px 0 8px; }
+.eracard { border: 1px solid var(--line); border-top: 4px solid #111; padding: 6px 8px; cursor: pointer; background: #fff; text-align: left; font: inherit; }
+.eracard[aria-pressed='true'] { background: #f3f3f1; }
+.eracard b { display: block; font-size: var(--fs-body); }
+.eracard .nums { font-size: var(--fs-body); font-variant-numeric: tabular-nums; margin: 2px 0; }
+.eracard .nums em { font-style: normal; color: var(--muted); font-size: var(--fs-small); }
+.eracard p { margin: 0; font-size: var(--fs-small); color: #444; line-height: 1.45; }
+
+/* ---- 5장 ---- */
+#closed, #advice { padding-top: 28px; }
+.survival .finding { margin-top: 0; }
+.mini-table.surv td, .mini-table.surv th { font-size: var(--fs-small); text-align: right; }
+.mini-table.surv td:first-child, .mini-table.surv th:first-child { text-align: left; }
+.split.advice .chart .finding .f-head { font-size: var(--fs-body); }
+.split.advice .chart .finding .f-mean { font-size: var(--fs-small); color: #444; line-height: 1.55; }
+.split.advice .map { height: calc(100vh - 250px); }
+.split.advice .mapcol { top: 8px; }
+details.more { margin-top: 12px; }

@@ -1,6 +1,6 @@
 // 3장 정리: 유형마다 입지 모습을 한 장의 그림 카드로(역·중심지·입점·인접)
 import { CENTER_COLOR, CENTER_LEVELS, OCC_COLOR, OCCUPANCY, TYPE_STYLE, TYPES, type VenueType } from '../config'
-import { distM, f1, located, nearest, pct, type DataSet, type Venue } from '../data'
+import { distM, f1, located, median, nearest, pct, type DataSet, type Venue } from '../data'
 import { OccupancyIcon } from './Isometric'
 import { DataTable } from './charts'
 import { Sym } from './ui'
@@ -21,7 +21,7 @@ function Neighborhood({ color, count, dist }: { color: string; count: number; di
       <circle cx={c} cy={80} r={7} fill={color} stroke="#fff" strokeWidth="2" />
       <circle cx={c + d} cy={80} r={6} fill="#fff" stroke={color} strokeWidth="2.5" />
       <text x={c + d} y={62} fontSize="13" fill="#333" textAnchor="middle">같은 유형</text>
-      <text x={c + d / 2 + 10} y={102} fontSize="14" fontWeight="700" textAnchor="middle" fill={color}>평균 {f1(dist)}km</text>
+      <text x={c + d / 2 + 10} y={102} fontSize="14" fontWeight="700" textAnchor="middle" fill={color}>{f1(dist)}km</text>
     </svg>
   )
 }
@@ -37,7 +37,8 @@ export default function LocationProfile({ data, open }: { data: DataSet; open: V
     const occ = OCCUPANCY.map((c) => ({ c, k: known.filter((v) => v.occupancy === c).length })).sort((a, b) => b.k - a.k)[0]
     const lv = Object.fromEntries([...CENTER_LEVELS, '중심지 밖'].map((l) => [l, pct(xs.filter((v) => levelOf(v) === l).length, xs.length)]))
     return [t, { n: xs.length, sub: pct(xs.filter((v) => stations.some((f: any) => distM(v, pt(f)) <= 500)).length, xs.length), lv, occ, known: known.length,
-      same: avg(xs.map((v) => nearest(v, pts, (o) => o.type === v.type)?.dist).filter((x): x is number => x != null)) / 1000,
+      ...(() => { const ds = xs.map((v) => nearest(v, pts, (o) => o.type === v.type)?.dist).filter((x): x is number => x != null)
+        return { same: median(ds) / 1000, sameMean: avg(ds) / 1000 } })(),
       cnt: avg(xs.map((v) => pts.filter((o) => o.id !== v.id && distM(v, o) <= 1000).length)) }]
   })) as Record<VenueType, any>
   // 한 줄 초상: 계산된 값으로 문장 조각을 고른다
@@ -62,14 +63,14 @@ export default function LocationProfile({ data, open }: { data: DataSet; open: V
             <div className="p-cell"><OccupancyIcon label={p.known ? p.occ.c : ''} color={p.known ? OCC_COLOR[OCCUPANCY.indexOf(p.occ.c)] : '#ccc'} />
               <p>{p.known ? <><b>{p.occ.c.replace(' 내 입점', '')}</b> {p.occ.k}/{p.known}곳</> : '확인된 곳 없음'} <small>(확인 불가 {p.n - p.known})</small></p></div>
             <div className="p-cell"><Neighborhood color={c} count={p.cnt} dist={p.same} />
-              <p>1km 안 다른 영화관 평균 <b>{f1(p.cnt)}곳</b> · 같은 유형까지 평균 <b>{f1(p.same)}km</b></p></div>
+              <p>1km 안 다른 영화관 평균 <b>{f1(p.cnt)}곳</b> · 같은 유형까지 중앙값 <b>{f1(p.same)}km</b> <small>(평균 {f1(p.sameMean)}km)</small></p></div>
           </div> })}
       </div>
       <div className="profile-key">
         {[...CENTER_LEVELS, '중심지 밖'].map((l) => <span key={l}><i style={{ background: CENTER_COLOR[l] }} /> {l}</span>)}
-        <span>회색 점 = 반경 1km 안 다른 영화관(평균 개수) · 흰 점 = 가장 가까운 같은 유형(평균 거리)</span>
+        <span>회색 점 = 반경 1km 안 다른 영화관(평균 개수) · 흰 점 = 가장 가까운 같은 유형(거리 중앙값)</span>
       </div>
-      <p className="note">영업 중 좌표가 있는 {pts.length}곳. 거리·개수는 평균, 직선거리. 중심지는 2040 중심지 개략 영역, 입점 형태는 확인된 곳만. 분포의 차이를 기술한 것이며 원인을 뜻하지 않습니다.</p>
+      <p className="note">영업 중 좌표가 있는 {pts.length}곳. 개수는 평균, 거리는 중앙값(괄호는 평균) — 거리는 멀리 떨어진 몇 곳이 평균을 크게 끌어올려 중앙값이 ‘보통의 영화관’을 더 잘 나타냄. 직선거리. 중심지는 2040 중심지 개략 영역, 입점 형태는 확인된 곳만. 분포의 차이를 기술한 것이며 원인을 뜻하지 않습니다.</p>
       <DataTable caption="영업 영화관 입지 속성" head={['영화관', '유형', '자치구', '입점 형태', '중심지']} rows={pts.map((v) => [v.name, v.type, v.gu, v.occupancy, levelOf(v)])} />
     </div>
   )

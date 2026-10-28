@@ -49,6 +49,10 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
 
   const eraRows = ERAS.map((e) => { const n = Math.min(e.to, LAST.getFullYear()) - e.from + 1; return { e, n, o: sumR('opened', e), c: sumR('closed', e) } })
   const a0 = row(YEAR_MIN)?.operating, a1 = row(2025)?.operating
+  // 시기별 정리: 개업·폐업 수, 순증감, 운영 수 변화, 개업·폐업에서 가장 큰 유형
+  const typeSum = (k: string, e: (typeof ERAS)[number], t: string) => YEARS.filter((y) => y >= e.from && y <= e.to).reduce((a, y) => a + (yearly.find((r) => r.year === y && r.type === t)?.[k] ?? 0), 0)
+  const topShare = (k: string, e: (typeof ERAS)[number], tot: number) => { const t = [...TYPES].sort((a, b) => typeSum(k, e, b) - typeSum(k, e, a))[0]
+    return tot ? `${TYPE_STYLE[t].short} ${Math.round((typeSum(k, e, t) / tot) * 100)}%` : '—' }
 
   return (
     <div className="tl">
@@ -71,14 +75,23 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
         </div>
         {a0 != null && a1 != null && <Finding items={[
           { head: <>{sel ?? '전체'} 운영 영화관은 {YEAR_MIN}년 {a0}곳에서 2025년 {a1}곳이 되었다.</>,
-            mean: <>연평균 개업은 {eraRows.map((x) => `${x.e.label} ${f1(x.o / x.n)}곳`).join(' → ')}, 연평균 폐업은 {eraRows.map((x) => `${f1(x.c / x.n)}곳`).join(' → ')}로 바뀌었다.</> }]} />}
+            mean: <>연평균 개업은 {eraRows.map((x) => `${f1(x.o / x.n)}`).join(' → ')}곳으로 줄었고, 폐업은 {eraRows.map((x) => `${f1(x.c / x.n)}`).join(' → ')}곳이었다.</> }]} />}
+        <div className="eracards" role="group" aria-label="시기별 정리">
+          {eraRows.map(({ e, n, o, c }) => { const s0 = row(e.from === YEAR_MIN ? e.from : e.from - 1)?.operating, s1 = row(Math.min(e.to, LAST.getFullYear()))?.operating
+            return <button key={e.id} className="eracard" aria-pressed={era === e.id} onClick={() => setEra(era === e.id ? null : e.id)}>
+              <b>{e.label}{e.to >= LAST.getFullYear() ? ' (~2026.9)' : ''}</b>
+              <div className="nums">개업 {o} · 폐업 {c} <em>순 {o - c >= 0 ? '+' : ''}{o - c}</em></div>
+              <p>운영 {s0 ?? '—'}→{s1 ?? '—'}곳 · 연평균 개업 {f1(o / n)}, 폐업 {f1(c / n)}</p>
+              {!sel && <p>개업 중 {topShare('opened', e, o)} · 폐업 중 {topShare('closed', e, c)}</p>}
+            </button> })}
+        </div>
         <div className="row ui metricpick" role="group" aria-label="지표 선택">
           {(Object.keys(METRICS) as MetricKey[]).map((k) => <button key={k} aria-pressed={metric === k} onClick={() => setMetric(k)}>{METRICS[k].label.replace(/\(.*\)/, '').replace('연도별 ', '')}</button>)}
         </div>
         <MetricChart ref={svg} title={M.label} label={`${M.label} — ${sel ?? '전체'}`} years={YEARS} values={values} down={metric === 'flow' ? series('closed') : undefined}
           kind={M.kind} color={color}
           parts={sel ? undefined : TYPES.map((t) => ({ key: t, values: series(metric === 'flow' ? 'opened' : metric, t), down: metric === 'flow' ? series('closed', t) : undefined }))}
-          unit={M.unit} year={year} onYear={(y) => { setYear(y); setEra(null) }} range={E ? range : null} partialYear={LAST.getFullYear()} />
+          unit={M.unit} year={year} onYear={(y) => { setYear(y); setEra(null) }} range={E ? range : null} partialYear={LAST.getFullYear()} height={250} />
         <div className="ui">
           <button className="link" onClick={() => savePng(map.current?.getCanvas(), `4_지도_${range.join('-')}`)}>지도 PNG 저장</button>
           <button className="link" onClick={() => saveSvg(svg.current, `4_${metric}`)}>그래프 SVG 저장</button>

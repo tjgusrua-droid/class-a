@@ -9,9 +9,10 @@ import LocationTabs from './components/LocationTabs'
 import LocationProfile from './components/LocationProfile'
 import TimelineSection from './components/TimelineSection'
 import SurvivalDurationPlot from './components/SurvivalDurationPlot'
+import SurvivalSection from './components/SurvivalSection'
 import { DataStatus, StorySection } from './components/ui'
 
-const SCENES = [['intro', '시작'], ['audit', '자료 검증'], ['types', '1 유형'], ['where', '2 분포'], ['location', '3 입지'], ['profile', '3 정리'], ['change', '4 변화'], ['closed', '5 폐업'], ['sources', '출처']]
+const SCENES = [['intro', '시작'], ['audit', '자료 검증'], ['types', '1 유형'], ['where', '2 분포'], ['location', '3 입지'], ['profile', '3 정리'], ['change', '4 변화'], ['closed', '5 생존'], ['advice', '5 제언'], ['sources', '출처']]
 
 export default function App() {
   const [data, setData] = useState<DataSet | null>(null)
@@ -88,7 +89,12 @@ export default function App() {
       </StorySection>
 
       <StorySection id="closed">
-        <h2><span>5</span>폐업한 영화관은 어디에 있었고 얼마나 운영되었는가?</h2>
+        <h2><span>5</span>영화관은 얼마나 오래 운영되는가?</h2>
+        <SurvivalSection all={all} />
+      </StorySection>
+
+      <StorySection id="advice">
+        <h2><span>5</span>어떤 조건에서 오래 남았나 — 폐업 지도와 제언</h2>
         <SurvivalDurationPlot data={data} all={all} />
       </StorySection>
 

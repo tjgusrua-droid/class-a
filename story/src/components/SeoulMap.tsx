@@ -10,7 +10,7 @@ export type Mark = 'fill' | 'hollow' | 'new' | 'dim' // 영업 / 폐업 / 이 �
 export type Point = { v: Venue; mark: Mark; color?: string } // color: 유형 색 대신 쓸 색(예: 입점 형태)
 // place: under = 행정경계 아래(버퍼·중심지 영역), over = 경계·지명 위, 영화관 아래(역·문화시설)
 // label: 지물 이름표(캔버스 글자). 영화관 점보다 아래에 놓인다
-export type Overlay = { id: string; data: any; layers: any[]; place: 'under' | 'over'; hover?: (p: any) => string; label?: { text: (p: any) => string; color: string; size?: number } }
+export type Overlay = { id: string; data: any; layers: any[]; place: 'under' | 'over'; hover?: (p: any) => string; label?: { text: (p: any) => string; color: string; size?: number; box?: boolean } }
 
 // 지하철 노선(OSM 선형, 노선 고유색, 반투명)과 역(서울열린데이터광장). 영화관 점이 가장 먼저 보이도록 둘 다 영화관 아래·옅게
 export const stationOverlay = (data: DataSet, dark = false): Overlay[] => [
@@ -23,10 +23,14 @@ export const stationOverlay = (data: DataSet, dark = false): Overlay[] => [
       'circle-color': dark ? '#333' : '#fff', 'circle-opacity': 0.9, 'circle-stroke-color': dark ? '#888' : '#9a9a9a', 'circle-stroke-width': ['case', ['get', 'transfer'], 1, 0.5] } }] }] : []),
 ]
 
-// 서울시 5개 생활권(권역) 경계와 이름
-export const regionOverlay = (data: DataSet): Overlay[] => data.regions.status !== 'ok' ? [] : [{ id: 'regions', place: 'over', data: data.regions.data,
-  label: { text: (p) => p.name, color: '#7a4a1e', size: 1.5 },
-  layers: [{ type: 'line', paint: { 'line-color': '#8a5a2b', 'line-width': 2.6, 'line-dasharray': [3, 2], 'line-opacity': 0.85 } }] }]
+// 서울시 5개 생활권(권역): 진한 회색 경계, 이름은 서울 바깥 태그 + 지시선
+export const regionOverlay = (data: DataSet): Overlay[] => data.regions.status !== 'ok' ? [] : [
+  { id: 'regions', place: 'over', data: data.regions.data,
+    layers: [{ type: 'line', paint: { 'line-color': '#4d4d4d', 'line-width': 2.2, 'line-dasharray': [3, 2], 'line-opacity': 0.9 } }] },
+  { id: 'regiontags', place: 'over', label: { text: (p) => p.name, color: '#222', size: 1.2, box: true },
+    data: { type: 'FeatureCollection', features: data.regions.data.features.map((f: any) => ({ type: 'Feature', properties: f.properties, geometry: { type: 'LineString', coordinates: [f.properties.anchor, f.properties.label] } })) },
+    layers: [{ type: 'line', paint: { 'line-color': '#4d4d4d', 'line-width': 1 } }] },
+]
 
 type Props = {
   data: DataSet
@@ -70,12 +74,13 @@ function shapeIcon(shape: string, color: string, mark: Mark | 'sel') {
 }
 
 // 자치구 이름을 캔버스 이미지로 만들어 심볼 레이어에 쓴다(글꼴 서버 없이, 영화관 점보다 아래에 놓기 위해)
-function textIcon(t: string, color = '#8c8c8c', weight = 500) {
+function textIcon(t: string, color = '#8c8c8c', weight = 500, box = false) {
   const c = document.createElement('canvas'), g = c.getContext('2d')!
   g.font = `${weight} 22px "Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif`
   c.width = Math.ceil(g.measureText(t).width) + 8; c.height = 30
   g.font = `${weight} 22px "Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif`
-  g.lineWidth = 5; g.strokeStyle = 'rgba(255,255,255,.9)'; g.strokeText(t, 4, 22)
+  if (box) { g.fillStyle = '#fff'; g.fillRect(1, 1, c.width - 2, c.height - 2); g.lineWidth = 2; g.strokeStyle = '#4d4d4d'; g.strokeRect(1, 1, c.width - 2, c.height - 2) }
+  else { g.lineWidth = 5; g.strokeStyle = 'rgba(255,255,255,.9)'; g.strokeText(t, 4, 22) }
   g.fillStyle = color; g.fillText(t, 4, 22)
   return g.getImageData(0, 0, c.width, c.height)
 }
@@ -285,7 +290,7 @@ function apply(m: maplibregl.Map, p: Props) {
       o.layers.forEach((l, i) => m.addLayer({ ...l, id: `${o.id}-${i}`, source: o.id }, o.place === 'under' ? 'anchor-under' : 'anchor-over'))
       if (o.label) {
         const L = o.label
-        o.data.features.forEach((f: any) => { const t = L.text(f.properties); if (!m.hasImage(`lbl:${t}`)) m.addImage(`lbl:${t}`, textIcon(t, L.color, 700), { pixelRatio: 2 }) })
+        o.data.features.forEach((f: any) => { const t = L.text(f.properties); if (!m.hasImage(`lbl:${t}`)) m.addImage(`lbl:${t}`, textIcon(L.box ? ` ${t} ` : t, L.color, 700, L.box), { pixelRatio: 2 }) })
         m.addSource(`${o.id}-lbl`, { type: 'geojson', data: { type: 'FeatureCollection', features: o.data.features.map((f: any) => ({ type: 'Feature', properties: { t: L.text(f.properties) }, geometry: { type: 'Point', coordinates: f.properties.label } })) } })
         m.addLayer({ id: `${o.id}-lbl`, type: 'symbol', source: `${o.id}-lbl`, layout: { 'icon-image': ['concat', 'lbl:', ['get', 't']], 'icon-allow-overlap': true, 'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.8 * (L.size ?? 1), 13, 1.1 * (L.size ?? 1)] } }, 'anchor-over')
       }

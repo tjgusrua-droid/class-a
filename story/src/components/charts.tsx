@@ -10,7 +10,7 @@ export const ShareBars = forwardRef<SVGSVGElement, {
   rows: { label: string; unit: string; values: Record<VenueType, number | null> }[]
   highlight: VenueType | null; onPick: (t: VenueType | null) => void; title: string
 }>(function ShareBars({ rows, highlight, onPick, title }, ref) {
-  const rowH = 50, top = 30, x0 = 86, bw = W - x0 - 8
+  const rowH = 46, top = 30, x0 = 86, bw = W - x0 - 8
   return (
     <svg ref={ref} viewBox={`0 0 ${W} ${top + rows.length * rowH + 4}`} role="img" aria-label={title}>
       <title>{title}</title>
@@ -94,10 +94,10 @@ export const BoxDot = forwardRef<SVGSVGElement, {
 export const MetricChart = forwardRef<SVGSVGElement, {
   years: number[]; values: (number | null)[]; down?: (number | null)[]; kind: 'bar' | 'line' | 'flow'
   color: string; unit: string; label: string; year: number; onYear: (y: number) => void
-  range: [number, number] | null; partialYear?: number; title: string
+  range: [number, number] | null; partialYear?: number; title: string; height?: number
   parts?: { key: VenueType; values: (number | null)[]; down?: (number | null)[] }[] // '전체'일 때 유형별 계열(선 = 유형별 선, 막대 = 유형별 누적)
-}>(function MetricChart({ years, values, down, kind, color, unit, label, year, onYear, range, partialYear, title, parts }, ref) {
-  const H = 300, l = 44, r = 12, t = parts ? 44 : 26, b = 36
+}>(function MetricChart({ years, values, down, kind, color, unit, label, year, onYear, range, partialYear, title, parts, height = 300 }, ref) {
+  const H = height, l = 44, r = 12, t = parts ? 44 : 26, b = 36
   const bw = (W - l - r) / years.length
   const bx = (i: number) => l + i * bw
   const vmax = Math.max(1, ...values.map((v) => v ?? 0), ...(down ?? []).map((v) => v ?? 0))
@@ -311,6 +311,33 @@ export function MeanBars({ rows, unit, title }: { rows: { key: VenueType; value:
           <text x={0} y={y + 15} fontSize="12" fontWeight="600">{TYPE_STYLE[x.key].mark} {x.key}</text>
           <rect x={l} y={y + 2} width={w} height={rowH - 10} fill={TYPE_STYLE[x.key].color} />
           <text x={l + w + 6} y={y + 16} fontSize="12" fontWeight="700">{f1(x.value)}{unit}<tspan fontWeight="400" fill="#777">{x.note ? ` ${x.note}` : ''}</tspan></text>
+        </g> })}
+    </svg>
+  )
+}
+
+// 조건별 생존율: 조건마다 집단별 10년(진한 막대)·20년(옅은 막대) 뒤 운영 비율
+export function ConditionBars({ rows, title }: { rows: { factor: string; groups: { label: string; n: number; s10: number; s20: number }[] }[]; title: string }) {
+  const l = 150, r = 70, gh = 21, fh = 18
+  const H = rows.reduce((a, x) => a + fh + x.groups.length * gh + 6, 26)
+  const sx = (p: number) => (p / 100) * (W - l - r)
+  let y = 26
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
+      <title>{title}</title>
+      <g fontSize="10.5"><rect x={l} y={4} width={12} height={10} fill="#333" /><text x={l + 16} y={13}>개업 10년 뒤 운영 비율</text>
+        <rect x={l + 160} y={4} width={12} height={10} fill="#bdbdbd" /><text x={l + 176} y={13}>20년 뒤</text></g>
+      {rows.map((f) => { const y0 = y; y += fh + f.groups.length * gh + 6
+        return <g key={f.factor}>
+          <text x={0} y={y0 + 14} fontSize="12" fontWeight="700">{f.factor}</text>
+          {f.groups.map((g, i) => { const gy = y0 + fh + i * gh
+            return <g key={g.label}>
+              <text x={8} y={gy + 15} fontSize="11">{g.label} <tspan fill={g.n < 20 ? '#c8423b' : '#888'}>n={g.n}</tspan></text>
+              <rect x={l} y={gy + 3} width={sx(g.s10)} height={9} fill="#333" />
+              <rect x={l} y={gy + 13} width={sx(g.s20)} height={7} fill="#bdbdbd" />
+              <text x={l + sx(g.s10) + 4} y={gy + 12} fontSize="10.5" fontWeight="700">{g.s10.toFixed(0)}%</text>
+              <text x={l + sx(g.s20) + 4} y={gy + 21} fontSize="9.5" fill="#777">{g.s20.toFixed(0)}%</text>
+            </g> })}
         </g> })}
     </svg>
   )
