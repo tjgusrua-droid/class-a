@@ -148,3 +148,72 @@ details caption { text-align: left; font-weight: 600; padding: 4px 0; }
 }
 .present .toolbar button { opacity: .12; } .present .toolbar button:hover, .present .toolbar button:focus { opacity: 1; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; margin-bottom: 10px; } .chips label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+
+/* ---- 2차 개편 ---- */
+.mapwrap { position: relative; }
+.mapmode { display: flex; gap: 10px; align-items: center; font-size: 12px; color: #555; margin-top: 6px; flex-wrap: wrap; }
+.mapmode button { border: 1px solid #111; background: #fff; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+.exploring .mapmode button { background: #111; color: #fff; }
+.exploring .map { outline: 2px solid #111; }
+.tip { position: fixed; z-index: 1000; width: 300px; max-height: 70vh; overflow: auto; background: #fff; border: 1px solid #222; padding: 10px 12px; font-size: 12.5px; pointer-events: auto; }
+.tip:not(.pinned) { pointer-events: none; }
+.tipline { position: fixed; inset: 0; z-index: 999; pointer-events: none; }
+.tipline line { stroke: #222; stroke-width: 1; }
+.tipclose { position: absolute; right: 6px; top: 4px; border: 0; background: none; font-size: 18px; cursor: pointer; }
+.tipstack { margin: 0 0 6px; font-weight: 700; font-size: 12px; }
+.tiphint { margin: 6px 0 0; color: #999; font-size: 11px; }
+.tipitem + .tipitem { border-top: 1px solid #ddd; margin-top: 8px; padding-top: 8px; }
+.tipitem dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 6px 0; }
+.tipitem dt { color: #888; } .tipitem dd { margin: 0; }
+.tipitem small { display: block; color: #777; line-height: 1.5; }
+.tipitem .conflict { color: #b03a2e; margin-top: 4px; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000; max-height: 55vh; overflow: auto; background: #fff; border-top: 2px solid #111; padding: 14px 16px 22px; font-size: 13px; }
+.sym { vertical-align: -2px; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.split.even { grid-template-columns: 1fr 1fr; }
+.deftable { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 2px solid var(--ink); margin-bottom: 28px; }
+.deftable .col { padding: 12px 14px 0 0; cursor: pointer; transition: opacity .3s; }
+.deftable .col + .col { padding-left: 14px; border-left: 1px solid var(--line); }
+.deftable h3 { font-size: 19px; padding-bottom: 8px; border-bottom: 4px solid; margin-bottom: 6px; }
+.deftable h3 small { font-size: 13px; color: #888; font-weight: 400; }
+.deftable dl { margin: 0; font-size: 12.5px; }
+.deftable dt { color: #888; font-size: 11px; margin-top: 9px; }
+.deftable dd { margin: 2px 0 0; line-height: 1.5; }
+.deftable dd.num { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.takeaway { font-size: 15px; line-height: 1.7; border-left: 3px solid #111; padding: 4px 0 4px 14px; max-width: 60em; }
+.interp p { margin: 6px 0; font-size: 13px; line-height: 1.6; }
+.interp .sub { color: #666; font-size: 12px; margin-top: -4px; }
+.interp .auto, p.auto { background: #f5f5f3; padding: 6px 10px; }
+.source { font-size: 11.5px; color: #666; line-height: 1.7; border-top: 1px solid var(--line); padding-top: 8px; margin-top: 14px; }
+.toggles { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; margin: 6px 0 10px; }
+.toggles label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+.toggles small { color: #888; }
+.layerpanel { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; font-size: 12px; margin-bottom: 6px; }
+.layerpanel .toggles { margin: 0; }
+.muted { color: #999; font-size: 11.5px; }
+.ctrl { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 12px; margin-bottom: 10px; }
+.ctrl input[type=color] { width: 28px; height: 20px; padding: 0; border: 1px solid #ccc; }
+.keyfig { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 8px 0 12px; }
+.keyfig b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+.keyfig span { font-size: 11.5px; color: #666; }
+.metricpick button { border: 1px solid #ccc; background: #fff; padding: 4px 8px; font-size: 12px; cursor: pointer; }
+.metricpick button[aria-pressed='true'] { background: #111; color: #fff; border-color: #111; }
+.explain { font-size: 12.5px; line-height: 1.7; color: #333; background: #fafafa; padding: 8px 12px; margin: 10px 0; }
+.explain p { margin: 4px 0; }
+.mini-table.culture td { font-size: 11.5px; } .tablewrap { overflow-x: auto; max-width: 100%; } select { max-width: 100%; } label.ui { display: block; }
+.mini-table .bar { display: inline-block; height: 9px; vertical-align: 0; }
+.mini-table caption { text-align: left; font-weight: 600; padding: 6px 0; font-size: 12.5px; }
+.lg-box { display: inline-block; width: 14px; height: 10px; }
+.auditlist { margin: 0; font-size: 13px; }
+.auditlist div { display: grid; grid-template-columns: 1fr 1.3fr; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.auditlist dt { color: #666; } .auditlist dd { margin: 0; font-variant-numeric: tabular-nums; }
+.cmp td small { display: block; color: #888; font-size: 10.5px; line-height: 1.4; }
+.cmp td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.dateline { background: #111; color: #fff; padding: 1px 6px; font-size: 12px; white-space: nowrap; }
+.gu-label { display: none; }
+@media (max-width: 1000px) {
+  .deftable, .split.even { grid-template-columns: 1fr; }
+  .deftable .col + .col { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); }
+  .keyfig { grid-template-columns: repeat(2, 1fr); }
+  .auditlist div { grid-template-columns: 1fr; gap: 0; }
+}

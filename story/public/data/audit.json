@@ -1,0 +1,97 @@
+{
+ "data_date": "2026-09-04",
+ "verified": "2026-10-28",
+ "localdata_records": 947,
+ "venues": 183,
+ "episodes": 205,
+ "active": 110,
+ "active_by_type": {
+  "멀티플렉스": 73,
+  "독립·예술영화관": 19,
+  "기타": 18
+ },
+ "status": {
+  "영업": 110,
+  "폐업": 91,
+  "취소·말소": 4
+ },
+ "closed_by_type": {
+  "멀티플렉스": 17,
+  "독립·예술영화관": 15,
+  "기타": 63
+ },
+ "active_matched_kofic2025": 85,
+ "active_localdata_only": 25,
+ "kofic2025_total": 88,
+ "kofic2025_not_active_in_localdata": 3,
+ "kofic_only": 13,
+ "dup_place": 3,
+ "dup_name": 0,
+ "no_coords": 12,
+ "no_coords_active": 6,
+ "type_no_evidence": 71,
+ "type_reference_only": 14,
+ "conflicts_active": 30,
+ "subtype_active": {
+  "이동상영관(고정 상영관 아님)": 5,
+  "자동차극장": 1
+ },
+ "compare": [
+  {
+   "item": "전체 운영 영화관",
+   "previous": 88,
+   "reference": 102,
+   "current": 110,
+   "reason": "기존: KOFIC 2025년 말 목록(휴관 포함). 참고: 폐업연도 없는 기록. 현재: LOCALDATA 영업/정상 운영구간. LOCALDATA에만 남은 오래된 영업 기록·이동상영관이 포함되고, 2026년 폐업분은 빠짐"
+  },
+  {
+   "item": "멀티플렉스",
+   "previous": 70,
+   "reference": 66,
+   "current": 73,
+   "reason": "분류 근거: KOFIC 대기업 운영 여부 → 상호 브랜드"
+  },
+  {
+   "item": "독립·예술영화관",
+   "previous": 15,
+   "reference": 14,
+   "current": 19,
+   "reason": "KOFIC 독립예술 전용관 + 상호 명칭 + 참고 홈페이지 분류(근거 표시)"
+  },
+  {
+   "item": "기타 영화관",
+   "previous": 3,
+   "reference": 22,
+   "current": 18,
+   "reason": "LOCALDATA에만 있는 소극장·이동상영관·자동차극장 등이 기타로 들어옴"
+  },
+  {
+   "item": "폐업 영화관(전 기간)",
+   "previous": 28,
+   "reference": 129,
+   "current": 95,
+   "reason": "기존은 2010~2025 KOFIC 폐관만. 현재는 LOCALDATA 전 기간 폐업·취소 운영구간"
+  },
+  {
+   "item": "독립·예술영화관 폐업",
+   "previous": 0,
+   "reference": 18,
+   "current": 15,
+   "reason": "기존 0건 원인: 2019년 이전 KOFIC에 독립예술 필드가 없어 기타로 분류 + 2010년 이전 폐업 미포함"
+  },
+  {
+   "item": "좌표 누락",
+   "previous": 4,
+   "reference": 0,
+   "current": 12,
+   "reason": "현재: 운영구간 기준(LOCALDATA 좌표 없음)"
+  },
+  {
+   "item": "2000년대 운영 기록",
+   "previous": "없음(2010~2025만)",
+   "reference": 144,
+   "current": 143,
+   "reason": "2000~2009년에 한 번이라도 운영한 기록 수"
+  }
+ ]
+}

@@ -15,12 +15,12 @@ npm run build    # dist/ 에 정적 파일 생성 (어느 경로에 올려도 �
 |---|---|---|
 | `seoul_boundary.geojson`, `seoul_gu.geojson` | 있음 | 통계청 행정동 경계 2023.7(vuski/admdongkor)을 자치구로 병합 |
 | `han_river.geojson`, `roads.geojson` | 있음 | Natural Earth 1:10m (개략 축척) |
-| `theaters.geojson` | 있음 | 영진위 2010~2025 정리본 + 행안부 인허가 좌표(EPSG:5174 변환) |
-| `subway_lines.geojson`, `subway_stations.geojson` | 없음 | 필드: `line` / `name`, `transfer` |
+| `venues.geojson`, `yearly.json`, `audit.json` | 있음 | LOCALDATA(1차 기준) 운영구간·2000년~ 시계열·재검증 결과 (`scripts/build_venues.py` 등) |
+| `cultural_facilities.geojson` | 있음 | 서울시 문화공간 + 공연장 인허가 (`scripts/build_culture_data.py`) |
+| `seoul_2040_centers.csv` | 명칭만 | 위치 자료 없음 |
+| `subway_stations.geojson`, `subway_buffers.geojson` | 없음 | 공식 역 좌표 → `scripts/build_subway.py` |
 | `seoul_centers.geojson` | 없음 | 중심지 **범위 폴리곤**, 필드 `name`, `level`(도심·광역중심·지역중심) |
-| `commerce.geojson` | 없음 | 상권 지표 확정 후. `area_id`, `indicator`, `value` |
-| `cultural_facilities.geojson` | 없음 | `name`, `category`(공연시설·전시시설 …) |
-| `building_type.csv` | 없음 | `id`(theaters의 id), `building_type`, `mixed_type` |
+| `commerce.geojson` | 없음 | 상권 지표 확정 후. `area_id`, `indicator`, `value`, `year` (제안: `data/verify/commerce_proposal.md`) |
 
 - 지도·영화관 자료는 저장소 루트에서 `python3 scripts/build_story_data.py <경계자료 폴더>`로 다시 만든다(스크립트 머리말 참고).
 - QGIS에서 내보낸 파일의 열 이름이 다르면 원본을 고치지 말고 `src/config.ts`의 `FIELD_MAP`에서 대응시킨다.

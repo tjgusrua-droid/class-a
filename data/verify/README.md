@@ -54,3 +54,15 @@
 - 출처: 사용자 확인, 홈페이지 「수도권 극장 연대기」(ARCHIVE·CHANGES), 영진위 목록·휴폐관 비고, 행안부 인허가.
 - 이름·브랜드만 바뀐 극장은 전환 계보를 끝까지 따라가 `최종 후속 극장`과 상태를 자동으로 채운다.
 - 엑셀 `폐관이후` 시트에서 `추가조사 필요 = Y`인 칸이 아직 비어 있는 곳이다.
+
+## LOCALDATA 1차 기준 재구축 (2026-10-28)
+
+실행 순서: `cd scripts && python3 build_seoul_theaters.py && python3 build_venues.py && python3 audit_venues.py && python3 build_web_data.py && python3 export_master.py`
+
+- `build_venues.py`: LOCALDATA 서울 인허가 947건 → 장소(venue) → 운영구간(operation_episode). KOFIC 극장-연도를 운영구간에 연결하고 유형·충돌·입점 형태·연도별 시계열(2000~)을 만든다.
+  - 장소: 좌표 30m 이내 · 같은 지번/도로명 · 80m 이내이면서 같은 브랜드·상호
+  - 운영구간: 인허가 기간이 겹치는 기록 묶음. 같은 날 인계·공백 뒤 재개관은 다른 구간. 같은 건물 동시 운영(KOFIC 기준)은 상호로 분리
+  - 일괄 등록일 의심: 같은 구에서 4개 장소 이상이 같은 인허가일(1998-03-09 강남, 2003-02-12 종로, 2003-05-20 중구) → 개업 수에서 제외
+- `audit_venues.py`: `data_audit_2026.md`, `story/public/data/audit.json`
+- `build_subway.py`: 공식 역 좌표가 들어오면 역·역세권 버퍼(EPSG:5186 합집합) 생성
+- `data/manual/seoul_2040_centers.csv`: 2040 중심지 명칭(위치 자료 없음), `commerce_proposal.md`: 상권 변수 제안

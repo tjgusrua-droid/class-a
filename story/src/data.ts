@@ -1,20 +1,22 @@
-// 데이터 로딩·검증·필드 매핑. 시각화 컴포넌트는 여기서 만든 값만 쓴다.
-import { CONFIG, FIELD_MAP, FILES, type FileKey, type TheaterType } from './config'
+// 데이터 로딩·검증·필드 매핑과 계산. 시각화 컴포넌트는 여기서 만든 값만 쓴다.
+import { FIELD_MAP, FILES, type FileKey, type VenueType } from './config'
 
 export type Status = 'ok' | 'missing' | 'invalid'
 export type Loaded = { status: Status; data: any; message?: string }
 export type DataSet = Record<FileKey, Loaded>
 
-export type Theater = {
-  id: string; name: string; gu: string; address: string; type: TheaterType; typeBasis: string
-  status: '영업' | '휴관' | '폐관' | '전환'
-  openDate: string; openYear: number | null; renamedFrom: boolean
-  closeKind: string; closeDate: string; closeYear: number | null
-  years: number[]; screens: number | null; seats: number | null; operator: string
-  lon: number | null; lat: number | null; coordNote: string
+// 분석 단위 = LOCALDATA 운영구간(한 장소에서 개업~폐업 한 번)
+export type Venue = {
+  id: string; venue: string; name: string; ldNames: string; koficNames: string
+  type: VenueType; typeBasis: string; typeNote: string; subtype: string
+  status: '영업' | '폐업' | '취소·말소'
+  open: string; close: string; openD: Date | null; closeD: Date | null; bulkOpen: boolean
+  gu: string; dong: string; address: string
+  screens: number | null; seats: number | null; screens25: number | null; seats25: number | null; special25: number | null; art25: number | null; operator25: string
+  koficYears: string; licenses: number; occupancy: string; occBuilding: string; occConf: string
+  conflict: string; source: string
+  lon: number | null; lat: number | null
 }
-
-const SEOUL_BBOX = [126.7, 37.4, 127.3, 37.75]
 
 function remap(key: FileKey, props: Record<string, any>) {
   const map = FIELD_MAP[key]
@@ -24,7 +26,6 @@ function remap(key: FileKey, props: Record<string, any>) {
   return out
 }
 
-// 좌표가 [경도, 위도] 순서인지, 서울 부근인지 첫 좌표로 검사
 function firstCoord(g: any): number[] | null {
   let c = g?.coordinates
   while (Array.isArray(c) && Array.isArray(c[0])) c = c[0]
@@ -38,11 +39,11 @@ async function load(key: FileKey): Promise<Loaded> {
     if (!res.ok) return { status: 'missing', data: null }
     if (file.endsWith('.csv')) return { status: 'ok', data: await res.text() }
     const gj = await res.json()
-    const feats = (gj.features ?? []).map((f: any) => ({ ...f, properties: remap(key, f.properties ?? {}) }))
-    const sample = feats.find((f: any) => f.geometry)
-    const c = firstCoord(sample?.geometry)
-    if (c && !(c[0] > SEOUL_BBOX[0] - 1 && c[0] < SEOUL_BBOX[2] + 1 && c[1] > SEOUL_BBOX[1] - 1 && c[1] < SEOUL_BBOX[3] + 1))
-      return { status: 'invalid', data: null, message: `좌표가 서울 범위가 아닙니다 (${c.join(', ')}). EPSG:4326 [경도, 위도]인지 확인하세요.` }
+    if (!gj.features) return { status: 'ok', data: gj }
+    const feats = gj.features.map((f: any) => ({ ...f, properties: remap(key, f.properties ?? {}) }))
+    const c = firstCoord(feats.find((f: any) => f.geometry)?.geometry)
+    if (c && !(c[0] > 125.7 && c[0] < 128.3 && c[1] > 36.4 && c[1] < 38.7))
+      return { status: 'invalid', data: null, message: `좌표가 서울 부근이 아닙니다 (${c.join(', ')}). EPSG:4326 [경도, 위도]인지 확인하세요.` }
     const lack = fields.filter((k) => feats.length && !(k in feats[0].properties))
     if (lack.length) return { status: 'invalid', data: null, message: `필수 필드 없음: ${lack.join(', ')}` }
     return { status: 'ok', data: { type: 'FeatureCollection', features: feats } }
@@ -57,67 +58,67 @@ export async function loadAll(): Promise<DataSet> {
   return Object.fromEntries(keys.map((k, i) => [k, loaded[i]])) as DataSet
 }
 
-const year = (d: string) => (/^\d{4}/.test(d) ? Number(d.slice(0, 4)) : null)
+const date = (s: string) => (/^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s) : null)
 
-export function toTheaters(fc: any): Theater[] {
+export function toVenues(fc: any): Venue[] {
   return (fc?.features ?? []).map((f: any) => {
-    const p = f.properties
-    const c = f.geometry?.coordinates
+    const p = f.properties, c = f.geometry?.coordinates
     return {
-      id: p.id, name: p.name, gu: p.gu, address: p.address, type: p.type, typeBasis: p.type_basis,
-      status: p.status, openDate: p.open_date, openYear: year(p.open_date ?? ''), renamedFrom: !!p.renamed_from,
-      closeKind: p.close_kind, closeDate: p.close_date, closeYear: year(p.close_date ?? '') ?? p.close_year ?? null,
-      years: p.years ?? [], screens: p.screens, seats: p.seats, operator: p.operator,
-      lon: c ? c[0] : null, lat: c ? c[1] : null, coordNote: p.coord_note,
+      id: p.id, venue: p.venue, name: p.name, ldNames: p.ld_names, koficNames: p.kofic_names,
+      type: p.type, typeBasis: p.type_basis, typeNote: p.type_note, subtype: p.subtype,
+      status: p.status, open: p.open, close: p.close, openD: date(p.open), closeD: date(p.close), bulkOpen: p.bulk_open,
+      gu: p.gu, dong: p.dong, address: p.address,
+      screens: p.screens, seats: p.seats, screens25: p.screens25, seats25: p.seats25, special25: p.special25, art25: p.art25, operator25: p.operator25,
+      koficYears: p.kofic_years, licenses: p.licenses, occupancy: p.occupancy, occBuilding: p.occ_building, occConf: p.occ_conf,
+      conflict: p.conflict, source: p.source, lon: c ? c[0] : null, lat: c ? c[1] : null,
     }
   })
 }
 
 // ---- 계산 도우미 (실제 데이터로만 계산) ----
+export const located = (v: Venue) => v.lon != null && v.lat != null
+export const isOpen = (v: Venue) => v.status === '영업'
+// 연도 t 에 운영: 개업일 ≤ t년 말, 폐업일이 없거나(영업) t년 1월 1일 이후
+export const operatingIn = (v: Venue, y: number, until?: Date) => {
+  const end = until && until.getFullYear() === y ? until : new Date(`${y}-12-31`)
+  return !!v.openD && v.openD <= end && (isOpen(v) || (!!v.closeD && v.closeD >= new Date(`${y}-01-01`)))
+}
+export const openedIn = (v: Venue, y: number) => !v.bulkOpen && v.openD?.getFullYear() === y
+export const closedIn = (v: Venue, y: number) => !isOpen(v) && v.closeD?.getFullYear() === y
+// 운영기간(년): 폐업 운영구간만, 개업·폐업일이 모두 있어야
+export const duration = (v: Venue) => (!isOpen(v) && v.openD && v.closeD ? (v.closeD.getTime() - v.openD.getTime()) / 3.15576e10 : null)
 
-export const activeIn = (t: Theater, y: number) => t.years.includes(y)
-export const located = (t: Theater) => t.lon != null && t.lat != null
-
-// 개업: 영진위 개관일 연도. 이름·브랜드 전환으로 이어진 기록은 개업으로 세지 않는다
-export const openedIn = (t: Theater, y: number) => !t.renamedFrom && t.openYear === y
-// 폐업: 폐관 이벤트만. 전환은 폐업이 아님
-export const closedIn = (t: Theater, y: number) => t.status === '폐관' && t.closeYear === y
-
-export function distM(a: Theater, b: Theater) {
+export function distM(a: { lon: number | null; lat: number | null }, b: { lon: number | null; lat: number | null }) {
   const R = 6371000, r = Math.PI / 180
   const dLat = (b.lat! - a.lat!) * r, dLon = (b.lon! - a.lon!) * r
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat! * r) * Math.cos(b.lat! * r) * Math.sin(dLon / 2) ** 2
   return 2 * R * Math.asin(Math.sqrt(h))
 }
 
-export function nearest(t: Theater, pool: Theater[], sameType = false) {
-  let best: Theater | null = null, d = Infinity
+export function nearest(v: Venue, pool: Venue[], filter: (o: Venue) => boolean = () => true) {
+  let best: Venue | null = null, d = Infinity
   for (const o of pool) {
-    if (o.id === t.id || (sameType && o.type !== t.type)) continue
-    const x = distM(t, o)
+    if (o.id === v.id || !filter(o)) continue
+    const x = distM(v, o)
     if (x < d) { d = x; best = o }
   }
-  return best ? { theater: best, dist: d } : null
+  return best ? { venue: best, dist: d } : null
 }
 
-export const median = (xs: number[]) => {
+export const quantile = (xs: number[], q: number) => {
   if (!xs.length) return NaN
-  const s = [...xs].sort((a, b) => a - b), m = s.length >> 1
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
+  const s = [...xs].sort((a, b) => a - b), i = (s.length - 1) * q, lo = Math.floor(i)
+  return s[lo] + (s[Math.ceil(i)] - s[lo]) * (i - lo)
 }
+export const median = (xs: number[]) => quantile(xs, 0.5)
 export const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN)
 export const sum = (xs: (number | null)[]) => xs.reduce<number>((a, b) => a + (b ?? 0), 0)
 export const pct = (a: number, b: number) => (b ? (a / b) * 100 : 0)
+export const f1 = (x: number) => (isFinite(x) ? x.toFixed(1) : '—')
 
-export function snapshot(ts: Theater[], y = CONFIG.snapshotYear) {
-  return ts.filter((t) => activeIn(t, y))
-}
-
-// 운영기간(년): 폐관한 영화관만. 개관일과 폐관일이 모두 있어야 계산
-export function closedDuration(t: Theater) {
-  if (t.status !== '폐관' || !t.openDate || !/^\d{4}/.test(t.closeDate || '')) return null
-  const a = new Date(t.openDate.slice(0, 10).replace(/-00/g, '-01'))
-  const b = new Date(t.closeDate.length === 7 ? t.closeDate + '-15' : t.closeDate.slice(0, 10))
-  const y = (b.getTime() - a.getTime()) / 3.15576e10
-  return isFinite(y) && y >= 0 ? y : null
+// 자치구·행정동 등 범주별 개수 상위
+export function topBy(vs: Venue[], key: (v: Venue) => string, n = 3) {
+  const c = new Map<string, number>()
+  vs.forEach((v) => { const k = key(v); if (k) c.set(k, (c.get(k) ?? 0) + 1) })
+  return [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, n)
 }

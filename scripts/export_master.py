@@ -30,6 +30,10 @@ GUIDE = [
     ("시트: 휴관진행", "휴관 기간별 한 행(연속 휴관 연도, 결말)"),
     ("시트: 스크린상세", "2019~2025 상영관 단위 좌석수·3D·특별관·독립예술 전용관 (영진위 스크린별 상세 리스트, 서울)"),
     ("시트: 보정내역 / 미해결", "수동 보정 목록과 아직 확인이 필요한 항목"),
+    ("시트: 운영구간_LOCALDATA", "LOCALDATA(1차 기준) 운영구간. venue_id·operation_episode_id·license_record_ids, 원자료 이름(LOCALDATA·KOFIC), 상태·개업·폐업일, 분석 유형과 근거, 자료 충돌, 건축적 입점 형태(building_occupancy_type 등 7개 열)"),
+    ("시트: 연도별시계열", "2000~2026 유형별 운영·개업·폐업·누적. 스크린·좌석은 KOFIC 2010~2025, 특별관은 2019~2025만(그 밖은 빈칸 = 자료 미확보)"),
+    ("시트: KOFIC연결 / KOFIC에만", "KOFIC 극장-연도와 LOCALDATA 운영구간 연결, LOCALDATA 기록이 없는 KOFIC 극장"),
+    ("시트: 인허가기록 / 데이터감사", "LOCALDATA 서울 인허가 기록 원본(정리) 947건과 2026 재검증 감사 결과"),
     ("key", "영화관명을 정규화한 식별자(공백·괄호 제거, 표기 변형 통일). 같은 key = 같은 극장"),
     ("operator", "직영/위탁 = 대기업 멀티플렉스, ~ = 비해당"),
     ("~", "영진위 원자료의 '해당 없음' 표기"),
@@ -212,6 +216,15 @@ def main():
         hyu.to_excel(w, sheet_name="휴관진행", index=False)
         scr.to_excel(w, sheet_name="스크린상세", index=False)
         corr.to_excel(w, sheet_name="보정내역", index=False)
+        # LOCALDATA 1차 기준 통합(build_venues.py · audit_venues.py)
+        for sheet, f in [("운영구간_LOCALDATA", "venues_episodes.csv"), ("연도별시계열", "yearly_series.csv"),
+                         ("KOFIC연결", "kofic_episode_links.csv"), ("KOFIC에만", "kofic_only.csv"),
+                         ("인허가기록", "license_records.csv")]:
+            if (CLEAN / f).exists():
+                pd.read_csv(CLEAN / f).to_excel(w, sheet_name=sheet, index=False)
+        audit_md = ROOT / "data" / "verify" / "data_audit_2026.md"
+        if audit_md.exists():
+            pd.DataFrame({"데이터 감사(2026)": audit_md.read_text(encoding="utf-8").splitlines()}).to_excel(w, sheet_name="데이터감사", index=False)
         unresolved.to_excel(w, sheet_name="미해결", index=False)
         for ws in w.book.worksheets:
             ws.freeze_panes = "A2"
