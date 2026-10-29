@@ -145,6 +145,10 @@ export default function SeoulMap(p: Props) {
     map.current = m
     ;((window as any).__maps ??= []).push(m) // 자동 점검(브라우저 테스트)용
     if (VWORLD_KEY) m.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
+    // 배경지도 타일이 한 장도 안 오고 실패만 이어지면(키 미등록 주소 등) 자동으로 끈다
+    let tileOk = false, tileErr = 0
+    m.on('data', (e: any) => { if (e.sourceId?.startsWith('vworld') && e.tile) tileOk = true })
+    m.on('error', (e: any) => { if (e.sourceId?.startsWith('vworld') && !tileOk && ++tileErr >= 4) setBase(false) })
     m.on('load', () => {
       const src = (id: string, data: any) => m.addSource(id, { type: 'geojson', data })
       if (VWORLD_KEY) {
