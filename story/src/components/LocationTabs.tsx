@@ -27,6 +27,7 @@ function CategoryBars({ vs, cats, of, title }: { vs: Venue[]; cats: string[]; of
               return p > 0 && <i key={c} style={{ width: `${p}%`, background: GRAYS[i], color: i < 2 ? '#fff' : '#222' }} title={`${c} ${f1(p)}%`}>{p >= 12 ? `${p.toFixed(0)}%` : ''}</i> })}</div>
           </div>)
       })}
+      <p className="axisnote">가로 막대 = 각 유형 안에서의 비율(%), 합계 100%</p>
     </div>
   )
 }
@@ -48,6 +49,33 @@ function CenterDiagram({ centers, count }: { centers: any[]; count: (c: any) => 
               <text x={x} y={rowY[i] + r + (i === 2 && k % 2 ? 22 : 11)} fontSize={i === 2 ? 9 : 10} textAnchor="middle" fill="#333">{c.properties.name}</text>
             </g> })}
         </g> })}
+    </svg>
+  )
+}
+
+// 3-5 연결 다이어그램: 왼쪽 영화관 유형 ↔ 오른쪽 문화시설. 선 굵기 = 그 시설이 반경 안에 1곳 이상 있는 영화관 비율
+function NeighborDiagram({ rows, r }: { rows: { t: VenueType; n: number; cats: { c: string; share: number }[] }[]; r: number }) {
+  const cats = rows[0]?.cats.map((x) => x.c) ?? [], W = 560, H = Math.max(190, cats.length * 30 + 30)
+  const ly = (i: number) => 30 + (i + 0.5) * ((H - 40) / rows.length), ry = (j: number) => 22 + (j + 0.5) * ((H - 30) / cats.length)
+  return (
+    <svg viewBox={`0 0 ${W} ${H + 18}`} role="img" aria-label={`반경 ${r}m 안 문화시설과 영화관 유형의 연결`} className="nbdiagram">
+      <text x={4} y={12} fontSize="10.5" fontWeight="700" fill="#555">영화관 유형</text>
+      <text x={W - 4} y={12} fontSize="10.5" fontWeight="700" fill="#555" textAnchor="end">반경 {r}m 안 문화시설</text>
+      {rows.map((x, i) => x.cats.map((y, j) => y.share > 0 && (
+        <path key={`${x.t}-${y.c}`} d={`M150,${ly(i)} C300,${ly(i)} 300,${ry(j)} 420,${ry(j)}`} fill="none" stroke={TYPE_STYLE[x.t].color}
+          strokeOpacity={y.share >= 50 ? 0.75 : 0.25} strokeWidth={Math.max(0.6, y.share / 6)}><title>{x.t} ↔ {y.c}: {f1(y.share)}%</title></path>)))}
+      {rows.map((x, i) => <g key={x.t}>
+        <circle cx={142} cy={ly(i)} r={8} fill={TYPE_STYLE[x.t].color} />
+        <text x={128} y={ly(i) + 4} fontSize="12.5" fontWeight="700" textAnchor="end">{x.t}</text>
+        <text x={128} y={ly(i) + 18} fontSize="10" textAnchor="end" fill="#777">{x.n}곳</text>
+      </g>)}
+      {cats.map((c, j) => { const top = [...rows].sort((a, b) => b.cats[j].share - a.cats[j].share)[0]
+        return <g key={c}>
+          <rect x={420} y={ry(j) - 9} width={6} height={18} rx={2} fill="#333" />
+          <text x={432} y={ry(j) + 4} fontSize="11.5" fill="#222">{c}</text>
+          {top.cats[j].share >= 10 && <text x={W - 4} y={ry(j) + 4} fontSize="10" textAnchor="end" fill={TYPE_STYLE[top.t].color} fontWeight="700">{f1(top.cats[j].share)}%</text>}
+        </g> })}
+      <text x={W - 4} y={H + 14} fontSize="10.5" textAnchor="end" fill="#333" fontWeight="600">선 굵기 = 그 시설이 반경 안에 1곳 이상 있는 영화관 비율 · 오른쪽 숫자 = 가장 높은 유형의 비율</text>
     </svg>
   )
 }
@@ -193,7 +221,7 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
         const hi = best(TYPES, sub), lo = best(TYPES, sub, false), th = best(TYPES, tr)
         return <Finding items={[
           { head: <>역 {radius}m 안에 있는 비율 {TYPES.map((t) => <span key={t} className="tnum" style={{ color: TYPE_STYLE[t].color }}><Sym type={t} /> {TYPE_STYLE[t].short} {f1(sub(t))}%</span>)}</>,
-            mean: <>{jo(hi, '가')} 지하철역 가까이 자리하는 경향이 가장 뚜렷하고, {jo(lo, '는')} 역에서 떨어진 곳에 있는 비율이 {f1(100 - sub(lo))}%로 상대적으로 높다. 환승역 주변 비율은 {jo(th, '가')} {f1(tr(th))}%로 가장 높다.</> },
+            mean: <>{jo(hi, '가')} 지하철역 가까이 자리하는 경향이 가장 뚜렷하고, {jo(lo, '는')} 역에서 떨어진 곳에 있는 비율이 {f1(100 - sub(lo))}%로 상대적으로 높습니다. 환승역 주변 비율은 {jo(th, '가')} {f1(tr(th))}%로 가장 높습니다.</> },
         ]} />
       })()}
     </>
@@ -208,8 +236,8 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
         <p className="chart-title">위계별 영화관 수</p><CountBars title="중심지 위계별 영화관 수" unit="곳" rows={rows} rowH={26} />
         <More>면은 대표 역 기준 개략 위치(반경 도심 1.2km·광역 0.9km·지역 0.6km, 공식 범위 아님). 겹치면 높은 위계로 셉니다. 면에 마우스를 올리면 대표 역이 보입니다.</More>
         <Finding items={[
-          { head: <>3도심 안 비율은 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${f1(doc(t))}%`).join(', ')}였다.</>,
-            mean: <>{jo(hd, '는')} 도심에 상대적으로 집중되어 있고, {jo(ho, '는')} {f1(out(ho))}%가 중심지 밖에 있어 중심지 체계 바깥의 생활권에도 넓게 자리한다.</> },
+          { head: <>3도심 안 비율은 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${f1(doc(t))}%`).join(', ')}였습니다.</>,
+            mean: <>{jo(hd, '는')} 도심에 상대적으로 집중되어 있고, {jo(ho, '는')} {f1(out(ho))}%가 중심지 밖에 있어 중심지 체계 바깥의 생활권에도 넓게 자리합니다.</> },
         ]} />
       </>
     }
@@ -230,10 +258,10 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
           <div className="donuts">{TYPES.map((t) => <Donut key={t} title={t} n={ofType(t).length} sub={`확인 ${occTop(t).n}곳`}
             parts={OCCUPANCY.map((o, k) => ({ label: o, value: ofType(t).filter((v) => v.occupancy === o).length, color: OCC_COLOR[k] }))} />)}</div>
           <Finding items={[...TYPES.map((t) => { const o = occTop(t)
-            return o.n ? { head: <>{jo(t, '는')} 주로 {occShort(o.c)} 안에 들어선 형태로 존재한다.</>,
-              mean: <>입점 형태가 확인된 {o.n}곳 중 {o.k}곳({f1(pct(o.k, o.n))}%){o.n < 10 ? ' — 확인 표본이 적어 경향으로만 본다' : ''}.</> }
-              : { head: <>{nT(t, '는')} 아직 입점 형태를 확인한 곳이 없다.</> } }),
-            { head: <>영업 영화관의 {f1(pct(unk, pts.length))}%는 아직 ‘확인 불가’이다.</>, mean: <>위 결과는 확인된 곳만의 경향이다.</> }]} />
+            return o.n ? { head: <>{jo(t, '는')} 주로 {occShort(o.c)} 안에 들어선 형태로 존재합니다.</>,
+              mean: <>입점 형태가 확인된 {o.n}곳 중 {o.k}곳({f1(pct(o.k, o.n))}%){o.n < 10 ? ' — 확인 표본이 적어 경향으로만 봅니다' : ''}.</> }
+              : { head: <>{nT(t, '는')} 아직 입점 형태를 확인한 곳이 없습니다.</> } }),
+            { head: <>영업 영화관의 {f1(pct(unk, pts.length))}%는 아직 ‘확인 불가’입니다.</>, mean: <>위 결과는 확인된 곳만의 경향입니다.</> }]} />
         </div>
       </div>
     }
@@ -243,26 +271,27 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
         <div className="toggles ui">{CULTURE_CATS.map((c) => <label key={c}><input type="checkbox" checked={cultOn.includes(c)}
           onChange={() => setCultOn(cultOn.includes(c) ? cultOn.filter((x) => x !== c) : CULTURE_CATS.filter((x) => x === c || cultOn.includes(x)))} /> {c}</label>)}</div>
         <Seg label="분석 기준" value={cultR} onChange={setCultR} options={[...CULTURE_RADII.map((r) => ({ v: r as number | 'nearest', label: `반경 ${r}m` })), { v: 'nearest' as const, label: '최근접 거리' }]} />
-        {cultStats && <div className="tablewrap"><table className="mini-table culture"><thead><tr><th>분류 · 반경 안 1곳 이상 있는 비율</th>{TYPES.map((t) => <th key={t}><Sym type={t} /> n={cultStats.find((x) => x.t === t)!.n}</th>)}</tr></thead>
+        {cultStats && <NeighborDiagram r={cultR as number} rows={cultStats.map((x) => ({ t: x.t, n: x.n, cats: x.cats }))} />}
+        {cultStats && <More label="숫자 표로 보기"><div className="tablewrap"><table className="mini-table culture"><thead><tr><th>분류 · 반경 안 1곳 이상 있는 비율</th>{TYPES.map((t) => <th key={t}><Sym type={t} /> n={cultStats.find((x) => x.t === t)!.n}</th>)}</tr></thead>
           <tbody>{cultOn.map((c) => <tr key={c}><td>{c}</td>{cultStats.map((x) => { const r = x.cats.find((y) => y.c === c)!
             return <td key={x.t}><span className="bar" style={{ width: `${r.share * 0.6}px`, background: TYPE_STYLE[x.t].color }} /> {f1(r.share)}%</td> })}</tr>)}</tbody>
-        </table></div>}
+        </table></div></More>}
         {cultStats ? (() => {
           const rank = (t: VenueType) => [...cultStats.find((x) => x.t === t)!.cats].sort((a, b) => b.share - a.share)
           const winner = (c: string) => best(TYPES, (t) => cultStats.find((x) => x.t === t)!.cats.find((y) => y.c === c)!.share)
-          // 그 시설이 반경 안에 있는 비율이 10% 이상인 시설만(아주 작은 비율로 '가장 가깝다'고 말하지 않음)
+          // 그 시설이 반경 안에 있는 비율이 10% 이상인 시설만(아주 작은 비율로 '가장 가깝습니다'고 말하지 않음)
           const byType = TYPES.map((t) => ({ t, cats: cultOn.filter((c) => winner(c) === t && cultStats.find((x) => x.t === t)!.cats.find((y) => y.c === c)!.share >= 10) })).filter((x) => x.cats.length)
           const tops = TYPES.map((t) => rank(t)[0].c), same = tops.every((c) => c === tops[0])
           const lead = best(TYPES, (t) => rank(t)[0].share)
           return <Finding items={[
-            same ? { head: <>세 유형 모두 {tops[0]}과 가장 가까이 있고, {jo(lead, '이')} 가장 가깝다.</>,
+            same ? { head: <>세 유형 모두 {tops[0]}과 가장 가까이 있고, {jo(lead, '이')} 가장 가깝습니다.</>,
                 mean: <>반경 {cultR}m 안에 {tops[0]}이 있는 비율 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${f1(rank(t)[0].share)}%`).join(' · ')}</> }
-              : { head: <>유형마다 가장 가까운 시설이 다르다.</>, mean: <>{TYPES.map((t) => `${TYPE_STYLE[t].short} — ${rank(t)[0].c} ${f1(rank(t)[0].share)}%`).join(' · ')}</> },
-            ...byType.filter((x) => x.cats.length > 1).map((x) => ({ head: <>{jo(x.t, '는')} {x.cats.join('·')}과도 가장 가까이 있다.</>,
+              : { head: <>유형마다 가장 가까운 시설이 다릅니다.</>, mean: <>{TYPES.map((t) => `${TYPE_STYLE[t].short} — ${rank(t)[0].c} ${f1(rank(t)[0].share)}%`).join(' · ')}</> },
+            ...byType.filter((x) => x.cats.length > 1).map((x) => ({ head: <>{jo(x.t, '는')} {x.cats.join('·')}과도 가장 가까이 있습니다.</>,
               mean: <>이 시설들이 반경 {cultR}m 안에 있는 비율이 세 유형 중 가장 높다(비율 10% 이상인 시설만).</> })),
           ]} />
         })() : (() => { const md = (t: VenueType) => avg(ofType(t).map(cultNearest)), lo = best(TYPES, md, false)
-          return <Finding items={[{ head: <>최근접 문화시설까지 평균 거리는 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${Math.round(md(t))}m`).join(', ')}였다.</>, mean: <>{jo(lo, '가')} 문화시설과 가장 가까이 자리한다.</> }]} /> })()}
+          return <Finding items={[{ head: <>최근접 문화시설까지 평균 거리는 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${Math.round(md(t))}m`).join(', ')}였습니다.</>, mean: <>{jo(lo, '가')} 문화시설과 가장 가까이 자리합니다.</> }]} /> })()}
         <More>문화시설 {cult.length.toLocaleString()}곳(선택 분류). 가깝다는 사실이 시설 간 협력이나 이용 연계를 뜻하지 않습니다.</More>
       </>
     }
@@ -281,10 +310,10 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
       <p className="chart-title">② 가장 가까운 {lab} 영화관이 얼마나 떨어져 있나 <Seg label="거리 기준" value={nnMetric} onChange={setNnMetric} options={[{ v: 'same' as const, label: '같은 유형' }, { v: 'other' as const, label: '다른 유형' }]} /></p>
       <CategoryBars vs={pts} cats={BANDS} title={`가장 가까운 ${lab} 영화관까지 거리 구간`} of={(v) => { const d = nn[v.id][nnMetric]?.dist; return d == null ? null : band(d) }} />
       <Finding items={[
-        { head: <>{jo(ch, '은')} 반경 1km 안에 다른 영화관이 평균 {f1(cntMean(ch))}곳으로 가장 많이 모여 있다.</>,
-          mean: <>{jo(cl, '는')} 평균 {f1(cntMean(cl))}곳으로 주변에 다른 영화관이 적다.</> },
+        { head: <>{jo(ch, '은')} 반경 1km 안에 다른 영화관이 평균 {f1(cntMean(ch))}곳으로 가장 많이 모여 있습니다.</>,
+          mean: <>{jo(cl, '는')} 평균 {f1(cntMean(cl))}곳으로 주변에 다른 영화관이 적습니다.</> },
         { head: <>같은 유형까지 거리(중앙값) {TYPES.map((t) => <span key={t} className="tnum" style={{ color: TYPE_STYLE[t].color }}><Sym type={t} /> {TYPE_STYLE[t].short} {f1(nnMid(t))}km</span>)}</>,
-          mean: <>{jo(mn, '은')} 같은 유형끼리 가장 가까이 모여 있고, {jo(mx, '는')} 가장 떨어져 있다. 평균({TYPES.map((t) => `${TYPE_STYLE[t].short} ${f1(nnMean(t, 'same'))}km`).join(' · ')})은 멀리 떨어진 몇 곳 때문에 중앙값보다 크다.</> },
+          mean: <>{jo(mn, '은')} 같은 유형끼리 가장 가까이 모여 있고, {jo(mx, '는')} 가장 떨어져 있습니다. 평균({TYPES.map((t) => `${TYPE_STYLE[t].short} ${f1(nnMean(t, 'same'))}km`).join(' · ')})은 멀리 떨어진 몇 곳 때문에 중앙값보다 큽니다.</> },
       ]} />
       <More>밀도 = 영화관 점의 커널 밀도(반경 약 2km, 색이 진할수록 많이 모임). 거리 = 직선거리, 같은 건물은 0km. 가깝다는 것을 경쟁으로 해석하지 않습니다.
         {picked && pn && <> · <b>{picked.name}</b> → {pn.venue.name} {f1(pn.dist / 1000)}km</>}</More>
@@ -324,9 +353,9 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
             <p className="eyebrow">3-{step + 1}</p>
             <h3>{STEPS[step]}</h3>
             {panel(step)}
-            <details className="table ui srcdetails"><summary>자료·기준</summary>
+            <More label="자료·기준">
               <SourceNote source={step === 4 ? SOURCES.culture : step === 0 || step === 5 ? `${SOURCES.venues} · ${SOURCES.subway}` : step === 1 ? SOURCES.centers : SOURCES.venues} n={`영업 중 좌표 있는 영화관 ${pts.length}곳`} />
-            </details>
+            </More>
           </div>
         </div>
       </div>

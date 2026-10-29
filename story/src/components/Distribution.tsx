@@ -41,12 +41,12 @@ function hull(members: Venue[], r = 420) {
 // 데이터를 모르는 사람도 한 번에 읽을 수 있는 결론 문장
 function headline(t: VenueType, n: number, gus: number, cs: Cluster[]) {
   const [a, b] = cs
-  if (!a) return { head: `${jo(t, '는')} 2곳 이상 모인 역 주변이 없다.`, mean: '' }
+  if (!a) return { head: `${jo(t, '는')} 2곳 이상 모인 역 주변이 없습니다.`, mean: '' }
   const p = pct(a.members.length, n), where = `${a.center ? `${a.center} 일대의 ` : ''}${a.names.join('·')}역 주변`
-  if (p >= 25) return { head: `${jo(t, '는')} ${where}에 모여 있다.`,
-    mean: `${n}곳 중 ${a.members.length}곳(${f1(p)}%)이 이 반경 1km 안에 있다${b && b.members.length >= 2 ? `. 두 번째로 ${b.center ? `${b.center} 일대의 ` : ''}${b.names.join('·')}역 주변에 ${b.members.length}곳이 모여 있다` : ''}.` }
-  return { head: `${jo(t, '는')} 특정 지역에 몰리지 않고 서울 곳곳에 퍼져 있다.`,
-    mean: `가장 많이 모인 ${where}도 ${n}곳 중 ${a.members.length}곳(${f1(p)}%)에 그치며, 영화관이 있는 자치구가 25개 중 ${gus}개다.` }
+  if (p >= 25) return { head: `${jo(t, '는')} ${where}에 모여 있습니다.`,
+    mean: `${n}곳 중 ${a.members.length}곳(${f1(p)}%)이 이 반경 1km 안에 있다${b && b.members.length >= 2 ? `. 두 번째로 ${b.center ? `${b.center} 일대의 ` : ''}${b.names.join('·')}역 주변에 ${b.members.length}곳이 모여 있습니다` : ''}.` }
+  return { head: `${jo(t, '는')} 특정 지역에 몰리지 않고 서울 곳곳에 퍼져 있습니다.`,
+    mean: `가장 많이 모인 ${where}도 ${n}곳 중 ${a.members.length}곳(${f1(p)}%)에 그치며, 영화관이 있는 자치구는 25개 중 ${gus}개입니다.` }
 }
 
 export default function Distribution({ data, open }: { data: DataSet; open: Venue[] }) {

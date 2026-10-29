@@ -13,7 +13,7 @@ export type Venue = {
   open: string; close: string; openD: Date | null; closeD: Date | null; bulkOpen: boolean
   gu: string; dong: string; address: string
   screens: number | null; seats: number | null; screens25: number | null; seats25: number | null; special25: number | null; art25: number | null; operator25: string
-  koficYears: string; licenses: number; occupancy: string; occBuilding: string; occConf: string
+  koficYears: string; licenses: number; occupancy: string; occBuilding: string; occConf: string; floor: number | null
   conflict: string; source: string
   lon: number | null; lat: number | null
 }
@@ -69,7 +69,7 @@ export function toVenues(fc: any): Venue[] {
       status: p.status, open: p.open, close: p.close, openD: date(p.open), closeD: date(p.close), bulkOpen: p.bulk_open,
       gu: p.gu, dong: p.dong, address: p.address,
       screens: p.screens, seats: p.seats, screens25: p.screens25, seats25: p.seats25, special25: p.special25, art25: p.art25, operator25: p.operator25,
-      koficYears: p.kofic_years, licenses: p.licenses, occupancy: p.occupancy, occBuilding: p.occ_building, occConf: p.occ_conf,
+      koficYears: p.kofic_years, licenses: p.licenses, occupancy: p.occupancy, occBuilding: p.occ_building, occConf: p.occ_conf, floor: p.floor ?? null,
       conflict: p.conflict, source: p.source, lon: c ? c[0] : null, lat: c ? c[1] : null,
     }
   })

@@ -9,11 +9,11 @@ import { Finding, MapLegend, savePng, saveSvg, Seg, SourceNote, TypeSelect, More
 const LAST = new Date(DATA_DATE)
 const YEARS = Array.from({ length: LAST.getFullYear() - YEAR_MIN + 1 }, (_, i) => YEAR_MIN + i)
 const METRICS = {
-  operating: { label: '연도별 운영 영화관 수', unit: '곳', kind: 'line' },
-  screens: { label: '연도별 운영 스크린 수(KOFIC 수록 영화관)', unit: '개', kind: 'line' },
+  operating: { label: '그해 문을 열고 있던 영화관 수', unit: '곳', kind: 'line', btn: '영화관 수' },
+  flow: { label: '그해 새로 연 곳(위) · 문 닫은 곳(아래)', unit: '곳', kind: 'flow', btn: '새로 연 곳 · 닫은 곳' },
+  screens: { label: '그해 스크린(상영관) 수', unit: '개', kind: 'line', btn: '스크린 수' },
   seats: { label: '연도별 운영 좌석 수(KOFIC 수록 영화관)', unit: '석', kind: 'line' },
   special: { label: '연도별 특별관 스크린 수(KOFIC 스크린 상세)', unit: '개', kind: 'line' },
-  flow: { label: '연도별 개업·폐업', unit: '곳', kind: 'flow' },
   opened: { label: '연도별 신규 개업 수', unit: '곳', kind: 'bar' },
   closed: { label: '연도별 폐업 수', unit: '곳', kind: 'bar' },
   cum_opened: { label: `누적 개업 수(${YEAR_MIN}년부터)`, unit: '곳', kind: 'line' },
@@ -68,25 +68,25 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
           <Seg label="시기" value={era ?? ''} onChange={(v) => setEra(v === era ? null : v || null)} options={ERAS.map((e) => ({ v: e.id, label: e.label }))} />
         </div>
         <div className="keyfig">
-          <div><b>{yr?.operating ?? '—'}</b><span>{year}년 운영</span></div>
-          <div><b>{yr?.opened ?? '—'}</b><span>개업{yr?.opened_unsure ? ` (+불확실 ${yr.opened_unsure})` : ''}</span></div>
-          <div><b>{yr?.closed ?? '—'}</b><span>폐업</span></div>
-          <div><b>{yr?.screens ?? '자료 미확보'}</b><span>스크린(KOFIC)</span></div>
+          <div><b>{yr?.operating ?? '—'}</b><span>{year}년 문 열고 있던 곳</span></div>
+          <div><b>{yr?.opened ?? '—'}</b><span>새로 연 곳{yr?.opened_unsure ? ` (+불확실 ${yr.opened_unsure})` : ''}</span></div>
+          <div><b>{yr?.closed ?? '—'}</b><span>문 닫은 곳</span></div>
+          <div><b>{yr?.screens ?? '자료 미확보'}</b><span>스크린 수</span></div>
         </div>
         {a0 != null && a1 != null && <Finding items={[
-          { head: <>{sel ?? '전체'} 운영 영화관은 {YEAR_MIN}년 {a0}곳에서 2025년 {a1}곳이 되었다.</>,
-            mean: <>연평균 개업은 {eraRows.map((x) => `${f1(x.o / x.n)}`).join(' → ')}곳으로 줄었고, 폐업은 {eraRows.map((x) => `${f1(x.c / x.n)}`).join(' → ')}곳이었다.</> }]} />}
+          { head: <>{sel ?? '전체'} 운영 영화관은 {YEAR_MIN}년 {a0}곳에서 2025년 {a1}곳이 되었습니다.</>,
+            mean: <>연평균 개업은 {eraRows.map((x) => `${f1(x.o / x.n)}`).join(' → ')}곳으로 줄었고, 폐업은 {eraRows.map((x) => `${f1(x.c / x.n)}`).join(' → ')}곳이었습니다.</> }]} />}
         <div className="eracards" role="group" aria-label="시기별 정리">
           {eraRows.map(({ e, n, o, c }) => { const s0 = row(e.from === YEAR_MIN ? e.from : e.from - 1)?.operating, s1 = row(Math.min(e.to, LAST.getFullYear()))?.operating
             return <button key={e.id} className="eracard" aria-pressed={era === e.id} onClick={() => setEra(era === e.id ? null : e.id)}>
               <b>{e.label}{e.to >= LAST.getFullYear() ? ' (~2026.9)' : ''}</b>
-              <div className="nums">개업 {o} · 폐업 {c} <em>순 {o - c >= 0 ? '+' : ''}{o - c}</em></div>
-              <p>운영 {s0 ?? '—'}→{s1 ?? '—'}곳 · 연평균 개업 {f1(o / n)}, 폐업 {f1(c / n)}</p>
-              {!sel && <p>개업 중 {topShare('opened', e, o)} · 폐업 중 {topShare('closed', e, c)}</p>}
+              <div className="bignet" data-neg={o - c < 0}>{o - c >= 0 ? '+' : ''}{o - c}<small>곳</small></div>
+              <p>새로 연 곳 <b>{o}</b> · 문 닫은 곳 <b>{c}</b></p>
+              <p className="sub">영화관 {s0 ?? '—'}곳 → {s1 ?? '—'}곳{!sel ? ` · 새로 연 곳의 ${topShare('opened', e, o)}` : ''}</p>
             </button> })}
         </div>
         <div className="row ui metricpick" role="group" aria-label="지표 선택">
-          {(Object.keys(METRICS) as MetricKey[]).map((k) => <button key={k} aria-pressed={metric === k} onClick={() => setMetric(k)}>{METRICS[k].label.replace(/\(.*\)/, '').replace('연도별 ', '')}</button>)}
+          {(['operating', 'flow', 'screens'] as MetricKey[]).map((k) => <button key={k} aria-pressed={metric === k} onClick={() => setMetric(k)}>{(METRICS[k] as any).btn}</button>)}
         </div>
         <MetricChart ref={svg} title={M.label} label={`${M.label} — ${sel ?? '전체'}`} years={YEARS} values={values} down={metric === 'flow' ? series('closed') : undefined}
           kind={M.kind} color={color}

@@ -1,5 +1,6 @@
 // 작은 공용 컴포넌트: 장면, 범례, 토글, 데이터 상태, 출처, 내보내기
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { ALL_COLOR, DATA_LABEL, FILES, TYPE_STYLE, TYPES, type FileKey, type VenueType } from '../config'
 import type { DataSet } from '../data'
 
@@ -125,12 +126,27 @@ export function Finding({ title = '결론', items }: { title?: string; items: { 
   )
 }
 
-// 세부 설명: 평소에는 접어 두고, 궁금하면 눌러서 펼친다
+// 세부 설명: 마우스를 올리면 말풍선으로 보이고, 클릭하면 고정(다시 클릭하거나 바깥을 누르면 닫힘)
 export function More({ children, label = '자세히' }: { children: ReactNode; label?: string }) {
+  const btn = useRef<HTMLButtonElement>(null)
+  const [hover, setHover] = useState(false), [pin, setPin] = useState(false)
+  const [pos, setPos] = useState<{ left: number; top: number; up: boolean } | null>(null)
+  const open = hover || pin
+  useEffect(() => {
+    if (!open || !btn.current) return
+    const place = () => { const r = btn.current!.getBoundingClientRect(), w = Math.min(380, innerWidth - 24), up = r.bottom > innerHeight * 0.6
+      setPos({ left: Math.max(12, Math.min(r.left, innerWidth - w - 12)), top: up ? r.top - 8 : r.bottom + 8, up }) }
+    place()
+    const close = (e: MouseEvent) => { if (pin && !btn.current?.contains(e.target as Node) && !(e.target as HTMLElement).closest?.('.more-pop')) setPin(false) }
+    addEventListener('scroll', place, true); addEventListener('mousedown', close)
+    return () => { removeEventListener('scroll', place, true); removeEventListener('mousedown', close) }
+  }, [open, pin])
   return (
-    <details className="more-info ui">
-      <summary>ⓘ {label}</summary>
-      <div className="more-body">{children}</div>
-    </details>
+    <span className="more-info ui">
+      <button ref={btn} type="button" aria-expanded={open} aria-pressed={pin} onClick={() => setPin(!pin)}
+        onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onFocus={() => setHover(true)} onBlur={() => setHover(false)}>ⓘ {label}</button>
+      {open && pos && createPortal(<div className={`more-pop ${pos.up ? 'up' : ''}`} role="tooltip" style={{ left: pos.left, top: pos.top }}
+        onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>{children}{pin && <small className="more-hint">다시 누르면 닫혀요</small>}</div>, document.body)}
+    </span>
   )
 }

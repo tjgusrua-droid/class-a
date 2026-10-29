@@ -12,11 +12,12 @@ export const ShareBars = forwardRef<SVGSVGElement, {
 }>(function ShareBars({ rows, highlight, onPick, title }, ref) {
   const rowH = 46, top = 30, x0 = 86, bw = W - x0 - 8
   return (
-    <svg ref={ref} viewBox={`0 0 ${W} ${top + rows.length * rowH + 4}`} role="img" aria-label={title}>
+    <svg ref={ref} viewBox={`0 0 ${W} ${top + rows.length * rowH + 18}`} role="img" aria-label={title}>
+      <text x={W - 8} y={top + rows.length * rowH + 14} fontSize="10.5" textAnchor="end" fill="#333" fontWeight="600">가로축 → 전체 중 각 유형의 비율(%)</text>
       <title>{title}</title>
       <g fontSize="11" fill="#444">{TYPES.map((t, i) => (
         <g key={t} transform={`translate(${x0 + i * 150},10)`} onClick={() => onPick(highlight === t ? null : t)} style={{ cursor: 'pointer' }}>
-          <rect width="10" height="10" y="-1" fill={TYPE_STYLE[t].color} /><text x="14" y="8">{TYPE_STYLE[t].mark} {t}</text>
+          <rect width="10" height="10" y="-1" fill={TYPE_STYLE[t].color} /><text x="14" y="8">{t}</text>
         </g>))}</g>
       {rows.map((r, j) => {
         const known = TYPES.filter((t) => r.values[t] != null)
@@ -52,8 +53,8 @@ function niceTicks(max: number) {
 // 상자수염+점: 집단별 실제 값 전부(점), 25~75%(상자), 중앙값(굵은 선), 평균(◇), n
 export const BoxDot = forwardRef<SVGSVGElement, {
   groups: { key: string; type?: VenueType; items: { id: string; v: number; label: string }[] }[]
-  unit: string; selected?: string | null; onPick?: (id: string) => void; title: string; rowH?: number
-}>(function BoxDot({ groups, unit, selected, onPick, title, rowH = 62 }, ref) {
+  unit: string; selected?: string | null; onPick?: (id: string) => void; title: string; rowH?: number; xlabel?: string
+}>(function BoxDot({ groups, unit, selected, onPick, title, rowH = 62, xlabel }, ref) {
   const l = 128, r = 14, top = 10
   const all = groups.flatMap((g) => g.items.map((x) => x.v))
   const { top: xmax, ticks } = niceTicks(Math.max(0.001, ...all))
@@ -64,14 +65,15 @@ export const BoxDot = forwardRef<SVGSVGElement, {
       <title>{title}</title>
       {ticks.map((v) => <g key={v}><line x1={sx(v)} x2={sx(v)} y1={top} y2={H - 26} stroke="#eee" />
         <text x={sx(v)} y={H - 13} fontSize="10" textAnchor="middle" fill="#555">{v}</text></g>)}
-      <text x={W - r} y={H - 1} fontSize="10" textAnchor="end" fill="#555">단위: {unit}</text>
+      <text x={W - r} y={H - 1} fontSize="10.5" textAnchor="end" fill="#333" fontWeight="600">가로축 → {xlabel ?? title.replace(/^유형별 /, '')} ({unit})</text>
       {groups.map((g, j) => {
         const y0 = top + j * rowH + rowH / 2, vs = g.items.map((x) => x.v)
         const q1 = quantile(vs, 0.25), md = quantile(vs, 0.5), q3 = quantile(vs, 0.75), mn = mean(vs)
         const color = g.type ? TYPE_STYLE[g.type].color : '#333'
         return (
           <g key={g.key}>
-            <text x={0} y={y0 - 4} fontSize="11.5" fontWeight="600">{g.type && `${TYPE_STYLE[g.type].mark} `}{g.key}</text>
+            {g.type && <circle cx={5} cy={y0 - 8} r={4.5} fill={color} />}
+            <text x={g.type ? 14 : 0} y={y0 - 4} fontSize="11.5" fontWeight="600">{g.key}</text>
             <text x={0} y={y0 + 11} fontSize="10" fill={vs.length < 5 ? '#c8423b' : '#555'}>n = {vs.length}{vs.length < 5 && vs.length > 0 ? ' (적음)' : ''}</text>
             {vs.length === 0 && <text x={l} y={y0 + 4} fontSize="11" fill="#888">자료 없음</text>}
             {vs.length > 1 && <rect x={sx(q1)} y={y0 - 13} width={Math.max(1, sx(q3) - sx(q1))} height={26} fill={color} fillOpacity={0.12} stroke={color} strokeOpacity={0.6} />}
@@ -97,7 +99,7 @@ export const MetricChart = forwardRef<SVGSVGElement, {
   range: [number, number] | null; partialYear?: number; title: string; height?: number
   parts?: { key: VenueType; values: (number | null)[]; down?: (number | null)[] }[] // '전체'일 때 유형별 계열(선 = 유형별 선, 막대 = 유형별 누적)
 }>(function MetricChart({ years, values, down, kind, color, unit, label, year, onYear, range, partialYear, title, parts, height = 300 }, ref) {
-  const H = height, l = 44, r = 12, t = parts ? 44 : 26, b = 36
+  const H = height, l = 54, r = 12, t = parts ? 44 : 26, b = 40
   const bw = (W - l - r) / years.length
   const bx = (i: number) => l + i * bw
   const vmax = Math.max(1, ...values.map((v) => v ?? 0), ...(down ?? []).map((v) => v ?? 0))
@@ -158,13 +160,21 @@ export const MetricChart = forwardRef<SVGSVGElement, {
         <polyline fill="none" stroke={c} strokeWidth={w} points={vs.map((v, i) => (v == null ? '' : `${bx(i) + bw / 2},${mid - sy(v)}`)).filter(Boolean).join(' ')} />
         {vs.map((v, i) => v != null && <circle key={i} cx={bx(i) + bw / 2} cy={mid - sy(v)} r={w} fill={c} />)}</g>)}
       {kind !== 'line' && parts && values.map((v, i) => v != null && v > 0 && <text key={i} x={bx(i) + bw / 2} y={mid - sy(v) - 3} fontSize="8.5" textAnchor="middle" fill="#111">{v}</text>)}
+      {kind === 'line' && (() => { // 선 끝에 이름표(범례를 따라가지 않아도 되게). 겹치면 위아래로 벌린다
+        const ends = [...(parts ?? []).map((q) => ({ k: q.key as string, vs: q.values, c: TYPE_STYLE[q.key].color })), { k: parts ? '전체' : '', vs: values, c: color }]
+          .map((x) => { let i = x.vs.length - 1; while (i >= 0 && x.vs[i] == null) i--; return i < 0 ? null : { ...x, i, y: mid - sy(x.vs[i]!) } }).filter(Boolean) as any[]
+        ends.sort((a, b) => a.y - b.y).forEach((e, j, a) => { if (j && e.y - a[j - 1].y < 11) e.y = a[j - 1].y + 11 })
+        return ends.filter((e) => e.k).map((e) => <text key={e.k} x={bx(e.i) + bw / 2 - 6} y={e.y - 6} fontSize="10.5" fontWeight="700" textAnchor="end" fill={e.c}>{e.k} {e.vs[e.i]}</text>)
+      })()}
       {parts && <g fontSize="10" transform={`translate(${l},18)`}>
         {[{ k: '전체', c: color }, ...parts.map((q) => ({ k: q.key as string, c: TYPE_STYLE[q.key].color }))].map((x, j) => (kind === 'line' || j > 0) &&
           <g key={x.k} transform={`translate(${j * 112},0)`}><rect width="9" height="9" fill={x.c} /><text x="13" y="8.5">{x.k}</text></g>)}
       </g>}
       <line x1={bx(xi(year)) + bw / 2} x2={bx(xi(year)) + bw / 2} y1={t} y2={H - b} stroke="#c8423b" strokeWidth="1.5" />
       <text x={l} y={12} fontSize="11" fontWeight="600">{label}{kind === 'flow' ? ' — 위: 개업, 아래: 폐업' : ''}{parts && kind !== 'line' ? ' (유형별로 쌓은 높이 = 전체)' : ''}</text>
-      <text x={W - r} y={12} fontSize="10" textAnchor="end" fill="#555">단위: {unit} · {year}년 {values[xi(year)] == null ? '자료 미확보' : `${values[xi(year)]!.toLocaleString()}${unit}`}{kind === 'flow' && down?.[xi(year)] != null ? ` / 폐업 ${down[xi(year)]}` : ''}</text>
+      <text transform={`translate(12,${(t + H - b) / 2}) rotate(-90)`} fontSize="10.5" textAnchor="middle" fill="#333" fontWeight="600">세로축 ↑ {label.split(' — ')[0].replace('연도별 ', '')} ({unit})</text>
+      <text x={W - r} y={H - 2} fontSize="10.5" textAnchor="end" fill="#333" fontWeight="600">가로축 → 연도</text>
+      <text x={W - r} y={12} fontSize="10" textAnchor="end" fill="#555">{year}년 {values[xi(year)] == null ? '자료 미확보' : `${values[xi(year)]!.toLocaleString()}${unit}`}{kind === 'flow' && down?.[xi(year)] != null ? ` / 폐업 ${down[xi(year)]}` : ''}</text>
     </svg>
   )
 })
@@ -210,7 +220,8 @@ export const CountBars = forwardRef<SVGSVGElement, { rows: { label: string; valu
     const x0 = 112, max = Math.max(1, ...rows.map((r) => TYPES.reduce((a, t) => a + r.values[t], 0)))
     const sx = (v: number) => (v / max) * (W - x0 - 60)
     return (
-      <svg ref={ref} viewBox={`0 0 ${W} ${rows.length * rowH + 30}`} role="img" aria-label={title}>
+      <svg ref={ref} viewBox={`0 0 ${W} ${rows.length * rowH + 46}`} role="img" aria-label={title}>
+        <text x={W - 4} y={rows.length * rowH + 42} fontSize="10.5" textAnchor="end" fill="#333" fontWeight="600">가로축 → 영업 영화관 수({unit}) · 막대 색 = 유형</text>
         <title>{title}</title>
         <g fontSize="10.5">{TYPES.map((t, i) => <g key={t} transform={`translate(${x0 + i * 140},8)`}><rect width="10" height="10" fill={TYPE_STYLE[t].color} /><text x="14" y="9">{t}</text></g>)}</g>
         {rows.map((r, j) => {
@@ -266,7 +277,7 @@ export function Dumbbell({ rows, a, b, unit, title }: { rows: { key: VenueType; 
         <circle cx={l + 175} cy={10} r={5} fill="#fff" stroke="#111" strokeWidth="1.5" /><text x={l + 184} y={14}>{b}</text></g>
       {rows.map((x, i) => { const y = 36 + i * 30, c = TYPE_STYLE[x.key].color
         return <g key={x.key}>
-          <text x={0} y={y + 4} fontSize="11.5" fontWeight="600">{TYPE_STYLE[x.key].mark} {x.key}</text>
+          <circle cx={5} cy={y} r={4.5} fill={c} /><text x={14} y={y + 4} fontSize="11.5" fontWeight="600">{x.key}</text>
           <line x1={sx(x.a)} x2={sx(x.b)} y1={y} y2={y} stroke={c} strokeWidth="3" opacity=".45" />
           <circle cx={sx(x.a)} cy={y} r={6} fill={c} /><circle cx={sx(x.b)} cy={y} r={6} fill="#fff" stroke={c} strokeWidth="2" />
           <text x={sx(Math.max(x.a, x.b)) + 10} y={y + 4} fontSize="10.5">{f1(x.a)} / {f1(x.b)}{unit}</text>
@@ -277,7 +288,7 @@ export function Dumbbell({ rows, a, b, unit, title }: { rows: { key: VenueType; 
 
 // 생존곡선(Kaplan–Meier): 개업 후 t년이 지나도 운영 중인 비율
 export function SurvivalCurves({ series, xmax, title }: { series: { key: VenueType; steps: { t: number; s: number }[]; med: number | null; n: number; end: number }[]; xmax: number; title: string }) {
-  const H = 280, l = 40, r = 12, t = 54, b = 34
+  const H = 290, l = 54, r = 12, t = 54, b = 38
   const sx = (v: number) => l + (Math.min(v, xmax) / xmax) * (W - l - r), sy = (s: number) => t + (1 - s) * (H - t - b)
   return (
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
@@ -285,7 +296,8 @@ export function SurvivalCurves({ series, xmax, title }: { series: { key: VenueTy
       {[0, 0.25, 0.5, 0.75, 1].map((p) => <g key={p}><line x1={l} x2={W - r} y1={sy(p)} y2={sy(p)} stroke={p === 0.5 ? '#bbb' : '#eee'} strokeDasharray={p === 0.5 ? '4 3' : undefined} />
         <text x={l - 4} y={sy(p) + 3} fontSize="10" textAnchor="end" fill="#666">{p * 100}%</text></g>)}
       {Array.from({ length: Math.floor(xmax / 10) + 1 }, (_, i) => i * 10).map((x) => <text key={x} x={sx(x)} y={H - b + 14} fontSize="10" textAnchor="middle" fill="#666">{x}</text>)}
-      <text x={W - r} y={H - 4} fontSize="10" textAnchor="end" fill="#555">개업 후 경과 연수(년)</text>
+      <text x={W - r} y={H - 2} fontSize="10.5" textAnchor="end" fill="#333" fontWeight="600">가로축 → 문을 연 뒤 지난 햇수(년)</text>
+      <text transform={`translate(12,${(t + H - b) / 2}) rotate(-90)`} fontSize="10.5" textAnchor="middle" fill="#333" fontWeight="600">세로축 ↑ 아직 문을 열고 있는 비율(%)</text>
       {series.map(({ key, steps, med, end }) => {
         let d = `M${sx(0)},${sy(1)}`
         steps.slice(1).forEach((p) => { d += `H${sx(p.t)}V${sy(p.s)}` })
@@ -302,16 +314,17 @@ export function SurvivalCurves({ series, xmax, title }: { series: { key: VenueTy
 
 // 단순 가로 막대(평균값 비교). 막대 끝에 값
 export function MeanBars({ rows, unit, title }: { rows: { key: VenueType; value: number; note?: string }[]; unit: string; title: string }) {
-  const l = 128, r = 120, rowH = 30, H = rows.length * rowH + 6, max = Math.max(0.001, ...rows.map((x) => x.value))
+  const l = 128, r = 120, rowH = 30, H = rows.length * rowH + 22, max = Math.max(0.001, ...rows.map((x) => x.value))
   return (
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
       <title>{title}</title>
       {rows.map((x, i) => { const y = 4 + i * rowH, w = (x.value / max) * (W - l - r)
         return <g key={x.key}>
-          <text x={0} y={y + 15} fontSize="12" fontWeight="600">{TYPE_STYLE[x.key].mark} {x.key}</text>
+          <circle cx={5} cy={y + 11} r={4.5} fill={TYPE_STYLE[x.key].color} /><text x={14} y={y + 15} fontSize="12" fontWeight="600">{x.key}</text>
           <rect x={l} y={y + 2} width={w} height={rowH - 10} fill={TYPE_STYLE[x.key].color} />
           <text x={l + w + 6} y={y + 16} fontSize="12" fontWeight="700">{f1(x.value)}{unit}<tspan fontWeight="400" fill="#777">{x.note ? ` ${x.note}` : ''}</tspan></text>
         </g> })}
+      <text x={W - 4} y={H - 2} fontSize="10.5" textAnchor="end" fill="#333" fontWeight="600">가로축 → {title} (평균, {unit})</text>
     </svg>
   )
 }
@@ -319,12 +332,13 @@ export function MeanBars({ rows, unit, title }: { rows: { key: VenueType; value:
 // 조건별 생존율: 조건마다 집단별 10년(진한 막대)·20년(옅은 막대) 뒤 운영 비율
 export function ConditionBars({ rows, title }: { rows: { factor: string; groups: { label: string; n: number; s10: number; s20: number }[] }[]; title: string }) {
   const l = 150, r = 70, gh = 21, fh = 18
-  const H = rows.reduce((a, x) => a + fh + x.groups.length * gh + 6, 26)
+  const H = rows.reduce((a, x) => a + fh + x.groups.length * gh + 6, 26) + 14
   const sx = (p: number) => (p / 100) * (W - l - r)
   let y = 26
   return (
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
       <title>{title}</title>
+      <text x={W - 4} y={H - 2} fontSize="10.5" textAnchor="end" fill="#333" fontWeight="600">가로축 → 문을 연 뒤 그 해까지 남아 있는 비율(%)</text>
       <g fontSize="10.5"><rect x={l} y={4} width={12} height={10} fill="#333" /><text x={l + 16} y={13}>개업 10년 뒤 운영 비율</text>
         <rect x={l + 160} y={4} width={12} height={10} fill="#bdbdbd" /><text x={l + 176} y={13}>20년 뒤</text></g>
       {rows.map((f) => { const y0 = y; y += fh + f.groups.length * gh + 6

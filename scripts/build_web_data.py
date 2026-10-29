@@ -3,6 +3,7 @@
 먼저 build_venues.py, audit_venues.py 를 실행한다.
 """
 import json
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -10,6 +11,16 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 CLEAN = ROOT / "data" / "clean"
 OUT = ROOT / "story" / "public" / "data"
+
+
+def cinema_floor(*addrs):
+    """주소에 적힌 영화관 층(지하 = 음수). 여러 층이면 가장 낮은 층. 없으면 None."""
+    a = " ".join(str(x) for x in addrs)
+    m = re.search(r"(지하|B)\s*(\d+)\s*층", a)
+    if m:
+        return -int(m.group(2))
+    m = re.search(r"(\d+)\s*(?:[~,·]\s*\d+)?\s*층", a)
+    return int(m.group(1)) if m else None
 
 
 def main():
@@ -41,7 +52,7 @@ def main():
                           "art25": int(art_ep.get(r.operation_episode_id, 0)) if r.screens_kofic_2025 != "" else None,
                           "operator25": op_ep.get(r.operation_episode_id, ""),
                           "kofic_years": r.kofic_years, "licenses": int(r.license_count), "licenses_active": int(r.license_active),
-                          "occupancy": r.building_occupancy_type, "occ_building": r.building_name, "occ_conf": r.occupancy_confidence,
+                          "occupancy": r.building_occupancy_type, "occ_building": r.building_name, "occ_conf": r.occupancy_confidence, "floor": cinema_floor(r.address_road, r.address_jibun),
                           "conflict": r.source_conflict, "source": r.data_source_status,
                       }})
     (OUT / "venues.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": feats}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")

@@ -26,6 +26,15 @@ function Neighborhood({ color, count, dist }: { color: string; count: number; di
   )
 }
 
+// 작은 100% 막대: 같은 색의 진하기로 단계를 나눈다(가장 많은 칸에 비율 표시)
+function MiniStack({ parts, n, color, unit }: { parts: [string, number][]; n: number; color: string; unit: string }) {
+  const top = [...parts].sort((a, b) => b[1] - a[1])[0]
+  return <>
+    <div className="ministack">{parts.map(([k, v], i) => v > 0 && <i key={k} style={{ width: `${(v / n) * 100}%`, background: color, opacity: 0.35 + (0.65 * (i + 1)) / parts.length }} title={`${k} ${v}곳`}>{v / n >= 0.2 ? k : ''}</i>)}</div>
+    <p>{n ? <><b>{top[0]}</b> {Math.round((top[1] / n) * 100)}% <small>({unit} {n}곳 중 {top[1]}곳)</small></> : '자료 없음'}</p>
+  </>
+}
+
 export default function LocationProfile({ data, open }: { data: DataSet; open: Venue[] }) {
   const pts = open.filter(located)
   const stations = data.stations.status === 'ok' ? data.stations.data.features : []
@@ -39,20 +48,26 @@ export default function LocationProfile({ data, open }: { data: DataSet; open: V
     return [t, { n: xs.length, sub: pct(xs.filter((v) => stations.some((f: any) => distM(v, pt(f)) <= 500)).length, xs.length), lv, occ, known: known.length,
       ...(() => { const ds = xs.map((v) => nearest(v, pts, (o) => o.type === v.type)?.dist).filter((x): x is number => x != null)
         return { same: median(ds) / 1000, sameMean: avg(ds) / 1000 } })(),
-      cnt: avg(xs.map((v) => pts.filter((o) => o.id !== v.id && distM(v, o) <= 1000).length)) }]
+      cnt: avg(xs.map((v) => pts.filter((o) => o.id !== v.id && distM(v, o) <= 1000).length)),
+      // 몇 층: 주소에 층이 적힌 곳만(지하 / 1~3층 / 4층 이상)
+      fl: (() => { const f = xs.map((v) => v.floor).filter((x): x is number => x != null)
+        return { n: f.length, parts: [['지하', f.filter((x) => x < 0).length], ['1~3층', f.filter((x) => x >= 1 && x <= 3).length], ['4층 이상', f.filter((x) => x >= 4).length]] as [string, number][] } })(),
+      // 언제 열었나: 지금 영업 중인 곳의 개업 시기(일괄 등록일 의심은 제외)
+      era: (() => { const y = xs.filter((v) => v.openD && !v.bulkOpen).map((v) => v.openD!.getFullYear())
+        return { n: y.length, parts: [['2000년 전', y.filter((x) => x < 2000).length], ['2000년대', y.filter((x) => x >= 2000 && x < 2010).length], ['2010년대', y.filter((x) => x >= 2010 && x < 2020).length], ['2020년대', y.filter((x) => x >= 2020).length]] as [string, number][] } })() }]
   })) as Record<VenueType, any>
   // 한 줄 초상: 계산된 값으로 문장 조각을 고른다
   const portrait = (t: VenueType) => { const p = P[t]
     return [p.sub >= 80 ? '역 가까이' : p.sub < 70 ? '역에서 조금 떨어진 곳까지' : '대체로 역 가까이',
       p.lv['3도심'] >= 35 ? '도심에 모여' : p.lv['중심지 밖'] >= 45 ? '중심지 밖 생활권까지 퍼져' : '여러 중심지에 나뉘어',
-      p.known ? `${p.occ.c.replace(' 내 입점', '').replace('기타(', '').replace(')', '').replace('복합상업시설(', '')} 안에` : '',
-      p.cnt === Math.max(...TYPES.map((x) => P[x].cnt)) ? '주변에 다른 영화관이 가장 많다' : p.cnt === Math.min(...TYPES.map((x) => P[x].cnt)) ? '주변에 다른 영화관이 적다' : '주변에 다른 영화관이 꽤 있다'].filter(Boolean).join(', ') }
+      p.known ? `${p.occ.c.replace(' 내 입점', '').replace('기타(', '').replace(')', '').replace('복합상업시설(', '')}${p.fl.n >= 5 ? ({ 지하: '의 지하에', '1~3층': '의 낮은 층에', '4층 이상': '의 위층에' } as any)[[...p.fl.parts].sort((a: any, b: any) => b[1] - a[1])[0][0]] : ' 안에'}` : '',
+      p.cnt === Math.max(...TYPES.map((x) => P[x].cnt)) ? '주변에 다른 영화관이 가장 많습니다' : p.cnt === Math.min(...TYPES.map((x) => P[x].cnt)) ? '주변에 다른 영화관이 적습니다' : '주변에 다른 영화관이 꽤 있습니다'].filter(Boolean).join(', ') }
 
   return (
     <div className="profile">
       <h3>정리 — 각 유형의 영화관은 어떤 모습으로 자리하는가?</h3>
       <div className="profile-grid">
-        <div className="profile-rowhead"><span /><span>지하철역 500m 안</span><span>중심지 체계</span><span>주된 입점 형태</span><span>주변 영화관과의 관계</span></div>
+        <div className="profile-rowhead"><span /><span>지하철역 500m 안</span><span>중심지 체계</span><span>주된 입점 형태</span><span>건물 몇 층에 있나</span><span>언제 문을 열었나</span><span>주변 영화관과의 관계</span></div>
         {TYPES.map((t) => { const p = P[t], c = TYPE_STYLE[t].color
           return <div key={t} className="profile-col" style={{ borderColor: c }}>
             <div className="p-head"><p className="find-big" style={{ color: c }}><Sym type={t} /> {t} <small>n={p.n}</small></p><p className="p-portrait">{portrait(t)}</p></div>
@@ -62,6 +77,8 @@ export default function LocationProfile({ data, open }: { data: DataSet; open: V
               <p><b>{f1(p.lv['3도심'])}%</b> 3도심 · <b>{f1(p.lv['중심지 밖'])}%</b> 중심지 밖</p></div>
             <div className="p-cell"><OccupancyIcon label={p.known ? p.occ.c : ''} color={p.known ? OCC_COLOR[OCCUPANCY.indexOf(p.occ.c)] : '#ccc'} />
               <p>{p.known ? <><b>{p.occ.c.replace(' 내 입점', '')}</b> {p.occ.k}/{p.known}곳</> : '확인된 곳 없음'} <small>(확인 불가 {p.n - p.known})</small></p></div>
+            <div className="p-cell"><MiniStack color={c} parts={p.fl.parts} n={p.fl.n} unit="층이 확인된 곳" /></div>
+            <div className="p-cell"><MiniStack color={c} parts={p.era.parts} n={p.era.n} unit="개업일이 확인된 곳" /></div>
             <div className="p-cell"><Neighborhood color={c} count={p.cnt} dist={p.same} />
               <p>1km 안 다른 영화관 평균 <b>{f1(p.cnt)}곳</b> · 같은 유형까지 중앙값 <b>{f1(p.same)}km</b> <small>(평균 {f1(p.sameMean)}km)</small></p></div>
           </div> })}

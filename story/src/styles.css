@@ -306,10 +306,10 @@ details caption { text-align: left; font-weight: 600; padding: 4px 0; }
 /* ---- 3장 정리 페이지(다이어그램) ---- */
 .profile h3 { font-size: var(--fs-h2); margin: 0 0 14px; }
 .profile-grid { display: grid; grid-template-columns: 110px repeat(3, minmax(0, 1fr)); gap: 0 18px; }
-.profile-rowhead { display: grid; grid-template-rows: 86px 92px 82px 140px 140px; }
+.profile-rowhead { display: grid; grid-template-rows: 78px 70px 66px 112px 58px 58px 118px; }
 .profile-rowhead span { font-size: var(--fs-small); color: var(--muted); font-weight: 700; border-top: 1px solid var(--line); padding-top: 8px; }
 .profile-rowhead span:first-child { border: 0; }
-.profile-col { display: grid; grid-template-rows: 86px 92px 82px 140px 140px; border-top: 5px solid; }
+.profile-col { display: grid; grid-template-rows: 78px 70px 66px 112px 58px 58px 118px; border-top: 5px solid; }
 .p-head { padding-top: 8px; }
 .p-head .find-big { margin: 0; }
 .p-head small { font-size: var(--fs-small); color: var(--muted); font-weight: 400; }
@@ -523,3 +523,35 @@ input[type="checkbox"] { accent-color: var(--ink); }
 .toolbar button { border-radius: var(--r-pill); border-color: var(--line); background: #fff; }
 .chart-title { font-weight: 700; letter-spacing: -0.01em; }
 .chart-title small { font-weight: 400; color: var(--muted); }
+
+/* ---- 자세히 말풍선 ---- */
+.more-info { display: inline-block; margin: 4px 0; }
+.more-info button { font: inherit; font-size: var(--fs-small); color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; cursor: help; }
+.more-info button:hover, .more-info button[aria-expanded='true'] { color: var(--ink); border-color: #c9ccd2; }
+.more-info button[aria-pressed='true'] { background: var(--ink); color: #fff; border-color: var(--ink); cursor: pointer; }
+.more-pop { position: fixed; z-index: 2000; width: min(380px, calc(100vw - 24px)); background: #16181c; color: #f2f3f5; font-size: 12.5px; line-height: 1.65; padding: 12px 14px; border-radius: 12px; box-shadow: 0 12px 32px rgba(0, 0, 0, .25); }
+.more-pop.up { transform: translateY(-100%); }
+.more-pop b, .more-pop code { color: #fff; background: transparent; }
+.more-pop .source, .more-pop .note { color: #c9ccd2; border-top-color: #333; }
+.more-hint { display: block; margin-top: 6px; color: #9aa0a8; }
+.axisnote { font-size: 10.5px; font-weight: 600; color: #333; text-align: right; margin: 4px 0 0; }
+.nbdiagram { width: 100%; max-height: 34vh; }
+
+/* 4장 시기 카드: 순증감을 크게 */
+.eracard .bignet { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin: 2px 0; color: #1d7a3a; font-variant-numeric: tabular-nums; }
+.eracard .bignet[data-neg='true'] { color: #b3261e; }
+.eracard .bignet small { font-size: 13px; margin-left: 2px; font-weight: 600; }
+.eracard[aria-pressed='true'] .bignet { color: #fff; }
+.eracard p b { color: inherit; font-weight: 700; }
+.eracard p.sub { color: var(--muted); }
+.ministack { display: flex; height: 20px; width: 100%; border-radius: 4px; overflow: hidden; }
+.ministack i { display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 10.5px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; }
+.profile .occicon { height: 76px; } .profile .nb { height: 90px; }
+.profile .waffle { grid-template-columns: repeat(10, 12px); gap: 2px; } .profile .waffle i { width: 12px; height: 12px; }
+.profile .p-cell { gap: 3px; padding: 5px 0 3px; }
+.more-pop dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; }
+.more-pop dt { color: #9aa0a8; } .more-pop dd { margin: 0; }
+.more-pop .source { border-top: 0; padding-top: 0; margin: 0; font-size: 12px; }
+.eracard p b { display: inline; font-size: inherit; }
+.profile-rowhead, .profile-col { grid-template-rows: 100px 66px 62px 98px 56px 56px 112px !important; }
+.p-portrait { font-size: 14.5px; }

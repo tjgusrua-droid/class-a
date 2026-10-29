@@ -7,9 +7,9 @@ import { TypeIsometric } from './Isometric'
 
 // 한두 문장으로 된 쉬운 설명
 const EASY: Record<VenueType, string> = {
-  멀티플렉스: '한 건물 안에 상영관(스크린)이 여러 개 있는 대형 체인 영화관이다. CGV·롯데시네마·메가박스처럼 대기업이 직접 또는 위탁으로 운영한다.',
-  '독립·예술영화관': '흥행 대작보다 독립영화·예술영화·고전영화를 주로 트는 작은 영화관이다. 상영관 수가 적고, 개인·단체·공공기관이 운영하는 경우가 많다.',
-  기타: '위 두 유형에 들지 않는 영화관이다. 대기업 체인이 아닌 단관·소규모 상영관, 자동차극장, 이동상영관 등이 여기에 속한다.',
+  멀티플렉스: '한 건물 안에 상영관(스크린)이 여러 개 있는 대형 체인 영화관입니다. CGV·롯데시네마·메가박스처럼 대기업이 직접 또는 위탁으로 운영합니다.',
+  '독립·예술영화관': '흥행 대작보다 독립영화·예술영화·고전영화를 주로 트는 작은 영화관입니다. 상영관 수가 적고, 개인·단체·공공기관이 운영하는 경우가 많습니다.',
+  기타: '위 두 유형에 들지 않는 영화관입니다. 대기업 체인이 아닌 단관·소규모 상영관, 자동차극장, 이동상영관 등이 여기에 속합니다.',
 }
 
 // 분류 차원별 설명. 법적 지위 칸은 원문을 이 환경에서 확인하지 못해 '확인 필요'로 둔다
@@ -60,7 +60,7 @@ export default function TypeComparison({ open }: { open: Venue[] }) {
               <p className="easy">{EASY[t]}</p>
               <TypeIsometric type={t} screens={xs.length ? median(xs.map((v) => v.screens25!)) : null} />
               <p className="easy-num">시설당 상영관 중앙값 <b>{xs.length ? `${+median(xs.map((v) => v.screens25!)).toFixed(1)}개` : '자료 없음'}</b> <small>(KOFIC 2025 수록 {xs.length}곳)</small>{o ? <> · 확인된 입점 형태 중 최다 <b>{o[0]}</b></> : ''}</p>
-              <details onClick={(e) => e.stopPropagation()}><summary>분류 근거·세부 특성</summary>
+              <span onClick={(e) => e.stopPropagation()}><More label="분류 근거·세부 특성">
               <dl>
                 <dt>법적·제도적 지위</dt><dd>{DEF[t].legal}</dd>
                 <dt>분석용 분류 여부</dt><dd>{DEF[t].analytic}</dd>
@@ -72,7 +72,7 @@ export default function TypeComparison({ open }: { open: Venue[] }) {
                 <dt>특별관 보유</dt><dd>{S[t].special}곳 / {xs.length}곳 ({f1(pct(S[t].special, xs.length))}%)</dd>
                 <dt>대표 입점 형태</dt><dd>{o ? `${o[0]} ${o[1]}곳` : '확인 불가'} <small>(확인 불가 {by(t).filter((v) => v.occupancy === '확인 불가').length}곳)</small></dd>
                 <dt>대표 사례(스크린 상위)</dt><dd>{ex(t) || '자료 없음'}</dd>
-              </dl></details>
+              </dl></More></span>
             </div>)
         })}
       </div>
@@ -88,7 +88,7 @@ export default function TypeComparison({ open }: { open: Venue[] }) {
         </div>
         <div>
           <p className="chart-title">유형별 규모의 범위 <Seg label="범위 지표" value={rangeOf} onChange={setRangeOf} options={[{ v: 'screens' as const, label: '시설당 스크린' }, { v: 'seats' as const, label: '시설당 좌석' }, { v: 'per' as const, label: '1관당 좌석' }]} /></p>
-          <BoxDot ref={svg2} title="유형별 규모의 범위" unit={rangeOf === 'screens' ? '개' : rangeOf === 'seats' ? '석' : '석/관'} rowH={44}
+          <BoxDot ref={svg2} title="유형별 규모의 범위" xlabel={rangeOf === 'screens' ? '영화관 한 곳의 스크린 수' : rangeOf === 'seats' ? '영화관 한 곳의 좌석 수' : '상영관 하나의 좌석 수'} unit={rangeOf === 'screens' ? '개' : rangeOf === 'seats' ? '석' : '석/관'} rowH={44}
             groups={metric(rangeOf === 'screens' ? (v) => v.screens25 : rangeOf === 'seats' ? (v) => v.seats25 : (v) => (v.seats25 && v.screens25 ? v.seats25 / v.screens25 : null))} />
           <p className="legendnote">점 = 영화관 · 상자 = 가운데 50% · 굵은 선 = 중앙값 · ◇ = 평균</p>
         </div>
@@ -96,10 +96,10 @@ export default function TypeComparison({ open }: { open: Venue[] }) {
       <p className="takeaway">{(() => {
         const sh = (t: VenueType) => ({ a: pct(S[t].n, open.length), b: pct(S[t].screens, sum(TYPES.map((x) => S[x].screens))) })
         const up = TYPES.filter((t) => sh(t).b > sh(t).a), down = TYPES.filter((t) => sh(t).b < sh(t).a)
-        return <>스크린 비중이 개소 비중보다 {up.map((t) => `${TYPE_STYLE[t].short}는 크고(${f1(sh(t).a)}% → ${f1(sh(t).b)}%)`).join(', ')}{down.length ? `, ${down.map((t) => `${TYPE_STYLE[t].short}(${f1(sh(t).a)}% → ${f1(sh(t).b)}%)`).join('·')}는 작다` : ''}.</>
+        return <>스크린 비중이 개소 비중보다 {up.map((t) => `${TYPE_STYLE[t].short}는 크고(${f1(sh(t).a)}% → ${f1(sh(t).b)}%)`).join(', ')}{down.length ? `, ${down.map((t) => `${TYPE_STYLE[t].short}(${f1(sh(t).a)}% → ${f1(sh(t).b)}%)`).join('·')}는 작습니다` : ''}.</>
       })()}</p>
-      <SourceNote source={SOURCES.venues} n={<>영업 {open.length}곳(유형별 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${S[t].n}`).join(' · ')}), 스크린·좌석은 KOFIC 2025 수록분만({TYPES.map((t) => `${TYPE_STYLE[t].short} ${S[t].nk}`).join(' · ')})</>}
-        caution="LOCALDATA에만 있는 영업 기록은 스크린·좌석 자료가 없어 그래프에서 빠집니다. 유형은 분석용 분류이며 법적 구분이 아닙니다." />
+      <More label="자료·기준"><SourceNote source={SOURCES.venues} n={<>영업 {open.length}곳(유형별 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${S[t].n}`).join(' · ')}), 스크린·좌석은 KOFIC 2025 수록분만({TYPES.map((t) => `${TYPE_STYLE[t].short} ${S[t].nk}`).join(' · ')})</>}
+        caution="LOCALDATA에만 있는 영업 기록은 스크린·좌석 자료가 없어 그래프에서 빠집니다. 유형은 분석용 분류이며 법적 구분이 아닙니다." /></More>
       <DataTable caption="유형별 규모(영업 중)" head={['유형', '영업(곳)', 'KOFIC 수록(곳)', '스크린(개)', '좌석(석)', '특별관 보유(곳)']}
         rows={TYPES.map((t) => [t, S[t].n, S[t].nk, S[t].screens, S[t].seats, S[t].special])} />
     </>

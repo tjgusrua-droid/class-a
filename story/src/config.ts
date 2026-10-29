@@ -11,11 +11,11 @@ export const YEAR_MIN = 2000
 
 export type VenueType = '멀티플렉스' | '독립·예술영화관' | '기타'
 export const TYPES: VenueType[] = ['멀티플렉스', '독립·예술영화관', '기타']
-// 색은 명도 차이를 두고 모양을 함께 써서 색각 이상이어도 구별되게 한다. '전체'는 중립색(검정)
+// 유형은 색으로만 구분한다(모양은 모두 원). '전체'는 중립색(검정)
 export const TYPE_STYLE: Record<VenueType, { color: string; shape: 'circle' | 'square' | 'diamond'; mark: string; short: string }> = {
   멀티플렉스: { color: '#2a5caa', shape: 'circle', mark: '●', short: '멀티' },
-  '독립·예술영화관': { color: '#c8423b', shape: 'diamond', mark: '◆', short: '독립·예술' },
-  기타: { color: '#d99a1e', shape: 'square', mark: '■', short: '기타' },
+  '독립·예술영화관': { color: '#c8423b', shape: 'circle', mark: '●', short: '독립·예술' },
+  기타: { color: '#d99a1e', shape: 'circle', mark: '●', short: '기타' },
 }
 export const ALL_COLOR = '#111111'
 

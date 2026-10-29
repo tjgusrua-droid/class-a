@@ -28,10 +28,10 @@ export default function SurvivalSection({ all }: { all: Venue[] }) {
         </div>
         <div>
           <Finding items={[
-            { head: <>문을 닫은 영화관 {A.closed}곳은 개업 후 평균 {f1(A.mean)}년(중앙값 {f1(A.mid)}년) 운영되었다.</>,
-              mean: <>유형별 중앙값은 {T.map((x) => `${TYPE_STYLE[x.label as VenueType].short} ${f1(x.mid)}년`).join(', ')} — {jo(shortT.label, '이')} 가장 짧고 {jo(longT.label, '가')} 가장 길다.</> },
-            { head: <>운영 중인 곳까지 넣으면 개업 10년 뒤 {f1(A.s10 * 100)}%, 20년 뒤 {f1(A.s20 * 100)}%가 아직 운영 중이다.</>,
-              mean: <>20년 뒤 비율은 {T.map((x) => `${TYPE_STYLE[x.label as VenueType].short} ${f1(x.s20 * 100)}%`).join(', ')}로, {jo([...T].sort((a, b) => b.s20 - a.s20)[0].label, '가')} 가장 오래 남아 있다.</> },
+            { head: <>문을 닫은 영화관 {A.closed}곳은 개업 후 평균 {f1(A.mean)}년(중앙값 {f1(A.mid)}년) 운영되었습니다.</>,
+              mean: <>유형별 중앙값은 {T.map((x) => `${TYPE_STYLE[x.label as VenueType].short} ${f1(x.mid)}년`).join(', ')} — {jo(shortT.label, '이')} 가장 짧고 {jo(longT.label, '가')} 가장 깁니다.</> },
+            { head: <>운영 중인 곳까지 넣으면 개업 10년 뒤 {f1(A.s10 * 100)}%, 20년 뒤 {f1(A.s20 * 100)}%가 아직 운영 중입니다.</>,
+              mean: <>20년 뒤 비율은 {T.map((x) => `${TYPE_STYLE[x.label as VenueType].short} ${f1(x.s20 * 100)}%`).join(', ')}로, {jo([...T].sort((a, b) => b.s20 - a.s20)[0].label, '가')} 가장 오래 남아 있습니다.</> },
           ]} />
           <div className="tablewrap"><table className="mini-table surv">
             <thead><tr><th>유형</th><th>운영구간</th><th>폐업</th><th>폐업한 곳 운영기간<br />평균 / 중앙값</th><th>10년 뒤</th><th>15년 뒤</th><th>20년 뒤</th></tr></thead>
