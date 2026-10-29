@@ -236,12 +236,16 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
         {cultStats ? (() => {
           const rank = (t: VenueType) => [...cultStats.find((x) => x.t === t)!.cats].sort((a, b) => b.share - a.share)
           const winner = (c: string) => best(TYPES, (t) => cultStats.find((x) => x.t === t)!.cats.find((y) => y.c === c)!.share)
-          const byType = TYPES.map((t) => ({ t, cats: cultOn.filter((c) => winner(c) === t && cultStats.find((x) => x.t === t)!.cats.find((y) => y.c === c)!.share > 0) })).filter((x) => x.cats.length)
+          // 그 시설이 반경 안에 있는 비율이 10% 이상인 시설만(아주 작은 비율로 '가장 가깝다'고 말하지 않음)
+          const byType = TYPES.map((t) => ({ t, cats: cultOn.filter((c) => winner(c) === t && cultStats.find((x) => x.t === t)!.cats.find((y) => y.c === c)!.share >= 10) })).filter((x) => x.cats.length)
+          const tops = TYPES.map((t) => rank(t)[0].c), same = tops.every((c) => c === tops[0])
+          const lead = best(TYPES, (t) => rank(t)[0].share)
           return <Finding items={[
-            ...TYPES.map((t) => { const [a, b] = rank(t)
-              return { head: <>{jo(t, '는')} {a.c}과 가장 많이 인접해 있다.</>,
-                mean: <>반경 {cultR}m 안에 {a.c}이 있는 비율 {f1(a.share)}%{b && b.share > 0 ? `, 다음은 ${b.c} ${f1(b.share)}%` : ''}.</> } }),
-            { head: <>시설 분류별로 가장 가까이 있는 유형</>, mean: <>{byType.map((x) => `${x.t} — ${x.cats.join('·')}`).join(' / ')}</> },
+            same ? { head: <>세 유형 모두 {tops[0]}과 가장 가까이 있고, {jo(lead, '이')} 가장 가깝다.</>,
+                mean: <>반경 {cultR}m 안에 {tops[0]}이 있는 비율 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${f1(rank(t)[0].share)}%`).join(' · ')}</> }
+              : { head: <>유형마다 가장 가까운 시설이 다르다.</>, mean: <>{TYPES.map((t) => `${TYPE_STYLE[t].short} — ${rank(t)[0].c} ${f1(rank(t)[0].share)}%`).join(' · ')}</> },
+            ...byType.filter((x) => x.cats.length > 1).map((x) => ({ head: <>{jo(x.t, '는')} {x.cats.join('·')}과도 가장 가까이 있다.</>,
+              mean: <>이 시설들이 반경 {cultR}m 안에 있는 비율이 세 유형 중 가장 높다(비율 10% 이상인 시설만).</> })),
           ]} />
         })() : (() => { const md = (t: VenueType) => avg(ofType(t).map(cultNearest)), lo = best(TYPES, md, false)
           return <Finding items={[{ head: <>최근접 문화시설까지 평균 거리는 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${Math.round(md(t))}m`).join(', ')}였다.</>, mean: <>{jo(lo, '가')} 문화시설과 가장 가까이 자리한다.</> }]} /> })()}

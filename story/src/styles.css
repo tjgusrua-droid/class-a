@@ -420,3 +420,15 @@ details.more { margin-top: 12px; }
 .legendnote { font-size: var(--fs-small); color: var(--muted); margin: 2px 0 0; }
 .centerdiagram { width: 100%; max-height: 24vh; }
 .centerdiagram + .more-info { margin-top: 0; }
+
+/* ---- 결론 강조: 옅은 노란 상자 + 검은 띠, 3장은 단계 제목 바로 아래로 ---- */
+.finding { border-top: 0; background: #fff7d1; border-left: 6px solid #111; padding: 10px 16px 8px; margin: 10px 0; }
+.finding .f-title { display: inline-block; background: #111; color: #fff; padding: 1px 8px; letter-spacing: .06em; margin: 0 0 4px; }
+.finding .f-head { font-weight: 800; color: #111; }
+.finding .f-mean { color: #2b2b2b; }
+.finding .f-mean::before { color: #b08a00; }
+.loc-panel { display: flex; flex-direction: column; }
+.loc-panel > .eyebrow { order: -3; }
+.loc-panel > h3 { order: -2; }
+.loc-panel > .finding { order: -1; margin-top: 0; }
+.split.advice .chart .finding, .tl-side .finding, .survival .finding { margin-top: 4px; }
