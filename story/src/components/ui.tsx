@@ -124,3 +124,13 @@ export function Finding({ title = '결론', items }: { title?: string; items: { 
     </div>
   )
 }
+
+// 세부 설명: 평소에는 접어 두고, 궁금하면 눌러서 펼친다
+export function More({ children, label = '자세히' }: { children: ReactNode; label?: string }) {
+  return (
+    <details className="more-info ui">
+      <summary>ⓘ {label}</summary>
+      <div className="more-body">{children}</div>
+    </details>
+  )
+}

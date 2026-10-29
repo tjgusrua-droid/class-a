@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { TYPES, TYPE_STYLE, VWORLD_KEY } from '../config'
+import { TYPES, TYPE_STYLE } from '../config'
 import type { DataSet, Venue } from '../data'
 import { TooltipBody } from './TheaterTooltip'
 
@@ -51,8 +51,11 @@ type Props = {
   pointScale?: number // 영화관 기호 크기 배율(밀도 지도에서는 작게)
 }
 
-const BASE = ['gu', 'gulabel', 'river', 'boundary', 'venues', 'link', 'vworld', 'vworld-dark', 'mask']
-const vworld = (layer: string) => ({ type: 'raster' as const, tiles: [`https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/${layer}/{z}/{y}/{x}.png`], tileSize: 256, minzoom: 6, maxzoom: 19, attribution: '© 국토교통부 브이월드' })
+const BASE = ['gu', 'gulabel', 'river', 'boundary', 'venues', 'link', 'bmGreen', 'bmWater', 'bmRoads', 'bmDong', 'mask']
+const BM = ['bm-green', 'bm-water', 'bm-stream', 'bm-road3', 'bm-road2-case', 'bm-road2', 'bm-road1-case', 'bm-road1', 'mask', 'bm-dong']
+// 배경지도 색(밝은 화면 / 밀도 지도의 어두운 화면)
+const PAL = { light: { land: '#f5f4ef', green: '#d9e8cf', water: '#bcd5e6', road: '#ffffff', case: '#d2d0c8', minor: '#e6e4dd', mask: '#ffffff' },
+  dark: { land: '#262626', green: '#26332a', water: '#1d2f3d', road: '#4a4a4a', case: '#333333', minor: '#363636', mask: '#1e1e1e' } }
 
 // 서울 바깥을 옅게 가리는 면(세계 사각형에서 서울 경계를 뺌)
 function maskFC(fc: any) {
@@ -127,7 +130,7 @@ export default function SeoulMap(p: Props) {
   const [tip, setTip] = useState<{ items: Venue[]; lngLat: [number, number]; pinned: boolean } | null>(null)
   const [hint, setHint] = useState<{ x: number; y: number; t: string } | null>(null) // 역 등 보조 레이어 이름
   const [, force] = useState(0)
-  const [base, setBase] = useState(!!VWORLD_KEY) // 브이월드 배경지도 켜기
+  const [base, setBase] = useState(true) // 배경지도(녹지·물·도로·동 이름) 켜기
   const home = () => { const m = map.current; m && m.fitBounds(bbox(p.data.boundary.data), { padding: 18, duration: 600 }) } // 지도·페이지 이동 시 고정 툴팁 위치 갱신
 
   useEffect(() => {
@@ -144,23 +147,31 @@ export default function SeoulMap(p: Props) {
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     map.current = m
     ;((window as any).__maps ??= []).push(m) // 자동 점검(브라우저 테스트)용
-    if (VWORLD_KEY) m.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
-    // 배경지도 타일이 한 장도 안 오고 실패만 이어지면(키 미등록 주소 등) 자동으로 끈다
-    let tileOk = false, tileErr = 0
-    m.on('data', (e: any) => { if (e.sourceId?.startsWith('vworld') && e.tile) tileOk = true })
-    m.on('error', (e: any) => { if (e.sourceId?.startsWith('vworld') && !tileOk && ++tileErr >= 4) setBase(false) })
+    m.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: '© OpenStreetMap contributors · Overture Maps' }), 'bottom-right')
     m.on('load', () => {
       const src = (id: string, data: any) => m.addSource(id, { type: 'geojson', data })
-      if (VWORLD_KEY) {
-        m.addSource('vworld', vworld('white')); m.addSource('vworld-dark', vworld('midnight'))
-        m.addLayer({ id: 'basemap', type: 'raster', source: 'vworld', paint: { 'raster-opacity': 0.9 } })
-        m.addLayer({ id: 'basemap-dark', type: 'raster', source: 'vworld-dark', paint: { 'raster-opacity': 0.8 } })
-        if (d.boundary.status === 'ok') { src('mask', maskFC(d.boundary.data)); m.addLayer({ id: 'mask', type: 'fill', source: 'mask', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.6 } }) }
-      }
       if (d.gu.status === 'ok') {
         src('gu', d.gu.data)
         m.addLayer({ id: 'gu-fill', type: 'fill', source: 'gu', paint: { 'fill-color': '#ffffff' } })
       }
+      // 배경지도(페이지와 함께 올린 파일): 녹지 → 물 → 동네길 → 큰길 → 서울 밖 가림. 영화관 점보다 한참 아래
+      if (d.bmGreen.status === 'ok') { src('bmGreen', d.bmGreen.data); m.addLayer({ id: 'bm-green', type: 'fill', source: 'bmGreen', paint: { 'fill-color': PAL.light.green } }) }
+      if (d.bmWater.status === 'ok') {
+        src('bmWater', d.bmWater.data)
+        m.addLayer({ id: 'bm-water', type: 'fill', source: 'bmWater', filter: ['==', ['get', 'kind'], 'area'], paint: { 'fill-color': PAL.light.water } })
+        m.addLayer({ id: 'bm-stream', type: 'line', source: 'bmWater', filter: ['==', ['get', 'kind'], 'line'], paint: { 'line-color': PAL.light.water, 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.6, 14, 2] } })
+      }
+      if (d.bmRoads.status === 'ok') {
+        src('bmRoads', d.bmRoads.data)
+        const rk = (r: number): any => ['==', ['get', 'rank'], r]
+        const w = (a: number, b: number): any => ['interpolate', ['exponential', 1.6], ['zoom'], 10, a, 15, b]
+        m.addLayer({ id: 'bm-road3', type: 'line', source: 'bmRoads', filter: rk(3), minzoom: 11, layout: { 'line-join': 'round' }, paint: { 'line-color': PAL.light.minor, 'line-width': w(0.3, 3) } })
+        m.addLayer({ id: 'bm-road2-case', type: 'line', source: 'bmRoads', filter: rk(2), layout: { 'line-join': 'round' }, paint: { 'line-color': PAL.light.case, 'line-width': w(0.9, 6) } })
+        m.addLayer({ id: 'bm-road2', type: 'line', source: 'bmRoads', filter: rk(2), layout: { 'line-join': 'round' }, paint: { 'line-color': PAL.light.road, 'line-width': w(0.5, 4.5) } })
+        m.addLayer({ id: 'bm-road1-case', type: 'line', source: 'bmRoads', filter: rk(1), layout: { 'line-join': 'round' }, paint: { 'line-color': PAL.light.case, 'line-width': w(1.6, 9) } })
+        m.addLayer({ id: 'bm-road1', type: 'line', source: 'bmRoads', filter: rk(1), layout: { 'line-join': 'round' }, paint: { 'line-color': PAL.light.road, 'line-width': w(1, 7) } })
+      }
+      if (d.boundary.status === 'ok') { src('mask', maskFC(d.boundary.data)); m.addLayer({ id: 'mask', type: 'fill', source: 'mask', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.75 } }) }
       if (d.river.status === 'ok') {
         src('river', d.river.data)
         m.addLayer({ id: 'river', type: 'line', source: 'river', paint: { 'line-color': '#a9cbe0', 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 4, 13, 14] } })
@@ -171,6 +182,13 @@ export default function SeoulMap(p: Props) {
         d.gu.data.features.forEach((f: any) => m.addImage(`gu:${f.properties.name}`, textIcon(f.properties.name), { pixelRatio: 2 }))
         src('gulabel', { type: 'FeatureCollection', features: d.gu.data.features.map((f: any) => ({ type: 'Feature', properties: { name: f.properties.name }, geometry: { type: 'Point', coordinates: [f.properties.label_lon, f.properties.label_lat] } })) })
         m.addLayer({ id: 'gu-label', type: 'symbol', source: 'gulabel', layout: { 'icon-image': ['concat', 'gu:', ['get', 'name']], 'icon-allow-overlap': true } })
+      }
+      // 행정동 이름: 확대했을 때만(겹치면 일부 생략)
+      if (d.bmDong.status === 'ok') {
+        d.bmDong.data.features.forEach((f: any) => { const id = `dong:${f.properties.name}`; if (!m.hasImage(id)) m.addImage(id, textIcon(f.properties.name, '#9a978e', 400), { pixelRatio: 2.6 }) })
+        src('bmDong', d.bmDong.data)
+        // 겹침 숨기기(icon-allow-overlap: false)를 쓰면 영화관 점까지 그려지지 않아, 겹침을 허용하고 충분히 확대했을 때만 보인다
+        m.addLayer({ id: 'bm-dong', type: 'symbol', source: 'bmDong', minzoom: 12.6, layout: { 'icon-image': ['concat', 'dong:', ['get', 'name']], 'icon-allow-overlap': true, 'icon-ignore-placement': true } })
       }
       if (d.boundary.status === 'ok') {
         src('boundary', d.boundary.data)
@@ -251,7 +269,7 @@ export default function SeoulMap(p: Props) {
       {hint && <div className="maphint" style={{ left: hint.x, top: hint.y }}>{hint.t}</div>}
       <div className="mapbtns ui">
         <button onClick={home} title="처음 범위로" aria-label="지도를 처음 범위로">⤢ 처음 범위</button>
-        {!!VWORLD_KEY && <button onClick={() => setBase(!base)} aria-pressed={base}>배경지도 {base ? '끄기' : '켜기'}</button>}
+        {p.data.bmRoads.status === 'ok' && <button onClick={() => setBase(!base)} aria-pressed={base}>배경지도 {base ? '끄기' : '켜기'}</button>}
       </div>
       {tipEl}
     </div>
@@ -299,15 +317,17 @@ function apply(m: maplibregl.Map, p: Props, base = false) {
   const k = p.pointScale ?? 1
   for (const id of ['venues', 'venues-sel']) m.setLayoutProperty(id, 'icon-size', ['interpolate', ['linear'], ['zoom'], 9, 0.62 * k, 14, 1 * k])
   m.setPaintProperty('bg', 'background-color', p.dark ? '#1e1e1e' : '#f4f4f2')
-  if (m.getLayer('gu-fill')) { m.setPaintProperty('gu-fill', 'fill-color', p.dark ? '#2a2a2a' : '#ffffff'); m.setPaintProperty('gu-fill', 'fill-opacity', base ? 0 : 1) }
-  // 배경지도: 밝은 지도는 white, 밀도 지도(어두운 바탕)는 midnight. 배경지도가 있으면 한강 선은 지도에 이미 있어 숨긴다
-  if (m.getLayer('basemap')) {
-    m.setLayoutProperty('basemap', 'visibility', base && !p.dark ? 'visible' : 'none')
-    m.setLayoutProperty('basemap-dark', 'visibility', base && p.dark ? 'visible' : 'none')
-    m.setLayoutProperty('mask', 'visibility', base ? 'visible' : 'none')
-    m.setPaintProperty('mask', 'fill-color', p.dark ? '#1e1e1e' : '#ffffff')
+  // 배경지도: 켜면 땅색·녹지·물·도로·동 이름을 깔고(어두운 화면은 어두운 색), 한강 개략선은 숨긴다
+  const P = p.dark ? PAL.dark : PAL.light, bmOn = base && !!m.getLayer('bm-road1')
+  if (m.getLayer('gu-fill')) m.setPaintProperty('gu-fill', 'fill-color', bmOn ? P.land : p.dark ? '#2a2a2a' : '#ffffff')
+  for (const id of BM) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', bmOn ? 'visible' : 'none')
+  if (bmOn) {
+    m.setPaintProperty('bm-green', 'fill-color', P.green); m.setPaintProperty('bm-water', 'fill-color', P.water); m.setPaintProperty('bm-stream', 'line-color', P.water)
+    for (const id of ['bm-road1', 'bm-road2']) m.setPaintProperty(id, 'line-color', P.road)
+    for (const id of ['bm-road1-case', 'bm-road2-case']) m.setPaintProperty(id, 'line-color', P.case)
+    m.setPaintProperty('bm-road3', 'line-color', P.minor); m.setPaintProperty('mask', 'fill-color', P.mask)
   }
-  if (m.getLayer('river')) m.setLayoutProperty('river', 'visibility', base ? 'none' : 'visible')
+  if (m.getLayer('river')) m.setLayoutProperty('river', 'visibility', bmOn ? 'none' : 'visible')
   if (m.getLayer('gu-line')) m.setPaintProperty('gu-line', 'line-color', p.dark ? '#4a4a4a' : '#bdbdbd')
   if (m.getLayer('boundary')) m.setPaintProperty('boundary', 'line-color', p.dark ? '#888' : '#444')
   if (m.getLayer('gu-label')) m.setPaintProperty('gu-label', 'icon-opacity', p.dark ? 0.35 : 1)

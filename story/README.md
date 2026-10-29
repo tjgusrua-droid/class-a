@@ -9,17 +9,11 @@ npm run dev      # 개발 서버
 npm run build    # dist/ 에 정적 파일 생성 (어느 경로에 올려도 동작)
 ```
 
-## 배경지도(브이월드, 선택)
+## 배경지도
 
-브이월드 인증키가 있으면 지도 바닥에 브이월드 배경지도(밝은 화면 `white`, 밀도 지도 `midnight`)가 깔린다. 키가 없으면 지금처럼 경계·한강만 그린다.
-
-```bash
-echo "VITE_VWORLD_KEY=발급받은키" > .env.local   # .env.local 은 git에 올라가지 않음
-npm run dev
-```
-
-- 키는 브이월드 오픈API에서 발급하며, 발급할 때 등록한 서비스 주소(예: localhost, 배포 도메인)에서만 타일이 나온다.
-- 지도 왼쪽 위 ‘배경지도 끄기/켜기’로 전환. 서울 밖은 옅게 가려 영화관 점이 먼저 보이게 한다.
+녹지·물·도로·행정동 이름은 `public/data/basemap_*.geojson`(약 8MB)으로 페이지와 함께 올린다. 공유 페이지(claude.ai)는 보안 규칙상 바깥 지도 서버(브이월드 등)의 타일을 불러올 수 없어서 외부 타일 대신 이 방식을 쓴다.
+자료: Overture Maps Foundation 2026-10-21.0(© OpenStreetMap contributors 등, ODbL). 다시 만들기: `python3 scripts/fetch_basemap.py && python3 scripts/build_basemap.py`.
+지도 왼쪽 위 ‘배경지도 끄기/켜기’로 전환한다.
 
 ## 데이터 (`public/data/`, 모두 EPSG:4326 · [경도, 위도])
 

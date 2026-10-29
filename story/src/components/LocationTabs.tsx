@@ -4,7 +4,7 @@ import { distM, f1, jo, located, median, nearest, pct, type DataSet, type Venue 
 import { CountBars, DataTable, Donut, MeanBars } from './charts'
 import { OccupancyTiles } from './Isometric'
 import SeoulMap, { regionOverlay, stationOverlay, type Overlay } from './SeoulMap'
-import { DataStatus, Finding, MapLegend, Seg, SourceNote, Sym, TypeToggles } from './ui'
+import { DataStatus, Finding, MapLegend, Seg, SourceNote, Sym, TypeToggles, More } from './ui'
 
 const STEPS = ['지하철 접근성', '서울시 중심지 체계', '상권 특성', '건축적 입점 형태', '문화시설 인접성', '영화관 간 인접성']
 const NO_MAP = [2, 3] // 지도가 필요 없는 단계(상권 자료 없음, 입점 형태는 모식도로)
@@ -28,6 +28,27 @@ function CategoryBars({ vs, cats, of, title }: { vs: Venue[]; cats: string[]; of
           </div>)
       })}
     </div>
+  )
+}
+
+// 중심지 체계 그림: 위에서부터 3도심 → 7광역중심 → 12지역중심. 원 크기·색 = 위계, 원 안 숫자 = 그 중심지(개략 영역) 안 영업 영화관 수
+function CenterDiagram({ centers, count }: { centers: any[]; count: (c: any) => number }) {
+  const rows = CENTER_LEVELS.map((lv, i) => ({ lv, r: [26, 17, 12][i], items: centers.filter((c) => c.properties.level === lv) }))
+  const W = 560, rowY = [40, 118, 186]
+  return (
+    <svg viewBox={`0 0 ${W} 228`} role="img" aria-label="서울시 중심지 체계: 3도심, 7광역중심, 12지역중심" className="centerdiagram">
+      {rows.map(({ lv, r, items }, i) => { const gap = (W - 120) / items.length
+        return <g key={lv}>
+          <text x={0} y={rowY[i] - 4} fontSize="13" fontWeight="700" fill={CENTER_COLOR[lv]}>{lv.replace(/^(\d+)/, '$1 ')}</text>
+          <text x={0} y={rowY[i] + 12} fontSize="10" fill="#777">{['서울 전체의 중심', '권역의 중심', '생활권의 중심'][i]}</text>
+          {items.map((c, k) => { const x = 120 + gap * (k + 0.5), n = count(c)
+            return <g key={c.properties.name}>
+              <circle cx={x} cy={rowY[i]} r={r} fill={CENTER_COLOR[lv]} fillOpacity={0.18 + Math.min(0.6, n * 0.05)} stroke={CENTER_COLOR[lv]} strokeWidth="1.5" />
+              <text x={x} y={rowY[i] + 4} fontSize={i ? 11 : 15} fontWeight="700" textAnchor="middle" fill="#222">{n}</text>
+              <text x={x} y={rowY[i] + r + (i === 2 && k % 2 ? 22 : 11)} fontSize={i === 2 ? 9 : 10} textAnchor="middle" fill="#333">{c.properties.name}</text>
+            </g> })}
+        </g> })}
+    </svg>
   )
 }
 
@@ -152,7 +173,7 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
           <input type="range" aria-label="버퍼 경계선 굵기" min={0} max={3} step={0.2} value={bufLine.width} onChange={(e) => setBufLine({ ...bufLine, width: +e.target.value })} /></span>
       </div>
       {stations.length ? <CategoryBars vs={pts} cats={['환승역세권', '일반역세권', '비역세권']} of={subwayCat} title="유형별 역세권 구성" /> : <DataStatus data={data} need={['stations', 'buffers']} />}
-      <p className="note">환승역 반경 안 → 환승역세권(우선), 그 밖에 일반역 반경 안 → 일반역세권, 나머지 → 비역세권. 같은 조건의 버퍼는 합집합. 역 {stations.filter((f: any) => f.properties.inside).length}곳(환승 {stations.filter((f: any) => f.properties.inside && f.properties.transfer).length}) · 노선은 OSM 선형(반투명).</p>
+      <More>환승역 반경 안 → 환승역세권(우선), 그 밖에 일반역 반경 안 → 일반역세권, 나머지 → 비역세권. 같은 조건의 버퍼는 합집합. 역 {stations.filter((f: any) => f.properties.inside).length}곳(환승 {stations.filter((f: any) => f.properties.inside && f.properties.transfer).length}) · 노선은 OSM 선형(반투명).</More>
       {stations.length > 0 && (() => {
         const sub = (t: VenueType) => shareOf(t, (v) => subwayCat(v) !== '비역세권'), tr = (t: VenueType) => shareOf(t, (v) => subwayCat(v) === '환승역세권')
         const hi = best(TYPES, sub), lo = best(TYPES, sub, false), th = best(TYPES, tr)
@@ -165,15 +186,13 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
     if (i === 1) {
       if (!centers.length) return <DataStatus data={data} need={['centers']} />
       const rows = [...CENTER_LEVELS, '중심지 밖'].map((lv) => ({ label: lv, color: CENTER_COLOR[lv], values: Object.fromEntries(TYPES.map((t) => [t, ofType(t).filter((v) => levelOf(v) === lv).length])) as Record<VenueType, number> }))
-      const per = centers.map((c) => ({ label: c.properties.name, color: CENTER_COLOR[c.properties.level], values: Object.fromEntries(TYPES.map((t) => [t, ofType(t).filter((v) => inCenter(v, c)).length])) as Record<VenueType, number> }))
-        .filter((r) => TYPES.some((t) => r.values[t] > 0)).sort((a, b) => TYPES.reduce((s, t) => s + b.values[t] - a.values[t], 0)).slice(0, 8)
       const doc = (t: VenueType) => shareOf(t, (v) => levelOf(v) === '3도심'), out = (t: VenueType) => shareOf(t, (v) => levelOf(v) === '중심지 밖')
       const hd = best(TYPES, doc), ho = best(TYPES, out)
       return <>
-        <p className="explain-lead"><b>서울시 중심지 체계</b>(2040 서울도시기본계획)는 중심지를 세 단계로 나눈다. <b style={{ color: CENTER_COLOR['3도심'] }}>3도심</b>(서울도심·영등포여의도·강남)은 서울 전체를 이끄는 핵심 중심, <b style={{ color: CENTER_COLOR['7광역중심'] }}>7광역중심</b>은 권역을 대표하는 중심, <b style={{ color: CENTER_COLOR['12지역중심'] }}>12지역중심</b>은 생활권의 중심이다. 지도에서는 위계를 색과 크기로 구분했다.</p>
+        <CenterDiagram centers={centers} count={(c) => pts.filter((v) => inCenter(v, c)).length} />
+        <More label="중심지 체계란?">서울시는 도시기본계획(2040 서울도시기본계획)에서 일자리·상업·문화가 모이는 곳을 ‘중심지’로 정하고 크기에 따라 세 단계로 나눕니다. <b>3도심</b>(서울도심·영등포여의도·강남)은 서울 전체와 수도권을 이끄는 가장 큰 중심, <b>7광역중심</b>(용산·청량리왕십리·창동상계·상암수색·마곡·가산대림·잠실)은 동북·서북·서남·동남 같은 권역을 대표하는 중심, <b>12지역중심</b>은 동네 생활권의 중심입니다. 지도의 원은 대표 역을 기준으로 그린 대략적인 위치이며 공식 경계가 아닙니다(반경 도심 1.2km·광역 0.9km·지역 0.6km).</More>
         <p className="chart-title">위계별 영화관 수</p><CountBars title="중심지 위계별 영화관 수" unit="곳" rows={rows} rowH={26} />
-        <p className="chart-title">중심지별 영화관 수(상위 8곳)</p><CountBars title="중심지별 영화관 수" unit="곳" rows={per} rowH={22} />
-        <p className="note">면은 대표 역 기준 개략 위치(반경 도심 1.2km·광역 0.9km·지역 0.6km, 공식 범위 아님). 겹치면 높은 위계로 셉니다. 면에 마우스를 올리면 대표 역이 보입니다.</p>
+        <More>면은 대표 역 기준 개략 위치(반경 도심 1.2km·광역 0.9km·지역 0.6km, 공식 범위 아님). 겹치면 높은 위계로 셉니다. 면에 마우스를 올리면 대표 역이 보입니다.</More>
         <Finding items={[
           { head: <>3도심 안 비율은 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${f1(doc(t))}%`).join(', ')}였다.</>,
             mean: <>{jo(hd, '는')} 도심에 상대적으로 집중되어 있고, {jo(ho, '는')} {f1(out(ho))}%가 중심지 밖에 있어 중심지 체계 바깥의 생활권에도 넓게 자리한다.</> },
@@ -191,7 +210,7 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
         <div>
           <p className="chart-title">입점 방식 모식도 — 색 덩어리 = 영화관이 들어선 자리, 아래 숫자 = 영업 영화관 수</p>
           <OccupancyTiles items={OCCUPANCY.map((o, k) => ({ label: o, color: OCC_COLOR[k], counts: cnt(o), n: pts.filter((v) => v.occupancy === o).length }))} />
-          <p className="note">근거: 주소에 적힌 건물명 키워드(자동) 또는 확인 시트의 확정값. ‘확인 불가’ {unk}곳은 <code>data/manual/occupancy_review.xlsx</code>에서 함께 채웁니다(제안값은 확정 전까지 쓰지 않음).</p>
+          <More>근거: 주소에 적힌 건물명 키워드(자동) 또는 확인 시트의 확정값. ‘확인 불가’ {unk}곳은 <code>data/manual/occupancy_review.xlsx</code>에서 함께 채웁니다(제안값은 확정 전까지 쓰지 않음).</More>
         </div>
         <div>
           <div className="donuts">{TYPES.map((t) => <Donut key={t} title={t} n={ofType(t).length} sub={`확인 ${occTop(t).n}곳`}
@@ -226,7 +245,7 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
           ]} />
         })() : (() => { const md = (t: VenueType) => avg(ofType(t).map(cultNearest)), lo = best(TYPES, md, false)
           return <Finding items={[{ head: <>최근접 문화시설까지 평균 거리는 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${Math.round(md(t))}m`).join(', ')}였다.</>, mean: <>{jo(lo, '가')} 문화시설과 가장 가까이 자리한다.</> }]} /> })()}
-        <p className="note">문화시설 {cult.length.toLocaleString()}곳(선택 분류). 가깝다는 사실이 시설 간 협력이나 이용 연계를 뜻하지 않습니다.</p>
+        <More>문화시설 {cult.length.toLocaleString()}곳(선택 분류). 가깝다는 사실이 시설 간 협력이나 이용 연계를 뜻하지 않습니다.</More>
       </>
     }
     const lab = { same: '같은 유형', other: '다른 유형', any: '아무' }[nnMetric]
@@ -249,8 +268,8 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
         { head: <>같은 유형까지 거리(중앙값) {TYPES.map((t) => <span key={t} className="tnum" style={{ color: TYPE_STYLE[t].color }}><Sym type={t} /> {TYPE_STYLE[t].short} {f1(nnMid(t))}km</span>)}</>,
           mean: <>{jo(mn, '은')} 같은 유형끼리 가장 가까이 모여 있고, {jo(mx, '는')} 가장 떨어져 있다. 평균({TYPES.map((t) => `${TYPE_STYLE[t].short} ${f1(nnMean(t, 'same'))}km`).join(' · ')})은 멀리 떨어진 몇 곳 때문에 중앙값보다 크다.</> },
       ]} />
-      <p className="note">밀도 = 영화관 점의 커널 밀도(반경 약 2km, 색이 진할수록 많이 모임). 거리 = 직선거리, 같은 건물은 0km. 가깝다는 것을 경쟁으로 해석하지 않습니다.
-        {picked && pn && <> · <b>{picked.name}</b> → {pn.venue.name} {f1(pn.dist / 1000)}km</>}</p>
+      <More>밀도 = 영화관 점의 커널 밀도(반경 약 2km, 색이 진할수록 많이 모임). 거리 = 직선거리, 같은 건물은 0km. 가깝다는 것을 경쟁으로 해석하지 않습니다.
+        {picked && pn && <> · <b>{picked.name}</b> → {pn.venue.name} {f1(pn.dist / 1000)}km</>}</More>
     </>
   }
 

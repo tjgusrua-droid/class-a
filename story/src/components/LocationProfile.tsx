@@ -3,7 +3,7 @@ import { CENTER_COLOR, CENTER_LEVELS, OCC_COLOR, OCCUPANCY, TYPE_STYLE, TYPES, t
 import { distM, f1, located, median, nearest, pct, type DataSet, type Venue } from '../data'
 import { OccupancyIcon } from './Isometric'
 import { DataTable } from './charts'
-import { Sym } from './ui'
+import { Sym, More } from './ui'
 
 const pt = (f: any) => ({ lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] })
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN)
@@ -70,7 +70,7 @@ export default function LocationProfile({ data, open }: { data: DataSet; open: V
         {[...CENTER_LEVELS, '중심지 밖'].map((l) => <span key={l}><i style={{ background: CENTER_COLOR[l] }} /> {l}</span>)}
         <span>회색 점 = 반경 1km 안 다른 영화관(평균 개수) · 흰 점 = 가장 가까운 같은 유형(거리 중앙값)</span>
       </div>
-      <p className="note">영업 중 좌표가 있는 {pts.length}곳. 개수는 평균, 거리는 중앙값(괄호는 평균) — 거리는 멀리 떨어진 몇 곳이 평균을 크게 끌어올려 중앙값이 ‘보통의 영화관’을 더 잘 나타냄. 직선거리. 중심지는 2040 중심지 개략 영역, 입점 형태는 확인된 곳만. 분포의 차이를 기술한 것이며 원인을 뜻하지 않습니다.</p>
+      <More>영업 중 좌표가 있는 {pts.length}곳. 개수는 평균, 거리는 중앙값(괄호는 평균) — 거리는 멀리 떨어진 몇 곳이 평균을 크게 끌어올려 중앙값이 ‘보통의 영화관’을 더 잘 나타냄. 직선거리. 중심지는 2040 중심지 개략 영역, 입점 형태는 확인된 곳만. 분포의 차이를 기술한 것이며 원인을 뜻하지 않습니다.</More>
       <DataTable caption="영업 영화관 입지 속성" head={['영화관', '유형', '자치구', '입점 형태', '중심지']} rows={pts.map((v) => [v.name, v.type, v.gu, v.occupancy, levelOf(v)])} />
     </div>
   )

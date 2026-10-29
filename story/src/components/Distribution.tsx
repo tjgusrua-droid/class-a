@@ -3,7 +3,7 @@ import { SOURCES, TYPE_STYLE, TYPES, type VenueType } from '../config'
 import { distM, f1, jo, located, pct, topBy, type DataSet, type Venue } from '../data'
 import { DataTable } from './charts'
 import SeoulMap, { stationOverlay, type Overlay } from './SeoulMap'
-import { MapLegend, SourceNote, Sym, TypeToggles } from './ui'
+import { MapLegend, SourceNote, Sym, TypeToggles, More } from './ui'
 
 type Spot = { lon: number; lat: number; name: string }
 type Cluster = { at: Spot; members: Venue[]; names: string[]; center?: string }
@@ -87,7 +87,7 @@ export default function Distribution({ data, open }: { data: DataSet; open: Venu
             return <div key={t} className="headline" style={{ borderColor: TYPE_STYLE[t].color }} onClick={() => setSel(sel === t ? null : t)}>
               <p className="find-big"><Sym type={t} /> {h.head}</p>{h.mean && <p className="find-sub">{h.mean}</p>}</div> })}
         </div>
-        <p className="note">문장은 ‘역 반경 1km 안에 같은 유형이 가장 많은 곳’을 계산해 자동으로 만듭니다(25% 이상이 한곳에 있으면 ‘모여 있다’). 문장을 누르면 그 유형만 강조합니다. 자치구 상위: {TYPES.map((t) => `${TYPE_STYLE[t].short} ${topBy(by(t), (v) => v.gu, 2).map(([k, n]) => `${k} ${n}`).join('·')}`).join(' / ')}</p>
+        <More>문장은 ‘역 반경 1km 안에 같은 유형이 가장 많은 곳’을 계산해 자동으로 만듭니다(25% 이상이 한곳에 있으면 ‘모여 있다’). 문장을 누르면 그 유형만 강조합니다. 자치구 상위: {TYPES.map((t) => `${TYPE_STYLE[t].short} ${topBy(by(t), (v) => v.gu, 2).map(([k, n]) => `${k} ${n}`).join('·')}`).join(' / ')}</More>
         <details className="table ui">
           <summary>자치구별 표 · 자료와 계산 방법</summary>
           <DataTable caption="자치구별 영업 영화관 수" head={['자치구', ...TYPES, '계']} rows={guRows} />

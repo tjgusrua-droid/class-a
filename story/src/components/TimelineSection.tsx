@@ -4,7 +4,7 @@ import { ALL_COLOR, DATA_DATE, ERAS, SOURCES, TYPE_STYLE, TYPES, YEAR_MIN, type 
 import { closedIn, f1, openedIn, operatingIn, type DataSet, type Venue } from '../data'
 import { DataTable, MetricChart } from './charts'
 import SeoulMap, { type Point } from './SeoulMap'
-import { Finding, MapLegend, savePng, saveSvg, Seg, SourceNote, TypeSelect } from './ui'
+import { Finding, MapLegend, savePng, saveSvg, Seg, SourceNote, TypeSelect, More } from './ui'
 
 const LAST = new Date(DATA_DATE)
 const YEARS = Array.from({ length: LAST.getFullYear() - YEAR_MIN + 1 }, (_, i) => YEAR_MIN + i)
@@ -59,7 +59,7 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
       <div className="tl-map">
         <SeoulMap data={data} label={`${range[0]}–${range[1]} 영화관 운영·개업·폐업 지도`} points={points} onMap={(m) => (map.current = m)} />
         <MapLegend types={sel ? [sel] : [...TYPES]} marks={['fill', 'new', 'hollow']} />
-        <p className="note">{E ? `${E.label}: 구간 끝 해에 운영 중(채움), 구간 안 개업(검은 테), 구간 안 폐업(외곽선)` : `${year}년: 운영 중(채움), 이 해 개업(검은 테), 이 해 폐업(외곽선)`} · 지도 {points.filter((p) => p.v.lon != null).length}곳(좌표 없음 {points.filter((p) => p.v.lon == null).length}곳)</p>
+        <More>{E ? `${E.label}: 구간 끝 해에 운영 중(채움), 구간 안 개업(검은 테), 구간 안 폐업(외곽선)` : `${year}년: 운영 중(채움), 이 해 개업(검은 테), 이 해 폐업(외곽선)`} · 지도 {points.filter((p) => p.v.lon != null).length}곳(좌표 없음 {points.filter((p) => p.v.lon == null).length}곳)</More>
       </div>
       <div className="tl-side">
         <div className="row"><TypeSelect value={sel} onChange={setSel} /></div>

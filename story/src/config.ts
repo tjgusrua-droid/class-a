@@ -2,8 +2,6 @@
 
 export const DATA_DATE = '2026-09-04' // LOCALDATA 파일의 최신 데이터갱신시점
 export const VERIFIED = '2026-10-28' // 확인일
-// 브이월드 배경지도 인증키(story/.env.local 에 VITE_VWORLD_KEY=키). 없으면 배경지도 없이 그린다
-export const VWORLD_KEY: string = (import.meta as any).env?.VITE_VWORLD_KEY ?? ''
 export const DATA_LABEL = `LOCALDATA ${DATA_DATE} 갱신본 기준 · ${VERIFIED} 확인`
 
 export const RADII = [300, 500, 800, 1000] // 역세권·문화시설 반경 선택지(m)
@@ -53,6 +51,10 @@ export const FILES = {
   stations: { file: 'subway_stations.geojson', fields: ['name', 'transfer', 'n_lines'] },
   lines: { file: 'subway_lines.geojson', fields: ['name', 'color'] },
   regions: { file: 'seoul_regions.geojson', fields: ['name'] },
+  bmGreen: { file: 'basemap_green.geojson', fields: [] },
+  bmWater: { file: 'basemap_water.geojson', fields: ['kind'] },
+  bmRoads: { file: 'basemap_roads.geojson', fields: ['rank'] },
+  bmDong: { file: 'basemap_dong.geojson', fields: ['name'] },
   buffers: { file: 'subway_buffers.geojson', fields: ['radius', 'kind'] },
   centers: { file: 'seoul_centers.geojson', fields: ['name', 'level'] },
   centerNames: { file: 'seoul_2040_centers.csv', fields: [] },
@@ -68,6 +70,7 @@ export const SOURCES = {
   boundary: '통계청 행정동 경계 2023.7(vuski/admdongkor) → 자치구 병합 · 한강: Natural Earth 1:10m(개략)',
   culture: '서울시 문화공간 정보 + 행정안전부 공연장 인허가(2025년 말 영업, 같은 건물 홀 1곳). 영화관 제외',
   kofic: '영화진흥위원회 전국 극장 현황 2010~2025(연말 기준)',
+  basemap: '배경지도: Overture Maps Foundation 2026-10-21.0(© OpenStreetMap contributors 등, ODbL) — 녹지·물·도로·행정동 이름',
   subway: '역: 서울열린데이터광장 지하철역 정보(공공누리 1유형, kyckang/SeoulTransitMap_data 재배포본 2026-10-28) · 노선: © OpenStreetMap contributors(ODbL), kimmdr2/metroscope 추출본 2026-10-12',
   centers: '2040 서울도시기본계획 중심지 체계(명칭) + 대표 역 기준 개략 영역(반경 도심 1.2km·광역 0.9km·지역 0.6km는 표현값, 공식 범위 아님)',
 }

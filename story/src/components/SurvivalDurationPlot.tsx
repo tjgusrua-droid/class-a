@@ -5,7 +5,7 @@ import { distM, duration, f1, located, median, type DataSet, type Venue } from '
 import { BoxDot, ConditionBars, DataTable } from './charts'
 import { atYear, life, survOf } from './SurvivalSection'
 import SeoulMap, { regionOverlay } from './SeoulMap'
-import { Finding, MapLegend, savePng, saveSvg, Seg, SourceNote, TypeToggles } from './ui'
+import { Finding, MapLegend, savePng, saveSvg, Seg, SourceNote, TypeToggles, More } from './ui'
 
 // 서울시 5개 생활권(도시기본계획의 권역 구분)
 const REGION: Record<string, string> = Object.fromEntries([
@@ -86,13 +86,13 @@ export default function SurvivalDurationPlot({ data, all }: { data: DataSet; all
         <SeoulMap data={data} label="폐업 영화관 지도" onMap={(m) => (map.current = m)} selectedId={pick} onSelect={(v) => setPick(v?.id ?? null)} extras={crit === '권역' ? regionOverlay(data) : []}
           points={pts.map((v) => ({ v, mark: group && keyOf(v) !== group ? 'dim' : 'hollow' }))} />
         <MapLegend types={on} marks={group ? ['hollow', 'dim'] : ['hollow']} extra={crit === '권역' && <span>┅ 5개 생활권(권역) 경계</span>} />
-        <p className="note">폐업·취소 운영구간 {pts.length}개(좌표 없음 {pts.filter((v) => !located(v)).length}).</p>
+        <More>폐업·취소 운영구간 {pts.length}개(좌표 없음 {pts.filter((v) => !located(v)).length}).</More>
       </div>
       <div className="chart">
         <p className="chart-title">어떤 조건에서 오래 남았나 — 조건별 개업 10년·20년 뒤 운영 비율</p>
         <ConditionBars title="조건별 생존율" rows={F} />
         <Finding title="제언 — 영화관을 오래 운영하려면" items={advice} />
-        <p className="note">영업 중인 곳을 포함한 운영구간 {base.length}개의 생존곡선(Kaplan–Meier)으로 계산. 관찰된 차이이며 원인이라고 단정할 수 없습니다(유형·개업 시기가 함께 작용하고, 역·중심지는 현재 기준). 상업시설 = 백화점·쇼핑몰·대형마트·역사. 입점 형태는 확인 불가가 많아 ‘그 밖’에 포함됩니다. 빨간 n은 20곳 미만.</p>
+        <More>영업 중인 곳을 포함한 운영구간 {base.length}개의 생존곡선(Kaplan–Meier)으로 계산. 관찰된 차이이며 원인이라고 단정할 수 없습니다(유형·개업 시기가 함께 작용하고, 역·중심지는 현재 기준). 상업시설 = 백화점·쇼핑몰·대형마트·역사. 입점 형태는 확인 불가가 많아 ‘그 밖’에 포함됩니다. 빨간 n은 20곳 미만.</More>
         <details className="table ui more">
           <summary>입지 조건별 폐업 영화관 운영기간 분포 자세히 보기</summary>
         <label className="ui">입지 조건 <select value={crit} onChange={(e) => { setCrit(e.target.value as Crit); setGroup(null) }}>
@@ -119,7 +119,7 @@ export default function SurvivalDurationPlot({ data, all }: { data: DataSet; all
           caution={`폐업일 없음 ${excluded.noDate}개, 개업일이 일괄 등록일로 의심되는 ${excluded.bulk}개는 제외. 건축적 입점 형태는 주소 문자열 기준(확인 불가 포함). 권역 = 서울시 5개 생활권.`} />
         <DataTable caption="폐업 영화관 운영기간" head={['영화관', '유형', '자치구', '개업일', '폐업일', '운영기간(년)', crit]}
           rows={[...sel].sort((a, b) => duration(a)! - duration(b)!).map((v) => [v.name, v.type, v.gu, v.open, v.close, +duration(v)!.toFixed(1), keyOf(v)])} />
-        <p className="note">유형별 폐업 운영구간: {TYPES.map((t) => `${TYPE_STYLE[t].mark} ${t} ${closed.filter((v) => v.type === t).length}`).join(' · ')}</p>
+        <More>유형별 폐업 운영구간: {TYPES.map((t) => `${TYPE_STYLE[t].mark} ${t} ${closed.filter((v) => v.type === t).length}`).join(' · ')}</More>
         </details>
       </div>
     </div>

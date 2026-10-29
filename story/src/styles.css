@@ -410,3 +410,13 @@ details.more { margin-top: 12px; }
   .dist-map .map { height: 55vh; }
   .dist-text { overflow: visible; }
 }
+
+/* ---- 세부 설명 접기 ---- */
+.more-info { margin: 4px 0; font-size: var(--fs-small); color: var(--muted); }
+.more-info summary { cursor: pointer; display: inline-block; padding: 1px 8px; border: 1px solid var(--line); border-radius: 10px; list-style: none; user-select: none; }
+.more-info summary::-webkit-details-marker { display: none; }
+.more-info[open] summary { background: #f1f1ee; color: var(--ink); }
+.more-body { margin-top: 6px; line-height: 1.6; padding: 6px 10px; background: #f7f7f5; border-left: 2px solid #ccc; }
+.legendnote { font-size: var(--fs-small); color: var(--muted); margin: 2px 0 0; }
+.centerdiagram { width: 100%; max-height: 24vh; }
+.centerdiagram + .more-info { margin-top: 0; }

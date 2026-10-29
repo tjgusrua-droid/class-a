@@ -69,3 +69,5 @@
 - `make_occupancy_review.py`: 건축적 입점 형태 확인 시트 `data/manual/occupancy_review.xlsx`(✍ 칸만 사람이 채움, 다시 실행해도 입력값 보존). 채운 뒤 `build_venues.py` → `build_web_data.py` → `export_master.py`로 반영
 - `export_master.py`: 엑셀에 `운영기간` 시트(운영구간별 운영기간, 유형별 Kaplan–Meier 중앙 생존기간) 추가
 - `data/manual/seoul_2040_centers.csv`: 2040 중심지 명칭·위계·대표 역. 개략 영역 = 대표 역 반경(도심 1.2km·광역 0.9km·지역 0.6km, 표현값이며 공식 범위 아님). `commerce_proposal.md`: 상권 변수 제안
+
+- `fetch_basemap.py` → `build_basemap.py`: Overture Maps 2026-10-21.0에서 서울 범위 도로·물·토지이용을 읽어(`data/raw/basemap/*.parquet`) 웹용 배경지도 `story/public/data/basemap_{green,water,roads,dong}.geojson` 생성

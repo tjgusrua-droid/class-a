@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { SOURCES, TYPE_STYLE, TYPES, type VenueType } from '../config'
 import { f1, jo, mean, median, pct, sum, topBy, type Venue } from '../data'
 import { BoxDot, DataTable, ShareBars } from './charts'
-import { saveSvg, Seg, SourceNote, Sym } from './ui'
+import { saveSvg, Seg, SourceNote, Sym, More } from './ui'
 import { TypeIsometric } from './Isometric'
 
 // 한두 문장으로 된 쉬운 설명
@@ -90,7 +90,7 @@ export default function TypeComparison({ open }: { open: Venue[] }) {
           <p className="chart-title">유형별 규모의 범위 <Seg label="범위 지표" value={rangeOf} onChange={setRangeOf} options={[{ v: 'screens' as const, label: '시설당 스크린' }, { v: 'seats' as const, label: '시설당 좌석' }, { v: 'per' as const, label: '1관당 좌석' }]} /></p>
           <BoxDot ref={svg2} title="유형별 규모의 범위" unit={rangeOf === 'screens' ? '개' : rangeOf === 'seats' ? '석' : '석/관'} rowH={44}
             groups={metric(rangeOf === 'screens' ? (v) => v.screens25 : rangeOf === 'seats' ? (v) => v.seats25 : (v) => (v.seats25 && v.screens25 ? v.seats25 / v.screens25 : null))} />
-          <p className="note">점 = 영화관 · 상자 = 가운데 50% · 굵은 선 = 중앙값 · ◇ = 평균</p>
+          <p className="legendnote">점 = 영화관 · 상자 = 가운데 50% · 굵은 선 = 중앙값 · ◇ = 평균</p>
         </div>
       </div>
       <p className="takeaway">{(() => {

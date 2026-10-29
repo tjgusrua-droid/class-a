@@ -1,9 +1,10 @@
+import { More } from './ui'
 import { DATA_LABEL, TYPES } from '../config'
 import type { DataSet } from '../data'
 
 // 2026 재검증 결과(audit_venues.py → audit.json)
 export default function DataAudit({ data }: { data: DataSet }) {
-  if (data.audit.status !== 'ok') return <p className="note">감사 자료(audit.json) 없음</p>
+  if (data.audit.status !== 'ok') return <More>감사 자료(audit.json) 없음</More>
   const a = data.audit.data
   const items: [string, string | number][] = [
     ['LOCALDATA 인허가 기록', `${a.localdata_records}건 → 장소 ${a.venues}곳 · 운영구간 ${a.episodes}개`],
@@ -32,7 +33,7 @@ export default function DataAudit({ data }: { data: DataSet }) {
           </table>
         </div>
       </div>
-      <p className="note">세부 목록: <code>data/verify/data_audit_2026.md</code>, 엑셀 <code>data/seoul_cinema_master.xlsx</code>의 ‘운영구간_LOCALDATA’·‘데이터감사’ 시트. 참고 홈페이지 수치에 맞추지 않았습니다.</p>
+      <More>세부 목록: <code>data/verify/data_audit_2026.md</code>, 엑셀 <code>data/seoul_cinema_master.xlsx</code>의 ‘운영구간_LOCALDATA’·‘데이터감사’ 시트. 참고 홈페이지 수치에 맞추지 않았습니다.</More>
     </div>
   )
 }

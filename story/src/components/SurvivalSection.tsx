@@ -2,7 +2,7 @@
 import { DATA_DATE, TYPE_STYLE, TYPES, type VenueType } from '../config'
 import { f1, jo, kaplanMeier, median, type Venue } from '../data'
 import { DataTable, SurvivalCurves } from './charts'
-import { Finding } from './ui'
+import { Finding, More } from './ui'
 
 const END = new Date(DATA_DATE)
 // 운영기간(년): 영업 중이면 기준일까지(중도절단). 일괄 등록일 의심 개업일·날짜 없음은 NaN
@@ -38,7 +38,7 @@ export default function SurvivalSection({ all }: { all: Venue[] }) {
             <tbody>{rows.map((x) => <tr key={x.label} className={x.label === '전체' ? 'on' : ''}><td>{x.label === '전체' ? '전체' : `${TYPE_STYLE[x.label as VenueType].mark} ${x.label}`}</td><td>{x.n}</td><td>{x.closed}</td>
               <td>{f1(x.mean)} / {f1(x.mid)}년</td>{[x.s10, x.s15, x.s20].map((s, i) => <td key={i}>{f1(s * 100)}%</td>)}</tr>)}</tbody>
           </table></div>
-          <p className="note">‘n년 뒤’ = 생존곡선(Kaplan–Meier)으로 계산한, 개업 후 n년이 지나도 운영 중인 비율. 영업 중인 곳은 기준일({DATA_DATE})까지 운영 중으로 넣고 폐업으로 세지 않습니다. 폐업한 곳 운영기간 = 개업일→폐업일. 개업일이 일괄 등록일로 의심되거나 날짜가 없는 곳은 제외. 2000년 이전 폐업 기록은 적습니다.</p>
+          <More>‘n년 뒤’ = 생존곡선(Kaplan–Meier)으로 계산한, 개업 후 n년이 지나도 운영 중인 비율. 영업 중인 곳은 기준일({DATA_DATE})까지 운영 중으로 넣고 폐업으로 세지 않습니다. 폐업한 곳 운영기간 = 개업일→폐업일. 개업일이 일괄 등록일로 의심되거나 날짜가 없는 곳은 제외. 2000년 이전 폐업 기록은 적습니다.</More>
         </div>
       </div>
       <DataTable caption="운영구간별 운영기간(영업 중은 기준일까지)" head={['영화관', '유형', '자치구', '상태', '개업일', '폐업일', '운영기간(년)']}
