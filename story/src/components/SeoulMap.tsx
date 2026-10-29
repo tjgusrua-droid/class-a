@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { TYPES, TYPE_STYLE } from '../config'
+import { TYPES, TYPE_STYLE, VWORLD_KEY } from '../config'
 import type { DataSet, Venue } from '../data'
 import { TooltipBody } from './TheaterTooltip'
 
@@ -51,7 +51,15 @@ type Props = {
   pointScale?: number // 영화관 기호 크기 배율(밀도 지도에서는 작게)
 }
 
-const BASE = ['gu', 'gulabel', 'river', 'boundary', 'venues', 'link']
+const BASE = ['gu', 'gulabel', 'river', 'boundary', 'venues', 'link', 'vworld', 'vworld-dark', 'mask']
+const vworld = (layer: string) => ({ type: 'raster' as const, tiles: [`https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/${layer}/{z}/{y}/{x}.png`], tileSize: 256, minzoom: 6, maxzoom: 19, attribution: '© 국토교통부 브이월드' })
+
+// 서울 바깥을 옅게 가리는 면(세계 사각형에서 서울 경계를 뺌)
+function maskFC(fc: any) {
+  const holes: number[][][] = []
+  fc?.features?.forEach((f: any) => { const g = f.geometry; (g.type === 'Polygon' ? [g.coordinates] : g.coordinates).forEach((poly: number[][][]) => holes.push(poly[0])) })
+  return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[120, 30], [135, 30], [135, 45], [120, 45], [120, 30]], ...holes] } }
+}
 const mobile = () => matchMedia('(max-width: 700px)').matches
 
 function shapeIcon(shape: string, color: string, mark: Mark | 'sel') {
@@ -119,6 +127,7 @@ export default function SeoulMap(p: Props) {
   const [tip, setTip] = useState<{ items: Venue[]; lngLat: [number, number]; pinned: boolean } | null>(null)
   const [hint, setHint] = useState<{ x: number; y: number; t: string } | null>(null) // 역 등 보조 레이어 이름
   const [, force] = useState(0)
+  const [base, setBase] = useState(!!VWORLD_KEY) // 브이월드 배경지도 켜기
   const home = () => { const m = map.current; m && m.fitBounds(bbox(p.data.boundary.data), { padding: 18, duration: 600 }) } // 지도·페이지 이동 시 고정 툴팁 위치 갱신
 
   useEffect(() => {
@@ -135,8 +144,15 @@ export default function SeoulMap(p: Props) {
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     map.current = m
     ;((window as any).__maps ??= []).push(m) // 자동 점검(브라우저 테스트)용
+    if (VWORLD_KEY) m.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
     m.on('load', () => {
       const src = (id: string, data: any) => m.addSource(id, { type: 'geojson', data })
+      if (VWORLD_KEY) {
+        m.addSource('vworld', vworld('white')); m.addSource('vworld-dark', vworld('midnight'))
+        m.addLayer({ id: 'basemap', type: 'raster', source: 'vworld', paint: { 'raster-opacity': 0.9 } })
+        m.addLayer({ id: 'basemap-dark', type: 'raster', source: 'vworld-dark', paint: { 'raster-opacity': 0.8 } })
+        if (d.boundary.status === 'ok') { src('mask', maskFC(d.boundary.data)); m.addLayer({ id: 'mask', type: 'fill', source: 'mask', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.6 } }) }
+      }
       if (d.gu.status === 'ok') {
         src('gu', d.gu.data)
         m.addLayer({ id: 'gu-fill', type: 'fill', source: 'gu', paint: { 'fill-color': '#ffffff' } })
@@ -166,7 +182,7 @@ export default function SeoulMap(p: Props) {
       m.addLayer({ id: 'venues', type: 'symbol', source: 'venues', layout: { ...lay, 'icon-image': ['get', 'icon'] },
         paint: { 'icon-opacity': latest.current.reveal === false ? 0 : 1, 'icon-opacity-transition': { duration: 2200, delay: 0 } } as any })
       m.addLayer({ id: 'venues-sel', type: 'symbol', source: 'venues', filter: ['==', ['get', 'sel'], true], layout: { ...lay, 'icon-image': ['get', 'selicon'] } })
-      apply(m, latest.current)
+      apply(m, latest.current, baseRef.current)
       latest.current.onMap?.(m)
     })
     const items = (e: any) => {
@@ -200,7 +216,9 @@ export default function SeoulMap(p: Props) {
     return () => { removeEventListener('scroll', rerender); m.remove() }
   }, [])
 
-  useEffect(() => { if (map.current) apply(map.current, p) })
+  const baseRef = useRef(base)
+  baseRef.current = base
+  useEffect(() => { if (map.current) apply(map.current, p, base) })
   useEffect(() => { home(); setTip(null) }, [p.resetKey])
   // 지도가 화면 밖으로 나가면 처음 범위로 되돌려 둔다
   useEffect(() => {
@@ -227,7 +245,10 @@ export default function SeoulMap(p: Props) {
     <div className="mapwrap">
       <div className="map" ref={box} role="application" aria-label={p.label} style={p.height ? { height: p.height } : undefined} />
       {hint && <div className="maphint" style={{ left: hint.x, top: hint.y }}>{hint.t}</div>}
-      <button className="maphome ui" onClick={home} title="처음 범위로" aria-label="지도를 처음 범위로">⤢ 처음 범위</button>
+      <div className="mapbtns ui">
+        <button onClick={home} title="처음 범위로" aria-label="지도를 처음 범위로">⤢ 처음 범위</button>
+        {!!VWORLD_KEY && <button onClick={() => setBase(!base)} aria-pressed={base}>배경지도 {base ? '끄기' : '켜기'}</button>}
+      </div>
       {tipEl}
     </div>
   )
@@ -262,7 +283,7 @@ function Tip({ x, y, items, pinned, close }: { x: number; y: number; items: Venu
   )
 }
 
-function apply(m: maplibregl.Map, p: Props) {
+function apply(m: maplibregl.Map, p: Props, base = false) {
   const src = m.getSource('venues') as maplibregl.GeoJSONSource | undefined
   if (!src) return
   for (const x of p.points) if (x.color) {
@@ -274,7 +295,15 @@ function apply(m: maplibregl.Map, p: Props) {
   const k = p.pointScale ?? 1
   for (const id of ['venues', 'venues-sel']) m.setLayoutProperty(id, 'icon-size', ['interpolate', ['linear'], ['zoom'], 9, 0.62 * k, 14, 1 * k])
   m.setPaintProperty('bg', 'background-color', p.dark ? '#1e1e1e' : '#f4f4f2')
-  if (m.getLayer('gu-fill')) m.setPaintProperty('gu-fill', 'fill-color', p.dark ? '#2a2a2a' : '#ffffff')
+  if (m.getLayer('gu-fill')) { m.setPaintProperty('gu-fill', 'fill-color', p.dark ? '#2a2a2a' : '#ffffff'); m.setPaintProperty('gu-fill', 'fill-opacity', base ? 0 : 1) }
+  // 배경지도: 밝은 지도는 white, 밀도 지도(어두운 바탕)는 midnight. 배경지도가 있으면 한강 선은 지도에 이미 있어 숨긴다
+  if (m.getLayer('basemap')) {
+    m.setLayoutProperty('basemap', 'visibility', base && !p.dark ? 'visible' : 'none')
+    m.setLayoutProperty('basemap-dark', 'visibility', base && p.dark ? 'visible' : 'none')
+    m.setLayoutProperty('mask', 'visibility', base ? 'visible' : 'none')
+    m.setPaintProperty('mask', 'fill-color', p.dark ? '#1e1e1e' : '#ffffff')
+  }
+  if (m.getLayer('river')) m.setLayoutProperty('river', 'visibility', base ? 'none' : 'visible')
   if (m.getLayer('gu-line')) m.setPaintProperty('gu-line', 'line-color', p.dark ? '#4a4a4a' : '#bdbdbd')
   if (m.getLayer('boundary')) m.setPaintProperty('boundary', 'line-color', p.dark ? '#888' : '#444')
   if (m.getLayer('gu-label')) m.setPaintProperty('gu-label', 'icon-opacity', p.dark ? 0.35 : 1)

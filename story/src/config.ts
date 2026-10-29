@@ -2,6 +2,8 @@
 
 export const DATA_DATE = '2026-09-04' // LOCALDATA 파일의 최신 데이터갱신시점
 export const VERIFIED = '2026-10-28' // 확인일
+// 브이월드 배경지도 인증키(story/.env.local 에 VITE_VWORLD_KEY=키). 없으면 배경지도 없이 그린다
+export const VWORLD_KEY: string = (import.meta as any).env?.VITE_VWORLD_KEY ?? ''
 export const DATA_LABEL = `LOCALDATA ${DATA_DATE} 갱신본 기준 · ${VERIFIED} 확인`
 
 export const RADII = [300, 500, 800, 1000] // 역세권·문화시설 반경 선택지(m)

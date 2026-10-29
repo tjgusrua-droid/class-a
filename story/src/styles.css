@@ -246,7 +246,9 @@ details caption { text-align: left; font-weight: 600; padding: 4px 0; }
 .easy-num { color: var(--ink); }
 .step h3, .deftable h3, .summary3 h3, .finding .f-head, .keyfig b, .find-big { font-size: var(--fs-h3); }
 .finding .f-title { font-size: var(--fs-small); }
-.maphome { position: absolute; left: 8px; top: 8px; z-index: 4; background: #fff; border: 1px solid #bbb; padding: 3px 8px; font-size: var(--fs-small); cursor: pointer; }
+.mapbtns { position: absolute; left: 8px; top: 8px; z-index: 4; display: flex; gap: 4px; }
+.mapbtns button { background: #fff; border: 1px solid #bbb; padding: 3px 8px; font-size: var(--fs-small); cursor: pointer; }
+.mapbtns button[aria-pressed='true'] { background: #111; color: #fff; border-color: #111; }
 .headlines { margin-bottom: 18px; }
 .headline { border-left: 5px solid; padding: 2px 0 2px 14px; margin: 0 0 14px; cursor: pointer; }
 .find-big { font-size: var(--fs-h3); font-weight: 700; line-height: 1.45; margin: 0 0 4px; }
