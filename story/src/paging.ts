@@ -13,7 +13,7 @@ function points() {
   const vh = innerHeight, ys = new Set<number>()
   document.querySelectorAll<HTMLElement>('.scene').forEach((s) => {
     const top = absTop(s)
-    ys.add(top)
+    if (s.id !== 'location') ys.add(top) // 3장은 무대(.loc .snap) 위치에서 멈춘다
     if (s.id !== 'location' && s.offsetHeight > vh * 1.05) ys.add(top + s.offsetHeight - vh)
   })
   document.querySelectorAll<HTMLElement>('.loc .snap').forEach((m) => ys.add(absTop(m)))

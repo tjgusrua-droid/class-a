@@ -36,7 +36,7 @@ const mix = (a: string, b: string, k: number, alpha = 1) => { const h = (x: stri
   const [p, q] = [h(a), h(b)]; return `rgba(${p.map((v, i) => Math.round(v + (q[i] - v) * k)).join(',')},${alpha})` }
 const narrowNow = () => matchMedia('(max-width: 1000px)').matches
 
-export default function LocationTabs({ data, open }: { data: DataSet; open: Venue[] }) {
+export default function LocationTabs({ data, open, title }: { data: DataSet; open: Venue[]; title?: ReactNode }) {
   const [step, setStep] = useState(0)
   const [narrow, setNarrow] = useState(narrowNow)
   const [on, setOn] = useState<VenueType[]>([...TYPES])
@@ -258,8 +258,9 @@ export default function LocationTabs({ data, open }: { data: DataSet; open: Venu
   return (
     <div className="loc" ref={wrap} style={narrow ? undefined : { height: `${STEPS.length * 100}vh` }}>
       {/* 넓은 화면: 단계마다 스크롤 멈춤 지점(한 번 스크롤 = 한 단계) */}
-      {!narrow && STEPS.map((_, i) => <div key={i} className="snap" aria-hidden style={{ top: `${((i + 0.5) / STEPS.length) * (STEPS.length - 1) * 100}vh` }} />)}
+      {!narrow && STEPS.map((_, i) => <div key={i} className="snap" aria-hidden style={{ top: i ? `${((i + 0.02) / STEPS.length) * (STEPS.length - 1) * 100}vh` : 0 }} />)}
       <div className="stage">
+        {title}
         <nav className="steps ui" aria-label="입지 항목">
           {STEPS.map((s, i) => <button key={s} aria-current={step === i} onClick={() => go(i)}>3-{i + 1} {s}</button>)}
         </nav>
@@ -285,7 +286,9 @@ export default function LocationTabs({ data, open }: { data: DataSet; open: Venu
             <p className="eyebrow">3-{step + 1}</p>
             <h3>{STEPS[step]}</h3>
             {panel(step)}
-            <SourceNote source={step === 4 ? SOURCES.culture : step === 0 || step === 5 ? `${SOURCES.venues} · ${SOURCES.subway}` : step === 1 ? SOURCES.centers : SOURCES.venues} n={`영업 중 좌표 있는 영화관 ${pts.length}곳`} />
+            <details className="table ui srcdetails"><summary>자료·기준</summary>
+              <SourceNote source={step === 4 ? SOURCES.culture : step === 0 || step === 5 ? `${SOURCES.venues} · ${SOURCES.subway}` : step === 1 ? SOURCES.centers : SOURCES.venues} n={`영업 중 좌표 있는 영화관 ${pts.length}곳`} />
+            </details>
           </div>
         </div>
       </div>

@@ -377,3 +377,34 @@ details.more { margin-top: 12px; }
 #types .easy-num { margin: 0 0 4px; }
 #types .takeaway { margin: 10px 0 6px; padding: 2px 0 2px 12px; }
 #types .source { margin-top: 6px; padding-top: 6px; }
+
+/* ---- 한 화면 장면: 2장(fit)·3장 무대는 화면 높이에 맞춘다 ---- */
+.scene.fit { height: 100vh; min-height: 0; display: flex; flex-direction: column; padding-top: 28px; padding-bottom: 16px; }
+.scene.fit .lead { margin-bottom: 10px; }
+.dist { flex: 1; min-height: 0; display: grid; grid-template-columns: 58fr 42fr; grid-template-rows: minmax(0, 1fr); gap: 28px; }
+.dist > * { min-width: 0; min-height: 0; }
+.dist-map { display: flex; flex-direction: column; }
+.dist-map .row { margin-bottom: 4px; gap: 4px 14px; }
+.dist-map .toggles { margin: 0; }
+.dist-map .mapwrap { flex: 1; min-height: 0; }
+.dist-map .map { height: 100%; min-height: 0; }
+.dist-text { overflow-y: auto; padding-right: 6px; }
+.dist-text .headline { margin-bottom: 12px; }
+#location.scene { padding-top: 0; padding-bottom: 0; }
+.stage > h2 { flex: none; margin: 14px 0 2px; font-size: var(--fs-h2); }
+.srcdetails { margin-top: 6px; }
+.srcdetails summary { color: var(--muted); font-size: var(--fs-small); }
+.loc-panel svg[role="img"] { max-height: 26vh; width: auto; max-width: 100%; }
+.loc-panel .donut, .loc-panel .occtiles svg { max-height: 16vh; }
+@media (max-height: 820px) {
+  .loc-panel .finding .f-head, .dist-text .find-big { font-size: var(--fs-body); }
+  .loc-panel .finding .f-mean, .dist-text .find-sub { font-size: var(--fs-small); }
+  .loc-panel .explain-lead { font-size: var(--fs-small); margin-bottom: 4px; }
+  .loc-panel .note { margin: 4px 0; }
+}
+@media (max-width: 1000px) {
+  .scene.fit { height: auto; }
+  .dist { grid-template-columns: 1fr; }
+  .dist-map .map { height: 55vh; }
+  .dist-text { overflow: visible; }
+}

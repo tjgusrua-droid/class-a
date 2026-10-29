@@ -1,9 +1,9 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { SOURCES, TYPE_STYLE, TYPES, type VenueType } from '../config'
-import { distM, f1, jo, located, pct, sum, topBy, type DataSet, type Venue } from '../data'
-import { DataTable, ShareBars } from './charts'
+import { distM, f1, jo, located, pct, topBy, type DataSet, type Venue } from '../data'
+import { DataTable } from './charts'
 import SeoulMap, { stationOverlay, type Overlay } from './SeoulMap'
-import { MapLegend, saveSvg, SourceNote, Sym, TypeToggles } from './ui'
+import { MapLegend, SourceNote, Sym, TypeToggles } from './ui'
 
 type Spot = { lon: number; lat: number; name: string }
 type Cluster = { at: Spot; members: Venue[]; names: string[]; center?: string }
@@ -54,9 +54,7 @@ export default function Distribution({ data, open }: { data: DataSet; open: Venu
   const [on, setOn] = useState<VenueType[]>([...TYPES])
   const [showSt, setShowSt] = useState(true)
   const [pick, setPick] = useState<Venue | null>(null)
-  const svg = useRef<SVGSVGElement>(null)
   const by = (t: VenueType) => open.filter((v) => v.type === t)
-  const known = (t: VenueType) => by(t).filter((v) => v.screens25 != null)
   const st: Spot[] = data.stations.status === 'ok' ? data.stations.data.features.filter((f: any) => f.properties.inside)
     .map((f: any) => ({ lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], name: f.properties.name })) : []
   const centers: any[] = data.centers.status === 'ok' ? data.centers.data.features : []
@@ -71,34 +69,32 @@ export default function Distribution({ data, open }: { data: DataSet; open: Venu
     layers: [{ type: 'fill', paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.1 } }, { type: 'line', paint: { 'line-color': ['get', 'color'], 'line-width': 3, 'line-opacity': 0.9 } }] }
 
   return (
-    <div className="split">
-      <div className="mapcol">
-        <TypeToggles value={on} onChange={setOn} counts={Object.fromEntries(TYPES.map((t) => [t, by(t).length]))} />
-        <label className="ui chk"><input type="checkbox" checked={showSt} onChange={() => setShowSt(!showSt)} /> 지하철 노선·역 표시</label>
+    <div className="dist">
+      <div className="dist-map">
+        <div className="row ui">
+          <TypeToggles value={on} onChange={setOn} counts={Object.fromEntries(TYPES.map((t) => [t, by(t).length]))} />
+          <label className="chk"><input type="checkbox" checked={showSt} onChange={() => setShowSt(!showSt)} /> 지하철 노선·역</label>
+        </div>
         <SeoulMap data={data} label="유형별 영화관 분포 지도" selectedId={pick?.id} extras={[...(showSt ? stationOverlay(data) : []), rings]}
           points={shown.map((v) => ({ v, mark: focus && v.type !== focus ? 'dim' : 'fill' }))} onSelect={setPick} />
         <MapLegend types={on} marks={focus ? ['fill', 'dim'] : ['fill']} extra={<>
-          {showSt && <span>━ 지하철 노선(노선색, 반투명) · ○ 역</span>}
-          <span>테두리 = 같은 유형이 3곳 이상 모인 곳(점들에서 약 400m 밖으로 그은 선)</span></>} />
+          {showSt && <span>━ 지하철 노선 · ○ 역</span>}
+          <span>테두리 = 같은 유형이 3곳 이상 모인 곳</span></>} />
       </div>
-      <div className="chart">
+      <div className="dist-text">
         <div className="headlines">
           {(focus ? [focus] : TYPES).map((t) => { const h = headline(t, by(t).filter(located).length, new Set(by(t).map((v) => v.gu)).size, cl[t])
             return <div key={t} className="headline" style={{ borderColor: TYPE_STYLE[t].color }} onClick={() => setSel(sel === t ? null : t)}>
               <p className="find-big"><Sym type={t} /> {h.head}</p>{h.mean && <p className="find-sub">{h.mean}</p>}</div> })}
-          <p className="note">문장은 ‘역 반경 1km 안에 같은 유형이 가장 많은 곳’을 계산해 자동으로 만듭니다. 25% 이상이 한곳에 있으면 ‘모여 있다’, 아니면 ‘퍼져 있다’로 씁니다. 문장을 누르면 그 유형만 강조합니다.</p>
         </div>
-        <ShareBars ref={svg} title="유형별 개소·스크린·좌석 비중" highlight={sel} onPick={setSel} rows={[
-          { label: '영화관', unit: '곳', values: Object.fromEntries(TYPES.map((t) => [t, by(t).length])) as any },
-          { label: '스크린', unit: '개', values: Object.fromEntries(TYPES.map((t) => [t, sum(known(t).map((v) => v.screens25))])) as any },
-          { label: '좌석', unit: '석', values: Object.fromEntries(TYPES.map((t) => [t, sum(known(t).map((v) => v.seats25))])) as any },
-        ]} />
-        <p className="note">자치구 상위: {TYPES.map((t) => `${TYPE_STYLE[t].short} ${topBy(by(t), (v) => v.gu, 2).map(([k, n]) => `${k} ${n}`).join('·')}`).join(' / ')}</p>
-        <button className="ui link" onClick={() => saveSvg(svg.current, '2_비중')}>SVG 저장</button>
-        <DataTable caption="자치구별 영업 영화관 수" head={['자치구', ...TYPES, '계']} rows={guRows} />
-        <SourceNote source={`${SOURCES.venues} · ${SOURCES.subway}`} n={`영업 ${open.length}곳(${TYPES.map((t) => `${TYPE_STYLE[t].short} ${by(t).length}`).join(' · ')})`}
-          method="역 반경 1km(직선거리) 안 같은 유형 영화관 수가 가장 많은 역을 찾고, 그 영화관들을 뺀 뒤 한 번 더 찾음. 역 이름 = 모인 영화관들의 가장 가까운 역 상위 3곳. 군집 검정은 하지 않음"
-          caution="스크린·좌석 비중은 KOFIC 2025 수록 영화관만으로 계산합니다. 중심지 이름은 2040 중심지 개략 영역 기준입니다." />
+        <p className="note">문장은 ‘역 반경 1km 안에 같은 유형이 가장 많은 곳’을 계산해 자동으로 만듭니다(25% 이상이 한곳에 있으면 ‘모여 있다’). 문장을 누르면 그 유형만 강조합니다. 자치구 상위: {TYPES.map((t) => `${TYPE_STYLE[t].short} ${topBy(by(t), (v) => v.gu, 2).map(([k, n]) => `${k} ${n}`).join('·')}`).join(' / ')}</p>
+        <details className="table ui">
+          <summary>자치구별 표 · 자료와 계산 방법</summary>
+          <DataTable caption="자치구별 영업 영화관 수" head={['자치구', ...TYPES, '계']} rows={guRows} />
+          <SourceNote source={`${SOURCES.venues} · ${SOURCES.subway}`} n={`영업 ${open.length}곳(${TYPES.map((t) => `${TYPE_STYLE[t].short} ${by(t).length}`).join(' · ')})`}
+            method="역 반경 1km(직선거리) 안 같은 유형 영화관 수가 가장 많은 역을 찾고, 그 영화관들을 뺀 뒤 한 번 더 찾음. 역 이름 = 모인 영화관들의 가장 가까운 역 상위 3곳. 군집 검정은 하지 않음"
+            caution={`좌표 없는 영업 영화관 ${open.filter((v) => !located(v)).length}곳은 지도에서 빠짐. 중심지 이름은 2040 중심지 개략 영역 기준. 유형별 개소·스크린·좌석 비중은 1장 구성비 그래프 참고.`} />
+        </details>
       </div>
     </div>
   )

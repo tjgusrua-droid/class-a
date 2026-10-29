@@ -69,15 +69,14 @@ export default function App() {
         <TypeComparison open={open} />
       </StorySection>
 
-      <StorySection id="where">
+      <StorySection id="where" className="fit">
         <h2><span>2</span>각 유형은 서울 어디에 모여 있는가?</h2>
-        <p className="lead">유형을 켜고 끄며 분포를 비교하고, 오른쪽에서 계산된 상위 지역을 확인합니다.</p>
+        <p className="lead">유형을 켜고 끄며 분포를 비교합니다. 오른쪽 문장은 역 주변에 모인 곳을 계산해 만든 결론입니다.</p>
         <Distribution data={data} open={open} />
       </StorySection>
 
       <StorySection id="location" className="tall">
-        <h2><span>3</span>각 유형의 영화관은 어떤 입지 특성을 가지는가?</h2>
-        <LocationTabs data={data} open={open} />
+        <LocationTabs data={data} open={open} title={<h2><span>3</span>각 유형의 영화관은 어떤 입지 특성을 가지는가?</h2>} />
       </StorySection>
 
       <StorySection id="profile" className="profile-scene">
