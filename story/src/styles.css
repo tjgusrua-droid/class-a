@@ -555,3 +555,15 @@ input[type="checkbox"] { accent-color: var(--ink); }
 .eracard p b { display: inline; font-size: inherit; }
 .profile-rowhead, .profile-col { grid-template-rows: 100px 66px 62px 98px 56px 56px 112px !important; }
 .p-portrait { font-size: 14.5px; }
+/* 1장·4장 한 화면 맞춤 */
+#types { padding-top: 40px; padding-bottom: 16px; }
+#types .lead { margin-bottom: 8px; }
+#types .deftable .col { padding-top: 12px; }
+#change { padding-bottom: 12px; }
+.tl { height: calc(100vh - 140px); }
+#advice { padding-top: 22px; padding-bottom: 10px; }
+#advice h2 { margin-bottom: 6px; }
+.split.advice .chart svg[aria-label="조건별 생존율"] { max-height: 34vh; width: auto; max-width: 100%; }
+.split.advice .finding { padding: 10px 16px 8px 20px; }
+.split.advice .finding .f-head { margin: 4px 0 1px; }
+.split.advice .finding .f-mean { margin-bottom: 4px; line-height: 1.5; }
