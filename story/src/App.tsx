@@ -11,6 +11,7 @@ import TimelineSection from './components/TimelineSection'
 import SurvivalDurationPlot from './components/SurvivalDurationPlot'
 import SurvivalSection from './components/SurvivalSection'
 import { DataStatus, StorySection } from './components/ui'
+import { startPaging } from './paging'
 
 const SCENES = [['intro', '시작'], ['audit', '자료 검증'], ['types', '1 유형'], ['where', '2 분포'], ['location', '3 입지'], ['profile', '3 정리'], ['change', '4 변화'], ['closed', '5 생존'], ['advice', '5 제언'], ['sources', '출처']]
 
@@ -22,6 +23,7 @@ export default function App() {
   const [key, setKey] = useState(0)
 
   useEffect(() => { loadAll().then(setData) }, [])
+  useEffect(() => startPaging(), [])
   useEffect(() => {
     if (!data) return
     const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && setCur(e.target.id)), { rootMargin: '-50% 0px -50% 0px' })

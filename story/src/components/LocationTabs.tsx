@@ -257,6 +257,8 @@ export default function LocationTabs({ data, open }: { data: DataSet; open: Venu
   const mapOn = !NO_MAP.includes(step)
   return (
     <div className="loc" ref={wrap} style={narrow ? undefined : { height: `${STEPS.length * 100}vh` }}>
+      {/* 넓은 화면: 단계마다 스크롤 멈춤 지점(한 번 스크롤 = 한 단계) */}
+      {!narrow && STEPS.map((_, i) => <div key={i} className="snap" aria-hidden style={{ top: `${((i + 0.5) / STEPS.length) * (STEPS.length - 1) * 100}vh` }} />)}
       <div className="stage">
         <nav className="steps ui" aria-label="입지 항목">
           {STEPS.map((s, i) => <button key={s} aria-current={step === i} onClick={() => go(i)}>3-{i + 1} {s}</button>)}

@@ -29,7 +29,9 @@ export const regionOverlay = (data: DataSet): Overlay[] => data.regions.status !
     layers: [{ type: 'line', paint: { 'line-color': '#4d4d4d', 'line-width': 2.2, 'line-dasharray': [3, 2], 'line-opacity': 0.9 } }] },
   { id: 'regiontags', place: 'over', label: { text: (p) => p.name, color: '#222', size: 1.2, box: true },
     data: { type: 'FeatureCollection', features: data.regions.data.features.map((f: any) => ({ type: 'Feature', properties: f.properties, geometry: { type: 'LineString', coordinates: [f.properties.anchor, f.properties.label] } })) },
-    layers: [{ type: 'line', paint: { 'line-color': '#4d4d4d', 'line-width': 1 } }] },
+    layers: [{ type: 'line', paint: { 'line-color': '#4d4d4d', 'line-width': 1.2 } }] },
+  { id: 'regiondots', place: 'over', data: { type: 'FeatureCollection', features: data.regions.data.features.map((f: any) => ({ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: f.properties.anchor } })) },
+    layers: [{ type: 'circle', paint: { 'circle-radius': 3.2, 'circle-color': '#4d4d4d', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1 } }] },
 ]
 
 type Props = {
@@ -291,8 +293,8 @@ function apply(m: maplibregl.Map, p: Props) {
       if (o.label) {
         const L = o.label
         o.data.features.forEach((f: any) => { const t = L.text(f.properties); if (!m.hasImage(`lbl:${t}`)) m.addImage(`lbl:${t}`, textIcon(L.box ? ` ${t} ` : t, L.color, 700, L.box), { pixelRatio: 2 }) })
-        m.addSource(`${o.id}-lbl`, { type: 'geojson', data: { type: 'FeatureCollection', features: o.data.features.map((f: any) => ({ type: 'Feature', properties: { t: L.text(f.properties) }, geometry: { type: 'Point', coordinates: f.properties.label } })) } })
-        m.addLayer({ id: `${o.id}-lbl`, type: 'symbol', source: `${o.id}-lbl`, layout: { 'icon-image': ['concat', 'lbl:', ['get', 't']], 'icon-allow-overlap': true, 'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.8 * (L.size ?? 1), 13, 1.1 * (L.size ?? 1)] } }, 'anchor-over')
+        m.addSource(`${o.id}-lbl`, { type: 'geojson', data: { type: 'FeatureCollection', features: o.data.features.map((f: any) => ({ type: 'Feature', properties: { t: L.text(f.properties), a: f.properties.tagAnchor ?? 'center' }, geometry: { type: 'Point', coordinates: f.properties.label } })) } })
+        m.addLayer({ id: `${o.id}-lbl`, type: 'symbol', source: `${o.id}-lbl`, layout: { 'icon-image': ['concat', 'lbl:', ['get', 't']], 'icon-allow-overlap': true, 'icon-anchor': ['get', 'a'], 'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.8 * (L.size ?? 1), 13, 1.1 * (L.size ?? 1)] } }, 'anchor-over')
       }
     }
   }

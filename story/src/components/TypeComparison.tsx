@@ -76,9 +76,9 @@ export default function TypeComparison({ open }: { open: Venue[] }) {
             </div>)
         })}
       </div>
-      <div className="split even">
+      <div className="split even charts2">
         <div>
-          <p className="chart-title">유형별 구성비 — 개소는 LOCALDATA 영업 {open.length}곳, 스크린·좌석은 KOFIC 2025 수록 {sum(TYPES.map((t) => S[t].nk))}곳</p>
+          <p className="chart-title">유형별 구성비 <small>개소 = LOCALDATA 영업 {open.length}곳 · 스크린·좌석 = KOFIC 2025 수록 {sum(TYPES.map((t) => S[t].nk))}곳</small></p>
           <ShareBars ref={svg} title="유형별 개소·스크린·좌석 구성비" highlight={sel} onPick={setSel} rows={[
             { label: '영화관', unit: '곳', values: Object.fromEntries(TYPES.map((t) => [t, S[t].n])) as any },
             { label: '스크린', unit: '개', values: Object.fromEntries(TYPES.map((t) => [t, S[t].screens])) as any },
@@ -87,16 +87,17 @@ export default function TypeComparison({ open }: { open: Venue[] }) {
           <button className="ui link" onClick={() => saveSvg(svg.current, '1_구성비')}>SVG 저장</button>
         </div>
         <div>
-          <p className="chart-title">유형별 규모의 범위 — 점 = 영화관, 상자 = 가운데 50%, 굵은 선 = 중앙값</p>
-          <Seg label="범위 지표" value={rangeOf} onChange={setRangeOf} options={[{ v: 'screens' as const, label: '시설당 스크린' }, { v: 'seats' as const, label: '시설당 좌석' }, { v: 'per' as const, label: '1관당 좌석' }]} />
-          <BoxDot ref={svg2} title="유형별 규모의 범위" unit={rangeOf === 'screens' ? '개' : rangeOf === 'seats' ? '석' : '석/관'} rowH={34}
+          <p className="chart-title">유형별 규모의 범위 <Seg label="범위 지표" value={rangeOf} onChange={setRangeOf} options={[{ v: 'screens' as const, label: '시설당 스크린' }, { v: 'seats' as const, label: '시설당 좌석' }, { v: 'per' as const, label: '1관당 좌석' }]} /></p>
+          <BoxDot ref={svg2} title="유형별 규모의 범위" unit={rangeOf === 'screens' ? '개' : rangeOf === 'seats' ? '석' : '석/관'} rowH={44}
             groups={metric(rangeOf === 'screens' ? (v) => v.screens25 : rangeOf === 'seats' ? (v) => v.seats25 : (v) => (v.seats25 && v.screens25 ? v.seats25 / v.screens25 : null))} />
+          <p className="note">점 = 영화관 · 상자 = 가운데 50% · 굵은 선 = 중앙값 · ◇ = 평균</p>
         </div>
       </div>
-      <p className="takeaway">{TYPES.map((t) => {
-        const a = pct(S[t].n, open.length), b = pct(S[t].screens, sum(TYPES.map((x) => S[x].screens)))
-        return `${jo(t, '는')} 영업 영화관의 ${f1(a)}%, KOFIC 수록 스크린의 ${f1(b)}%로 스크린 비중이 개소 비중보다 ${b > a ? '컸다' : b < a ? '작았다' : '같았다'}.`
-      }).join(' ')}</p>
+      <p className="takeaway">{(() => {
+        const sh = (t: VenueType) => ({ a: pct(S[t].n, open.length), b: pct(S[t].screens, sum(TYPES.map((x) => S[x].screens))) })
+        const up = TYPES.filter((t) => sh(t).b > sh(t).a), down = TYPES.filter((t) => sh(t).b < sh(t).a)
+        return <>스크린 비중이 개소 비중보다 {up.map((t) => `${TYPE_STYLE[t].short}는 크고(${f1(sh(t).a)}% → ${f1(sh(t).b)}%)`).join(', ')}{down.length ? `, ${down.map((t) => `${TYPE_STYLE[t].short}(${f1(sh(t).a)}% → ${f1(sh(t).b)}%)`).join('·')}는 작다` : ''}.</>
+      })()}</p>
       <SourceNote source={SOURCES.venues} n={<>영업 {open.length}곳(유형별 {TYPES.map((t) => `${TYPE_STYLE[t].short} ${S[t].n}`).join(' · ')}), 스크린·좌석은 KOFIC 2025 수록분만({TYPES.map((t) => `${TYPE_STYLE[t].short} ${S[t].nk}`).join(' · ')})</>}
         caution="LOCALDATA에만 있는 영업 기록은 스크린·좌석 자료가 없어 그래프에서 빠집니다. 유형은 분석용 분류이며 법적 구분이 아닙니다." />
       <DataTable caption="유형별 규모(영업 중)" head={['유형', '영업(곳)', 'KOFIC 수록(곳)', '스크린(개)', '좌석(석)', '특별관 보유(곳)']}
