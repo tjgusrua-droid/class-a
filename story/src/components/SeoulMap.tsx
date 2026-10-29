@@ -54,8 +54,9 @@ type Props = {
 const BASE = ['gu', 'gulabel', 'river', 'boundary', 'venues', 'link', 'bmGreen', 'bmWater', 'bmRoads', 'bmDong', 'mask']
 const BM = ['bm-green', 'bm-water', 'bm-stream', 'bm-road3', 'bm-road2-case', 'bm-road2', 'bm-road1-case', 'bm-road1', 'mask', 'bm-dong']
 // 배경지도 색(밝은 화면 / 밀도 지도의 어두운 화면)
-const PAL = { light: { land: '#f5f4ef', green: '#d9e8cf', water: '#bcd5e6', road: '#ffffff', case: '#d2d0c8', minor: '#e6e4dd', mask: '#ffffff' },
-  dark: { land: '#262626', green: '#26332a', water: '#1d2f3d', road: '#4a4a4a', case: '#333333', minor: '#363636', mask: '#1e1e1e' } }
+// 흑백: 영화관 점의 색만 눈에 띄도록 배경은 회색 단계로만
+const PAL = { light: { land: '#f3f3f3', green: '#e2e2e2', water: '#d0d3d6', road: '#ffffff', case: '#d6d6d6', minor: '#e9e9e9', mask: '#ffffff' },
+  dark: { land: '#222222', green: '#2b2b2b', water: '#383a3d', road: '#424242', case: '#2e2e2e', minor: '#303030', mask: '#1b1b1b' } }
 
 // 서울 바깥을 옅게 가리는 면(세계 사각형에서 서울 경계를 뺌)
 function maskFC(fc: any) {
@@ -222,7 +223,9 @@ export default function SeoulMap(p: Props) {
       const ids = hov.flatMap((o) => o.layers.map((_, i) => `${o.id}-${i}`)).filter((id) => m.getLayer(id))
       const f = ids.length && !m.queryRenderedFeatures(e.point, { layers: ['venues'] }).length ? m.queryRenderedFeatures([[e.point.x - 4, e.point.y - 4], [e.point.x + 4, e.point.y + 4]], { layers: ids })[0] : null
       const o = f && hov.find((x) => (f.layer.id as string).startsWith(x.id + '-'))
-      setHint(o ? { x: e.point.x + 10, y: e.point.y - 26, t: o.hover!(f!.properties) } : null)
+      // 보조 레이어가 없으면 자치구 이름(구 이름은 지도에 쓰지 않고 마우스를 올렸을 때만)
+      const gu = !o && m.getLayer('gu-fill') && !m.queryRenderedFeatures(e.point, { layers: ['venues'] }).length ? m.queryRenderedFeatures(e.point, { layers: ['gu-fill'] })[0] : null
+      setHint(o ? { x: e.point.x + 10, y: e.point.y - 26, t: o.hover!(f!.properties) } : gu ? { x: e.point.x + 10, y: e.point.y - 26, t: gu.properties!.name } : null)
     })
     m.on('mouseleave', 'venues', () => { m.getCanvas().style.cursor = ''; setTip((t) => (t?.pinned ? t : null)) })
     m.on('click', (e) => {
@@ -331,7 +334,8 @@ function apply(m: maplibregl.Map, p: Props, base = false) {
   if (m.getLayer('gu-line')) m.setPaintProperty('gu-line', 'line-color', p.dark ? '#4a4a4a' : '#bdbdbd')
   if (m.getLayer('boundary')) m.setPaintProperty('boundary', 'line-color', p.dark ? '#888' : '#444')
   if (m.getLayer('gu-label')) m.setPaintProperty('gu-label', 'icon-opacity', p.dark ? 0.35 : 1)
-  for (const id of ['gu-line', 'gu-label']) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', p.showGu === false ? 'none' : 'visible')
+  if (m.getLayer('gu-line')) m.setLayoutProperty('gu-line', 'visibility', p.showGu === false ? 'none' : 'visible')
+  if (m.getLayer('gu-label')) m.setLayoutProperty('gu-label', 'visibility', 'none')
   ;(m.getSource('link') as maplibregl.GeoJSONSource).setData({ type: 'FeatureCollection',
     features: p.line ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: p.line } }] : [] })
   const on = new Set((p.extras ?? []).map((o) => o.id))
@@ -339,6 +343,11 @@ function apply(m: maplibregl.Map, p: Props, base = false) {
     const s = m.getSource(o.id) as maplibregl.GeoJSONSource | undefined
     if (s) {
       s.setData(o.data)
+      if (o.label) { // 이름표도 새 자료로(글자가 바뀌면 그림을 새로 만든다)
+        const L = o.label
+        o.data.features.forEach((f: any) => { const t = L.text(f.properties); if (!m.hasImage(`lbl:${t}`)) m.addImage(`lbl:${t}`, textIcon(L.box ? ` ${t} ` : t, L.color, 700, L.box), { pixelRatio: 2 }) })
+        ;(m.getSource(`${o.id}-lbl`) as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features: o.data.features.map((f: any) => ({ type: 'Feature', properties: { t: L.text(f.properties), a: f.properties.tagAnchor ?? 'center' }, geometry: { type: 'Point', coordinates: f.properties.label } })) } as any)
+      }
       o.layers.forEach((l, i) => { for (const [k, v] of Object.entries(l.paint ?? {})) m.setPaintProperty(`${o.id}-${i}`, k, v) }) // 색·투명도·굵기 즉시 반영
     } else {
       m.addSource(o.id, { type: 'geojson', data: o.data })

@@ -11,13 +11,13 @@ function shade(hex: string, k: number) {
   return `rgb(${c.join(',')})`
 }
 
-// 직육면체: 윗면·왼쪽 앞면·오른쪽 앞면
-export function Box({ x, y, z, w, d, h, color, line = '#333' }: { x: number; y: number; z: number; w: number; d: number; h: number; color: string; line?: string }) {
+// 직육면체(렌더 느낌): 굵은 외곽선 없이 면의 밝기 차이로만 입체를 만들고, 모서리에 아주 옅은 하이라이트만
+export function Box({ x, y, z, w, d, h, color, line = 'rgba(255,255,255,0.45)' }: { x: number; y: number; z: number; w: number; d: number; h: number; color: string; line?: string }) {
   return (
-    <g stroke={line} strokeWidth="0.7" strokeLinejoin="round">
-      <polygon points={pts([[x, y + d, z], [x + w, y + d, z], [x + w, y + d, z + h], [x, y + d, z + h]])} fill={shade(color, -0.12)} />
-      <polygon points={pts([[x + w, y, z], [x + w, y + d, z], [x + w, y + d, z + h], [x + w, y, z + h]])} fill={shade(color, -0.28)} />
-      <polygon points={pts([[x, y, z + h], [x + w, y, z + h], [x + w, y + d, z + h], [x, y + d, z + h]])} fill={shade(color, 0.25)} />
+    <g stroke={line} strokeWidth="0.35" strokeLinejoin="round">
+      <polygon points={pts([[x, y + d, z], [x + w, y + d, z], [x + w, y + d, z + h], [x, y + d, z + h]])} fill={shade(color, -0.06)} />
+      <polygon points={pts([[x + w, y, z], [x + w, y + d, z], [x + w, y + d, z + h], [x + w, y, z + h]])} fill={shade(color, -0.2)} />
+      <polygon points={pts([[x, y, z + h], [x + w, y, z + h], [x + w, y + d, z + h], [x, y + d, z + h]])} fill={shade(color, 0.32)} />
     </g>
   )
 }
@@ -27,12 +27,12 @@ function Screens({ n, x, y, z, w, d, color }: { n: number; x: number; y: number;
   const cols = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / cols)
   const cw = w / cols, cd = d / rows
   const cells = Array.from({ length: n }, (_, i) => ({ c: i % cols, r: Math.floor(i / cols) })).sort((a, b) => a.c + a.r - (b.c + b.r))
-  return <>{cells.map(({ c, r }) => <Box key={`${c}-${r}`} x={x + c * cw + 0.25} y={y + r * cd + 0.25} z={z} w={cw - 0.5} d={cd - 0.5} h={1.6} color={color} line="#fff" />)}</>
+  return <>{cells.map(({ c, r }) => <Box key={`${c}-${r}`} x={x + c * cw + 0.25} y={y + r * cd + 0.25} z={z} w={cw - 0.5} d={cd - 0.5} h={1.6} color={color} />)}</>
 }
 
 function Label({ x, y, z, t, dx = 0 }: { x: number; y: number; z: number; t: string; dx?: number }) {
   const [px, py] = iso(x, y, z)
-  return <g fontSize="10.5" fill="#333"><line x1={px} y1={py} x2={px + dx} y2={py - 14} stroke="#999" /><text x={px + dx} y={py - 17} textAnchor={dx < 0 ? 'end' : 'start'}>{t}</text></g>
+  return <g fontSize="10.5" fill="#444"><line x1={px} y1={py} x2={px + dx} y2={py - 14} stroke="#bbb" strokeWidth="0.6" /><text x={px + dx} y={py - 17} textAnchor={dx < 0 ? 'end' : 'start'}>{t}</text></g>
 }
 
 export function TypeIsometric({ type, screens }: { type: VenueType; screens: number | null }) {
@@ -40,7 +40,9 @@ export function TypeIsometric({ type, screens }: { type: VenueType; screens: num
   return (
     <svg viewBox="-90 -8 470 218" role="img" aria-label={`${type} 개념도`} className="iso">
       <title>{type} 개념도 — 상영관 {screens ?? '자료 없음'}개(중앙값)</title>
-      <polygon points={pts([[-4, -4, 0], [22, -4, 0], [22, 22, 0], [-4, 22, 0]])} fill="#f1f1ee" stroke="#ddd" />
+      <defs><filter id="isoblur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" /></filter></defs>
+      <polygon points={pts([[-4, -4, 0], [22, -4, 0], [22, 22, 0], [-4, 22, 0]])} fill="#f2f2f2" />
+      <polygon points={pts([[2, 4, 0], [20, 4, 0], [20, 20, 0], [2, 20, 0]])} fill="#000" opacity="0.10" filter="url(#isoblur)" />
       {type === '멀티플렉스' && <>
         {[0, 1, 2].map((f) => <Box key={f} x={0} y={0} z={f * 3} w={16} d={14} h={3} color="#d6d6d2" />)}
         <Box x={0} y={0} z={9} w={16} d={14} h={0.4} color="#bdbdb8" />
@@ -96,7 +98,9 @@ export function OccupancyTiles({ items }: { items: { label: string; color: strin
       {items.filter((x) => SCENE[x.label]).map((x) => (
         <figure key={x.label} className={x.n ? '' : 'none'}>
           <svg viewBox="40 -30 240 220" role="img" aria-label={`${x.label} 모식도`}>
-            <polygon points={pts([[-6, -4, 0], [24, -4, 0], [24, 20, 0], [-6, 20, 0]])} fill="#f3f3f0" />
+            <polygon points={pts([[-6, -4, 0], [24, -4, 0], [24, 20, 0], [-6, 20, 0]])} fill="#f2f2f2" />
+            <polygon points={pts([[0, 4, 0], [22, 4, 0], [22, 18, 0], [0, 18, 0]])} fill="#000" opacity="0.09" filter="url(#isoblur2)" />
+            <defs><filter id="isoblur2"><feGaussianBlur stdDeviation="3" /></filter></defs>
             {SCENE[x.label](x.color)}
           </svg>
           <figcaption><b style={{ color: x.color === '#c4c4c4' ? '#666' : x.color }}>{x.label.replace(' 내 입점', '')}</b><br />{x.counts}</figcaption>
@@ -110,7 +114,7 @@ export function OccupancyIcon({ label, color }: { label: string; color: string }
   if (!SCENE[label]) return <svg viewBox="40 -30 240 220" className="occicon" role="img" aria-label="입점 형태 확인 불가"><text x="160" y="90" textAnchor="middle" fontSize="16" fill="#999">확인 불가</text></svg>
   return (
     <svg viewBox="40 -30 240 220" className="occicon" role="img" aria-label={`${label} 모식도`}>
-      <polygon points={pts([[-6, -4, 0], [24, -4, 0], [24, 20, 0], [-6, 20, 0]])} fill="#f3f3f0" />
+      <polygon points={pts([[-6, -4, 0], [24, -4, 0], [24, 20, 0], [-6, 20, 0]])} fill="#f2f2f2" />
       {SCENE[label](color)}
     </svg>
   )

@@ -84,7 +84,7 @@ export default function Distribution({ data, open }: { data: DataSet; open: Venu
       <div className="dist-text">
         <div className="headlines">
           {(focus ? [focus] : TYPES).map((t) => { const h = headline(t, by(t).filter(located).length, new Set(by(t).map((v) => v.gu)).size, cl[t])
-            return <div key={t} className="headline" style={{ borderColor: TYPE_STYLE[t].color }} onClick={() => setSel(sel === t ? null : t)}>
+            return <div key={t} className="headline" style={{ borderLeftColor: TYPE_STYLE[t].color }} onClick={() => setSel(sel === t ? null : t)}>
               <p className="find-big"><Sym type={t} /> {h.head}</p>{h.mean && <p className="find-sub">{h.mean}</p>}</div> })}
         </div>
         <More>문장은 ‘역 반경 1km 안에 같은 유형이 가장 많은 곳’을 계산해 자동으로 만듭니다(25% 이상이 한곳에 있으면 ‘모여 있다’). 문장을 누르면 그 유형만 강조합니다. 자치구 상위: {TYPES.map((t) => `${TYPE_STYLE[t].short} ${topBy(by(t), (v) => v.gu, 2).map(([k, n]) => `${k} ${n}`).join('·')}`).join(' / ')}</More>

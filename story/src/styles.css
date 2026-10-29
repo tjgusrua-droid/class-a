@@ -432,3 +432,94 @@ details.more { margin-top: 12px; }
 .loc-panel > h3 { order: -2; }
 .loc-panel > .finding { order: -1; margin-top: 0; }
 .split.advice .chart .finding, .tl-side .finding, .survival .finding { margin-top: 4px; }
+
+/* =====================================================================
+   디자인 층(최종): 토큰 → 글꼴 → 조작 요소 → 카드(결론·제목 문장) → 지도 틀
+   한 가지 역할에는 한 가지 모양만 쓴다. 강조색 = 잉크(검정), 유형 색은 자료에만.
+   ===================================================================== */
+:root {
+  --ink: #16181c; --ink2: #3c4048; --muted: #747983; --line: #e4e6ea; --soft: #f3f4f6; --page: #ffffff;
+  --r-card: 14px; --r-pill: 999px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 8px 24px rgba(16, 24, 40, .06);
+  font-family: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', system-ui, sans-serif;
+  color: var(--ink); background: var(--page); color-scheme: light;
+}
+body { background: var(--page); color: var(--ink); -webkit-font-smoothing: antialiased; }
+button, select, input { font-family: inherit; }
+input[type="checkbox"] { accent-color: var(--ink); }
+.scene + .scene { border-top: 1px solid var(--line); }
+
+/* 제목 */
+.intro h1 { font-weight: 700; letter-spacing: -0.035em; line-height: 1.18; text-wrap: balance; }
+.scene h2 { font-weight: 700; letter-spacing: -0.03em; display: flex; align-items: center; gap: 12px; text-wrap: balance; }
+.scene h2 span { width: auto; min-width: 30px; height: 30px; display: inline-grid; place-items: center; font-size: 15px; font-weight: 700; color: #fff; background: var(--ink); border-radius: var(--r-pill); padding: 0 10px; flex: none; }
+.lead { color: var(--ink2); }
+.eyebrow { color: var(--muted); font-weight: 600; letter-spacing: .06em; }
+.loc-panel h3, .step h3 { font-weight: 700; letter-spacing: -0.02em; }
+
+/* 단계 탭(3장) */
+.stage .steps { border-bottom: 0; gap: 4px; padding: 6px 0 2px; }
+.steps button { border-radius: var(--r-pill); padding: 6px 13px; color: var(--muted); font-weight: 500; box-shadow: none !important; }
+.steps button:hover { background: var(--soft); color: var(--ink); }
+.steps button[aria-current='true'] { background: var(--ink); color: #fff; font-weight: 600; }
+
+/* 선택 버튼: 알약 모양 세그먼트 */
+.seg { border: 0; background: var(--soft); border-radius: var(--r-pill); padding: 3px; gap: 2px; }
+.seg button { border: 0 !important; border-radius: var(--r-pill); background: transparent; padding: 5px 12px; color: var(--ink2); font-weight: 500; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed='true'] { background: #fff; color: var(--ink); font-weight: 700; box-shadow: 0 1px 3px rgba(16, 24, 40, .14); }
+.metricpick { gap: 6px; }
+.metricpick button { border: 1px solid var(--line); border-radius: var(--r-pill); padding: 4px 11px; background: #fff; color: var(--ink2); }
+.metricpick button[aria-pressed='true'] { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* 켜고 끄기: 칩 */
+.toggles label, .chk, .layerpanel > label { border: 1px solid var(--line); border-radius: var(--r-pill); padding: 3px 10px 3px 7px; background: #fff; color: var(--ink2); }
+.toggles { gap: 6px; }
+.toggles small { color: var(--muted); }
+
+/* 결론 카드: 흰 카드 + 왼쪽 잉크 띠 + '결론' 라벨 */
+.finding { position: relative; background: #fff; border: 1px solid var(--line); border-left: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--shadow); padding: 14px 18px 12px 22px; }
+.finding::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; background: var(--ink); }
+.finding .f-title { background: var(--ink); color: #fff; border-radius: var(--r-pill); padding: 2px 10px; font-weight: 600; letter-spacing: .04em; }
+.finding .f-head { font-weight: 700; letter-spacing: -0.02em; line-height: 1.45; }
+.finding .f-head + .f-mean { margin-top: 2px; }
+.finding .f-mean { color: var(--ink2); }
+.finding .f-mean::before { color: var(--muted); }
+.finding > div + div { border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 2px; }
+
+/* 2장 결론 문장 카드 */
+.headline { background: #fff; border: 1px solid var(--line); border-left-width: 4px; border-radius: 12px; padding: 12px 16px; box-shadow: var(--shadow); transition: transform .15s; }
+.headline:hover { transform: translateY(-1px); }
+.find-sub { color: var(--ink2); }
+
+/* 1장 유형 카드 */
+#types .deftable { border-top: 0; gap: 16px; }
+#types .deftable .col { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px 10px; box-shadow: var(--shadow); }
+#types .deftable .col + .col { border-left: 1px solid var(--line); padding-left: 18px; }
+#types .deftable h3 { border-bottom-width: 2px; }
+
+/* 4·5장 */
+.keyfig b { font-weight: 700; letter-spacing: -0.02em; }
+.eracard { border-radius: 12px; border: 1px solid var(--line); border-top: 1px solid var(--line); box-shadow: var(--shadow); }
+.eracard[aria-pressed='true'] { background: var(--ink); color: #fff; }
+.eracard[aria-pressed='true'] p, .eracard[aria-pressed='true'] em { color: #d6d8dd; }
+.mini-table th { color: var(--muted); font-weight: 600; }
+.mini-table td, .mini-table th { border-bottom-color: var(--line); }
+
+/* 지도 틀·지도 위 버튼·말풍선 */
+.map { border-radius: var(--r-card); border: 1px solid var(--line); overflow: hidden; }
+.mapbtns { left: 10px; top: 10px; gap: 6px; }
+.mapbtns button { border: 0; border-radius: var(--r-pill); padding: 5px 11px; background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(16, 24, 40, .18); }
+.mapbtns button[aria-pressed='true'] { background: var(--ink); color: #fff; }
+.maphint { background: var(--ink); color: #fff; border: 0; border-radius: 6px; padding: 3px 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, .18); }
+.maplibregl-ctrl-group { border-radius: 10px !important; box-shadow: 0 1px 4px rgba(16, 24, 40, .18) !important; }
+.legend { color: var(--ink2); gap: 4px 14px; }
+
+/* 접어 둔 설명·도구 */
+.more-info summary { border-color: var(--line); color: var(--muted); background: #fff; }
+.more-info summary:hover { color: var(--ink); border-color: #c9ccd2; }
+.more-info[open] summary { background: var(--ink); color: #fff; border-color: var(--ink); }
+.more-body { background: var(--soft); border-left: 0; border-radius: 10px; color: var(--ink2); }
+.toolbar button { border-radius: var(--r-pill); border-color: var(--line); background: #fff; }
+.chart-title { font-weight: 700; letter-spacing: -0.01em; }
+.chart-title small { font-weight: 400; color: var(--muted); }
