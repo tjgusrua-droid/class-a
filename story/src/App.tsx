@@ -85,7 +85,7 @@ export default function App() {
 
       <StorySection id="change">
         <h2><span>4</span>언제, 어디에서 생기고 얼마나 유지되었는가?</h2>
-        <p className="lead">2000년부터 연도를 움직이면 지도와 그래프가 함께 바뀝니다.</p>
+        <p className="lead">연도를 움직이거나 시기를 누르면 지도와 그래프가 함께 바뀝니다. ‘현재 보기’ = 지금 영업 중인 곳 전체.</p>
         <TimelineSection data={data} all={all} />
       </StorySection>
 

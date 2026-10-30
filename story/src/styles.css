@@ -569,3 +569,10 @@ input[type="checkbox"] { accent-color: var(--ink); }
 .split.advice .finding .f-mean { margin-bottom: 4px; line-height: 1.5; }
 .lg-ring { display: inline-block; width: 14px; height: 10px; border: 1px solid; border-radius: 6px; background: transparent; }
 .catrow i { font-size: 10px; }
+.nowbtn { border: 1px solid var(--ink); background: #fff; color: var(--ink); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.nowbtn.on, .nowbtn:hover { background: var(--ink); color: #fff; }
+.eracards { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.eracard { padding: 6px 8px; } .eracard .bignet { font-size: 22px; }
+.tl-side .finding .f-mean { font-size: 13.5px; }
+#change .lead { max-width: none; }
+.tl { height: calc(100vh - 150px); }

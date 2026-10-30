@@ -133,6 +133,8 @@ export const MetricChart = forwardRef<SVGSVGElement, {
         <rect x={bx(xi(e.from))} y={t} width={bw * (e.to - e.from + 1)} height={H - t - b} fill="#efefef" />
         <text x={bx(xi(e.from)) + 2} y={t - 4} fontSize="9.5" fill="#888">{e.label}</text></g>)}
       {range && <rect x={bx(xi(range[0]))} y={t} width={bw * (range[1] - range[0] + 1)} height={H - t - b} fill="none" stroke="#111" strokeDasharray="3 3" />}
+      {years[0] < 1990 && xi(1990) > 0 && <g><rect x={l} y={t} width={bx(xi(1990)) - l} height={H - t - b} fill="#000" fillOpacity="0.035" />
+        <text x={l + 4} y={t + 12} fontSize="9.5" fill="#888">1990년 전: 남아 있는 기록만</text></g>}
       {missing.length > 0 && (() => { const run = missing.filter((m, k) => m === missing[0] + k) // 처음 이어진 빈 구간만
         return <text x={bx(run[0]) + 4} y={mid - 6} fontSize="10.5" fill="#999">자료 미확보 ({years[run[0]]}–{years[run[run.length - 1]]})</text> })()}
       {ticks.map((v) => <g key={v}>
@@ -153,7 +155,7 @@ export const MetricChart = forwardRef<SVGSVGElement, {
           {kind === 'flow' && down?.[i] != null && !parts && <rect x={bx(i) + 2} y={mid} width={bw - 4} height={sy(down[i]!)} fill="#fff" stroke={color} />}
           {kind !== 'line' && parts && stack(parts.map((q) => q.values[i]), (y0, h, k) => <rect key={k} x={bx(i) + 2} y={mid - y0 - h} width={bw - 4} height={h} fill={TYPE_STYLE[parts[k].key].color} stroke="#fff" strokeWidth="0.5" />)}
           {kind === 'flow' && parts && stack(parts.map((q) => q.down?.[i] ?? null), (y0, h, k) => <rect key={k} x={bx(i) + 2} y={mid + y0} width={bw - 4} height={h} fill="#fff" stroke={TYPE_STYLE[parts[k].key].color} strokeWidth="1.2" />)}
-          {(y % 5 === 0 || y === year) && <text x={bx(i) + bw / 2} y={H - b + 14} fontSize="10" textAnchor="middle" fontWeight={y === year ? 700 : 400}>{y}</text>}
+          {(y % (years.length > 40 ? 10 : 5) === 0 || y === year) && <text x={bx(i) + bw / 2} y={H - b + 14} fontSize="10" textAnchor="middle" fontWeight={y === year ? 700 : 400}>{y}</text>}
           {y === partialYear && <text x={bx(i) + bw / 2} y={H - b + 26} fontSize="9" textAnchor="middle" fill="#888">~9.4</text>}
         </g>))}
       {kind === 'line' && [...(parts ?? []).map((q) => ({ vs: q.values, c: TYPE_STYLE[q.key].color, w: 1.8 })), { vs: values, c: color, w: 2.6 }].map(({ vs, c, w }) => <g key={c}>
@@ -170,7 +172,7 @@ export const MetricChart = forwardRef<SVGSVGElement, {
         {[{ k: '전체', c: color }, ...parts.map((q) => ({ k: q.key as string, c: TYPE_STYLE[q.key].color }))].map((x, j) => (kind === 'line' || j > 0) &&
           <g key={x.k} transform={`translate(${j * 112},0)`}><rect width="9" height="9" fill={x.c} /><text x="13" y="8.5">{x.k}</text></g>)}
       </g>}
-      <line x1={bx(xi(year)) + bw / 2} x2={bx(xi(year)) + bw / 2} y1={t} y2={H - b} stroke="#c8423b" strokeWidth="1.5" />
+      <line x1={bx(xi(year)) + bw / 2} x2={bx(xi(year)) + bw / 2} y1={t} y2={H - b} stroke="#111" strokeWidth="1.2" strokeDasharray="3 2" />
       <text x={l} y={12} fontSize="11" fontWeight="600">{label}{kind === 'flow' ? ' — 위: 개업, 아래: 폐업' : ''}{parts && kind !== 'line' ? ' (유형별로 쌓은 높이 = 전체)' : ''}</text>
       <text transform={`translate(12,${(t + H - b) / 2}) rotate(-90)`} fontSize="10.5" textAnchor="middle" fill="#333" fontWeight="600">세로축 ↑ {label.split(' — ')[0].replace('연도별 ', '')} ({unit})</text>
       <text x={W - r} y={H - 2} fontSize="10.5" textAnchor="end" fill="#333" fontWeight="600">가로축 → 연도</text>

@@ -38,17 +38,22 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
   const vs = all.filter((v) => !sel || v.type === sel)
   const inR = (y?: number) => y != null && y >= range[0] && y <= range[1]
   const points: Point[] = []
+  // 시기 버튼: 그 시기에 새로 열었거나 문을 닫은 영화관만. 연도(현재 보기 포함): 그해 문을 열고 있던 곳 + 그해 새로 연 곳·닫은 곳
   for (const v of vs) {
-    if (closedIn(v, v.closeD?.getFullYear() ?? -1) && inR(v.closeD!.getFullYear())) points.push({ v, mark: 'hollow' })
-    else if (operatingIn(v, range[1], LAST)) points.push({ v, mark: !v.bulkOpen && inR(v.openD?.getFullYear()) ? 'new' : 'fill' })
+    const closedHere = closedIn(v, v.closeD?.getFullYear() ?? -1) && inR(v.closeD!.getFullYear())
+    const openedHere = !v.bulkOpen && inR(v.openD?.getFullYear())
+    if (closedHere) points.push({ v, mark: 'hollow' })
+    else if (E) { if (openedHere) points.push({ v, mark: 'new' }) }
+    else if (operatingIn(v, range[1], LAST)) points.push({ v, mark: openedHere ? 'new' : 'fill' })
   }
+  const nowView = () => { setEra(null); setYear(LAST.getFullYear()) }
   const yr = row(year)
   const sumR = (k: string, e: (typeof ERAS)[number]) => YEARS.filter((y) => y >= e.from && y <= e.to).reduce((a, y) => a + (row(y)?.[k] ?? 0), 0)
   const unsure = YEARS.reduce((a, y) => a + (row(y)?.opened_unsure ?? 0), 0)
   const color = sel ? TYPE_STYLE[sel].color : ALL_COLOR
 
   const eraRows = ERAS.map((e) => { const n = Math.min(e.to, LAST.getFullYear()) - e.from + 1; return { e, n, o: sumR('opened', e), c: sumR('closed', e) } })
-  const a0 = row(YEAR_MIN)?.operating, a1 = row(2025)?.operating
+  const a0 = row(2000)?.operating, a1 = row(2025)?.operating
   // 시기별 정리: 개업·폐업 수, 순증감, 운영 수 변화, 개업·폐업에서 가장 큰 유형
   const typeSum = (k: string, e: (typeof ERAS)[number], t: string) => YEARS.filter((y) => y >= e.from && y <= e.to).reduce((a, y) => a + (yearly.find((r) => r.year === y && r.type === t)?.[k] ?? 0), 0)
   const topShare = (k: string, e: (typeof ERAS)[number], tot: number) => { const t = [...TYPES].sort((a, b) => typeSum(k, e, b) - typeSum(k, e, a))[0]
@@ -58,14 +63,15 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
     <div className="tl">
       <div className="tl-map">
         <SeoulMap data={data} label={`${range[0]}–${range[1]} 영화관 운영·개업·폐업 지도`} points={points} onMap={(m) => (map.current = m)} />
-        <MapLegend types={sel ? [sel] : [...TYPES]} marks={['fill', 'new', 'hollow']} />
-        <More>{E ? `${E.label}: 구간 끝 해에 운영 중(채움), 구간 안 개업(검은 테), 구간 안 폐업(외곽선)` : `${year}년: 운영 중(채움), 이 해 개업(검은 테), 이 해 폐업(외곽선)`} · 지도 {points.filter((p) => p.v.lon != null).length}곳(좌표 없음 {points.filter((p) => p.v.lon == null).length}곳)</More>
+        <MapLegend types={sel ? [sel] : [...TYPES]} marks={E ? ['new', 'hollow'] : ['fill', 'new', 'hollow']} />
+        <More>{E ? `${E.label}: 이 시기에 새로 연 곳(검은 테)과 문 닫은 곳(외곽선)만 표시` : `${year}년: 운영 중(채움), 이 해 개업(검은 테), 이 해 폐업(외곽선)`} · 지도 {points.filter((p) => p.v.lon != null).length}곳(좌표 없음 {points.filter((p) => p.v.lon == null).length}곳)</More>
       </div>
       <div className="tl-side">
         <div className="row"><TypeSelect value={sel} onChange={setSel} /></div>
         <div className="row ui">
           <label className="slider">연도 <input type="range" min={YEAR_MIN} max={YEARS[YEARS.length - 1]} value={year} onChange={(e) => { setYear(+e.target.value); setEra(null) }} /> <b>{year}</b></label>
           <Seg label="시기" value={era ?? ''} onChange={(v) => setEra(v === era ? null : v || null)} options={ERAS.map((e) => ({ v: e.id, label: e.label }))} />
+          <button className={`nowbtn ${!E && year === LAST.getFullYear() ? 'on' : ''}`} onClick={nowView}>현재 보기</button>
         </div>
         <div className="keyfig">
           <div><b>{yr?.operating ?? '—'}</b><span>{year}년 문 열고 있던 곳</span></div>
@@ -74,12 +80,12 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
           <div><b>{yr?.screens ?? '자료 미확보'}</b><span>스크린 수</span></div>
         </div>
         {a0 != null && a1 != null && <Finding items={[
-          { head: <>{sel ?? '전체'} 운영 영화관은 {YEAR_MIN}년 {a0}곳에서 2025년 {a1}곳이 되었습니다.</>,
+          { head: <>{sel ?? '전체'} 운영 영화관은 2000년 {a0}곳에서 2025년 {a1}곳이 되었습니다.</>,
             mean: <>연평균 개업은 {eraRows.map((x) => `${f1(x.o / x.n)}`).join(' → ')}곳으로 줄었고, 폐업은 {eraRows.map((x) => `${f1(x.c / x.n)}`).join(' → ')}곳이었습니다.</> }]} />}
         <div className="eracards" role="group" aria-label="시기별 정리">
           {eraRows.map(({ e, n, o, c }) => { const s0 = row(e.from === YEAR_MIN ? e.from : e.from - 1)?.operating, s1 = row(Math.min(e.to, LAST.getFullYear()))?.operating
             return <button key={e.id} className="eracard" aria-pressed={era === e.id} onClick={() => setEra(era === e.id ? null : e.id)}>
-              <b>{e.label}{e.to >= LAST.getFullYear() ? ' (~2026.9)' : ''}</b>
+              <b title={e.to >= LAST.getFullYear() ? '2026년은 9월까지' : undefined}>{e.label}{e.to >= LAST.getFullYear() ? '*' : ''}</b>
               <div className="bignet" data-neg={o - c < 0}>{o - c >= 0 ? '+' : ''}{o - c}<small>곳</small></div>
               <p>새로 연 곳 <b>{o}</b> · 문 닫은 곳 <b>{c}</b></p>
               <p className="sub">영화관 {s0 ?? '—'}곳 → {s1 ?? '—'}곳{!sel ? ` · 새로 연 곳의 ${topShare('opened', e, o)}` : ''}</p>

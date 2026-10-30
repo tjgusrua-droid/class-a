@@ -7,19 +7,21 @@ export const DATA_LABEL = `LOCALDATA ${DATA_DATE} 갱신본 기준 · ${VERIFIED
 export const RADII = [300, 500, 800, 1000] // 역세권·문화시설 반경 선택지(m)
 export const CULTURE_RADII = [300, 500, 1000]
 export const NEAR_BANDS = [500, 1000] // 최근접 영화관 거리 구간(m)
-export const YEAR_MIN = 2000
+export const YEAR_MIN = 1958 // LOCALDATA 첫 개업 기록 해. 1990년 이전은 남아 있는 기록만(그 전에 사라진 극장은 자료에 없음)
 
 export type VenueType = '멀티플렉스' | '독립·예술영화관' | '기타'
 export const TYPES: VenueType[] = ['멀티플렉스', '독립·예술영화관', '기타']
 // 유형은 색으로만 구분한다(모양은 모두 원). '전체'는 중립색(검정)
+// 색: 차분한 남색 · 코럴 · 청록(데이터 시각화 검증 스크립트로 색각 이상 구분·대비 확인, 3색 모든 짝 통과)
 export const TYPE_STYLE: Record<VenueType, { color: string; shape: 'circle' | 'square' | 'diamond'; mark: string; short: string }> = {
-  멀티플렉스: { color: '#2a5caa', shape: 'circle', mark: '●', short: '멀티' },
-  '독립·예술영화관': { color: '#c8423b', shape: 'circle', mark: '●', short: '독립·예술' },
-  기타: { color: '#d99a1e', shape: 'circle', mark: '●', short: '기타' },
+  멀티플렉스: { color: '#3d5a98', shape: 'circle', mark: '●', short: '멀티' },
+  '독립·예술영화관': { color: '#e06c55', shape: 'circle', mark: '●', short: '독립·예술' },
+  기타: { color: '#2a9d8f', shape: 'circle', mark: '●', short: '기타' },
 }
 export const ALL_COLOR = '#111111'
 
 export const ERAS = [
+  { id: 'pre', label: '2000년 전', from: 1958, to: 1999 },
   { id: '2000s', label: '2000년대', from: 2000, to: 2009 },
   { id: '2010s', label: '2010년대', from: 2010, to: 2019 },
   { id: '2020s', label: '2020년대', from: 2020, to: 2026 },
@@ -37,7 +39,8 @@ export const OCCUPANCY = ['백화점 내 입점', '쇼핑몰·아울렛 내 입�
 export const OCC_COLOR = ['#0f9d8a', '#7b4fb3', '#e05fa0', '#5a9e2f', '#8c5a2b', '#00a3c4', '#ef7d2d', '#6b6b2a', '#5f6b7a', '#111111', '#c4c4c4']
 // 2040 중심지 위계 색(개략 영역)
 export const CENTER_LEVELS = ['3도심', '7광역중심', '12지역중심']
-export const CENTER_COLOR: Record<string, string> = { '3도심': '#6a3d9a', '7광역중심': '#0f8b8d', '12지역중심': '#a8754a', '중심지 밖': '#e6e6e6' }
+// 중심지 위계는 순서가 있는 값이라 한 색의 진하기로(진할수록 큰 중심지). 유형 색(남색·코럴·청록)과 겹치지 않는 보라 계열
+export const CENTER_COLOR: Record<string, string> = { '3도심': '#5b4b8a', '7광역중심': '#8f80b8', '12지역중심': '#c3b9dc', '중심지 밖': '#ececec' }
 
 // 각 장면이 필요로 하는 파일과 필수 필드. 없으면 DataStatus가 이 정보를 보여준다
 export const FILES = {

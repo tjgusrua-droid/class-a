@@ -402,9 +402,9 @@ def kofic_only(links, t):
 
 def yearly(ep, t):
     data_date = pd.Timestamp(DATA_DATE)
-    years = range(2000, data_date.year + 1)
     ep = ep.copy()
     ep["o"] = pd.to_datetime(ep.open_date, errors="coerce")
+    years = range(int(ep.o.dt.year.min()), data_date.year + 1)  # LOCALDATA 첫 개업 기록 해부터(1990년 이전은 남은 기록만)
     ep["c"] = pd.to_datetime(ep.close_date.where(ep.close_date != "자료 없음"), errors="coerce")
     unknown_close = ep.operation_status.ne("영업") & ep.c.isna()
     bulk_open = ep.source_conflict.fillna("").str.contains("일괄 등록일")
