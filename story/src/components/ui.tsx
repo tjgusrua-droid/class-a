@@ -8,7 +8,8 @@ export function StorySection({ id, children, className = '' }: { id: string; chi
   const ref = useRef<HTMLElement>(null)
   const [seen, setSeen] = useState(false)
   useEffect(() => {
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && setSeen(true), { rootMargin: '0px 0px -25% 0px' })
+    // 발표 모드에서는 장면에 다시 들어올 때마다 등장 효과를 되풀이한다(나가면 'in'을 뗀다)
+    const io = new IntersectionObserver(([e]) => (e.isIntersecting ? setSeen(true) : document.querySelector('.present') && setSeen(false)), { rootMargin: '0px 0px -25% 0px' })
     io.observe(ref.current!)
     return () => io.disconnect()
   }, [])

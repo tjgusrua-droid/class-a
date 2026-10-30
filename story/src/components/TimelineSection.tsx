@@ -75,7 +75,6 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
           <div><b>{yr?.operating ?? '—'}</b><span>{year}년 문 열고 있던 곳</span></div>
           <div><b>{yr?.opened ?? '—'}</b><span>새로 연 곳{yr?.opened_unsure ? ` (+불확실 ${yr.opened_unsure})` : ''}</span></div>
           <div><b>{yr?.closed ?? '—'}</b><span>문 닫은 곳</span></div>
-          <div><b>{yr?.screens ?? '자료 미확보'}</b><span>스크린 수</span></div>
         </div>
         {a0 != null && a1 != null && <Finding items={[
           { head: <>{sel ?? '전체'} 운영 영화관은 2000년 {a0}곳에서 2025년 {a1}곳이 되었습니다.</>,
@@ -92,7 +91,7 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
             </button> })}
         </div>
         <div className="row ui metricpick" role="group" aria-label="지표 선택">
-          {(['operating', 'flow', 'screens'] as MetricKey[]).map((k) => <button key={k} aria-pressed={metric === k} onClick={() => setMetric(k)}>{(METRICS[k] as any).btn}</button>)}
+          {(['operating', 'flow'] as MetricKey[]).map((k) => <button key={k} aria-pressed={metric === k} onClick={() => setMetric(k)}>{(METRICS[k] as any).btn}</button>)}
         </div>
         <MetricChart ref={svg} title={M.label} label={`${M.label} — ${sel ?? '전체'}`} years={YEARS} values={values} down={metric === 'flow' ? series('closed') : undefined}
           kind={M.kind} color={color}
@@ -110,11 +109,11 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
           </table>
           <SourceNote source={SOURCES.venues}
             n={`운영구간 ${vs.length}개(${sel ?? '전체'})`}
-            method={<>t년 운영 = 개업일 ≤ t년 말 이고 (영업 중이거나 폐업일 ≥ t년 1월 1일). 개업·폐업 = LOCALDATA 날짜. 스크린·좌석 = KOFIC 2010~2025, 특별관 = 2019~2025(그 밖은 자료 미확보, 현재 값을 과거로 옮기지 않음)</>}
+            method={<>t년 운영 = 개업일 ≤ t년 말 이고 (영업 중이거나 폐업일 ≥ t년 1월 1일). 개업·폐업 = LOCALDATA 날짜.</>}
             caution={<>같은 구에서 4곳 이상이 같은 날 인허가된 날짜(1998-03-09 강남, 2003-02-12 종로, 2003-05-20 중구)는 일괄 등록일로 보고 개업 수에서 뺐습니다(전체 {unsure}건, 운영 수에는 포함). 그래서 2003년 운영 수가 크게 오르지만 실제 개업 증가가 아닙니다. 음영(금융위기·코로나19)은 시기 표시일 뿐 원인을 뜻하지 않습니다. 값이 두 무리로 떨어지면 세로축 중간을 생략합니다.</>} />
         </details>
-        <DataTable caption={`연도별 지표 — ${sel ?? '전체'}`} head={['연도', '운영', '개업', '폐업', '누적 개업', '누적 폐업', '스크린', '좌석', '특별관']}
-          rows={YEARS.map((y) => { const r = row(y); return [y, r?.operating, r?.opened, r?.closed, r?.cum_opened, r?.cum_closed, r?.screens, r?.seats, r?.special] })} />
+        <DataTable caption={`연도별 지표 — ${sel ?? '전체'}`} head={['연도', '운영', '개업', '폐업', '누적 개업', '누적 폐업']}
+          rows={YEARS.map((y) => { const r = row(y); return [y, r?.operating, r?.opened, r?.closed, r?.cum_opened, r?.cum_closed] })} />
       </div>
     </div>
   )

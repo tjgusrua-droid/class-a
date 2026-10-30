@@ -342,7 +342,7 @@ details caption { text-align: left; font-weight: 600; padding: 4px 0; }
 .tl-map .note { margin: 2px 0 0; }
 .tl-side { overflow-y: auto; padding-right: 6px; }
 .tl-side .row { margin-bottom: 8px; }
-.tl-side .keyfig { margin: 4px 0 6px; }
+.tl-side .keyfig { margin: 4px 0 6px; grid-template-columns: repeat(3, 1fr); }
 .tl-side .finding { margin: 6px 0 8px; padding-top: 6px; }
 .tl-side .finding .f-head { margin: 4px 0 2px; }
 .tl-side .metricpick button { padding: 3px 7px; }
@@ -594,3 +594,31 @@ input[type="checkbox"] { accent-color: var(--ink); }
 .eratypes td[data-neg='true'] { color: #b3261e; }
 .eratypes i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: 0; }
 .eracard[aria-pressed='true'] .eratypes td:last-child { color: #fff; }
+
+/* ---- 발표 모드 등장 효과: 장면에 들어올 때마다 제목 → 설명 → 결론 → 숫자·카드 → 그래프 순서로 나타난다 ---- */
+@keyframes p-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes p-left { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+@keyframes p-pop { 0% { opacity: 0; transform: scale(.92); } 70% { opacity: 1; transform: scale(1.02); } 100% { transform: none; } }
+@keyframes p-grow { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes p-dot { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: none; } }
+@keyframes p-draw { from { stroke-dashoffset: 3000; } to { stroke-dashoffset: 0; } }
+@keyframes p-map { from { opacity: 0; transform: scale(.97); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  .present .scene { transition: opacity .5s, transform .5s; }
+  .present .scene.in h2, .present .scene.in h1 { animation: p-left .7s cubic-bezier(.2,.7,.2,1) both; }
+  .present .scene.in .lead { animation: p-up .6s .15s both; }
+  .present .scene.in .finding { animation: p-pop .7s .35s both; }
+  .present .scene.in .map, .present .scene.in .intro-map { animation: p-map .9s .1s both; }
+  .present .scene.in :is(.keyfig, .eracards, .traits, .occtiles, .deftable, .eratypes tbody) > * { animation: p-up .55s both; }
+  .present .scene.in :is(.keyfig, .eracards, .traits, .occtiles, .deftable, .eratypes tbody) > :nth-child(1) { animation-delay: .5s; }
+  .present .scene.in :is(.keyfig, .eracards, .traits, .occtiles, .deftable, .eratypes tbody) > :nth-child(2) { animation-delay: .62s; }
+  .present .scene.in :is(.keyfig, .eracards, .traits, .occtiles, .deftable, .eratypes tbody) > :nth-child(3) { animation-delay: .74s; }
+  .present .scene.in :is(.keyfig, .eracards, .traits, .occtiles, .deftable, .eratypes tbody) > :nth-child(4) { animation-delay: .86s; }
+  .present .scene.in :is(.keyfig, .eracards, .traits, .occtiles, .deftable, .eratypes tbody) > :nth-child(n+5) { animation-delay: .98s; }
+  .present .scene.in :is(.ministack, .lvbar, .catrow > div) > i { transform-origin: left; animation: p-grow .8s .7s cubic-bezier(.2,.7,.2,1) both; }
+  .present .scene.in svg path[fill="none"]:not([stroke-dasharray]) { stroke-dasharray: 3000; animation: p-draw 1.8s .6s ease-out both; }
+  .present .scene.in .centerdiagram circle { transform-box: fill-box; transform-origin: center; animation: p-dot .5s .6s cubic-bezier(.3,1.4,.5,1) both; }
+  .present .scene.in .centerdiagram g:nth-child(2) circle { animation-delay: .8s; }
+  .present .scene.in .centerdiagram g:nth-child(3) circle { animation-delay: 1s; }
+  .present .scene.in svg rect { transform-box: fill-box; transform-origin: bottom; animation: p-up .6s .7s both; }
+}
