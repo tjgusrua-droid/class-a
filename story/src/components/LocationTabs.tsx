@@ -92,7 +92,7 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
   const [showGu, setShowGu] = useState(true)
   const [radius, setRadius] = useState(500)
   const [bufKinds, setBufKinds] = useState({ 일반역: true, 환승역: true })
-  const [bufW, setBufW] = useState({ 일반역: 0.8, 환승역: 2.6 }) // 역세권 경계선 두께(px)
+  const [bufW, setBufW] = useState({ 일반역: 0.7, 환승역: 2 }) // 역세권 경계선 두께(px)
   const [cultOn, setCultOn] = useState<string[]>(CULTURE_CATS)
   const [cultR, setCultR] = useState<number | 'nearest'>(500)
   const [nnMetric, setNnMetric] = useState<'same' | 'other' | 'any'>('same')
@@ -174,7 +174,7 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
     data: { ...data.buffers.data, features: data.buffers.data.features.filter((f: any) => f.properties.radius === radius && (bufKinds as any)[f.properties.kind]) },
     // 색 대신 선 두께로 구분: 일반역 = 가는 선, 환승역 = 굵은 선(같은 회색). 안쪽은 아주 옅게만
     layers: [{ type: 'fill', paint: { 'fill-color': BUF_COLOR, 'fill-opacity': 0.05 } },
-      { type: 'line', paint: { 'line-color': BUF_COLOR, 'line-opacity': 0.8, 'line-width': ['match', ['get', 'kind'], '환승역', bufW.환승역, bufW.일반역] } }] })
+      { type: 'line', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': BUF_COLOR, 'line-opacity': 0.35, 'line-width': ['match', ['get', 'kind'], '환승역', bufW.환승역, bufW.일반역] } }] })
   if (step === 0 || (step === 5 && subOn)) extras.push(...stationOverlay(data, step === 5))
   if (step === 1) extras.push(...regionOverlay(data))
   const lvColor = ['match', ['get', 'level'], '3도심', CENTER_COLOR['3도심'], '7광역중심', CENTER_COLOR['7광역중심'], CENTER_COLOR['12지역중심']]
@@ -331,7 +331,7 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
               <label><input type="checkbox" checked={showGu} onChange={() => setShowGu(!showGu)} /> 행정구역 경계</label>
             </div>
             <SeoulMap data={data} label={`입지 특성 지도 — 3-${step + 1} ${STEPS[step]}`} extras={extras} points={mapPts} line={line} selectedId={pick} showGu={showGu}
-              onSelect={(v) => setPick(v?.id ?? null)} resetKey={step} dark={step === 5} pointScale={step === 5 ? 0.5 : 1} />
+              onSelect={(v) => setPick(v?.id ?? null)} resetKey={step} dark={step === 5} pointScale={step === 5 ? 0.5 : 0.78} />
             <MapLegend types={step === 5 ? (dens === '전체' ? [...TYPES] : [dens]) : on} marks={['fill']} extra={<>
               {extras.some((e) => e.id === 'stations') && <span>━ 노선(반투명) · ○ 역</span>}
               {extras.some((e) => e.id === 'buffers') && (['일반역', '환승역'] as const).filter((k) => bufKinds[k]).map((k) => <span key={k}><i className="lg-ring" style={{ borderWidth: Math.max(1, Math.round(bufW[k])), borderColor: BUF_COLOR }} /> {k} {radius}m 범위({k === '환승역' ? '굵은 선' : '가는 선'})</span>)}

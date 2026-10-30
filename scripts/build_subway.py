@@ -83,8 +83,8 @@ def main():
     buf = []
     for r in RADII:
         for kind, flag in (("환승역", True), ("일반역", False)):
-            u = unary_union([x["pt"].buffer(r, 32) for x in st if x["transfer"] == flag])
-            buf.append({"type": "Feature", "geometry": mapping(shapely.set_precision(transform(to_deg, u.simplify(5)), 1e-5)), "properties": {"radius": r, "kind": kind}})
+            u = unary_union([x["pt"].buffer(r, 48) for x in st if x["transfer"] == flag])
+            buf.append({"type": "Feature", "geometry": mapping(shapely.set_precision(transform(to_deg, u.simplify(0.8)), 1e-5)), "properties": {"radius": r, "kind": kind}})
     (OUT / "subway_buffers.geojson").write_text(fc(buf), encoding="utf-8")
 
     by_name = {}
@@ -96,7 +96,7 @@ def main():
     for _, c in cs.iterrows():
         anchors = [by_name[a] for a in c.anchor_stations.split(";")]
         r = CENTER_R[c.level]
-        u = unary_union([a["pt"].buffer(r, 48) for a in anchors]).simplify(10)
+        u = unary_union([a["pt"].buffer(r, 48) for a in anchors]).simplify(2)
         feats.append({"type": "Feature", "geometry": mapping(shapely.set_precision(transform(to_deg, u), 1e-5)), "properties": {
             "name": c["name"], "level": c.level, "radius": r, "anchors": [list(transform(to_deg, a["pt"]).coords[0]) for a in anchors],
             "anchor_names": [a["name"] for a in anchors], "label": list(transform(to_deg, u.centroid).coords[0])}})
