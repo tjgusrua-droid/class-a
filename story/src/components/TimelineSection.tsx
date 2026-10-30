@@ -54,10 +54,8 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
 
   const eraRows = ERAS.map((e) => { const n = Math.min(e.to, LAST.getFullYear()) - e.from + 1; return { e, n, o: sumR('opened', e), c: sumR('closed', e) } })
   const a0 = row(2000)?.operating, a1 = row(2025)?.operating
-  // 시기별 정리: 개업·폐업 수, 순증감, 운영 수 변화, 개업·폐업에서 가장 큰 유형
+  // 시기별 정리: 개업·폐업 수, 순증감, 운영 수 변화, 유형별 개업·폐업·증감
   const typeSum = (k: string, e: (typeof ERAS)[number], t: string) => YEARS.filter((y) => y >= e.from && y <= e.to).reduce((a, y) => a + (yearly.find((r) => r.year === y && r.type === t)?.[k] ?? 0), 0)
-  const topShare = (k: string, e: (typeof ERAS)[number], tot: number) => { const t = [...TYPES].sort((a, b) => typeSum(k, e, b) - typeSum(k, e, a))[0]
-    return tot ? `${TYPE_STYLE[t].short} ${Math.round((typeSum(k, e, t) / tot) * 100)}%` : '—' }
 
   return (
     <div className="tl">
@@ -88,7 +86,9 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
               <b title={e.to >= LAST.getFullYear() ? '2026년은 9월까지' : undefined}>{e.label}{e.to >= LAST.getFullYear() ? '*' : ''}</b>
               <div className="bignet" data-neg={o - c < 0}>{o - c >= 0 ? '+' : ''}{o - c}<small>곳</small></div>
               <p>새로 연 곳 <b>{o}</b> · 문 닫은 곳 <b>{c}</b></p>
-              <p className="sub">영화관 {s0 ?? '—'}곳 → {s1 ?? '—'}곳{!sel ? ` · 새로 연 곳의 ${topShare('opened', e, o)}` : ''}</p>
+              <p className="sub">영화관 {s0 ?? '—'}곳 → {s1 ?? '—'}곳</p>
+              {!sel && <table className="eratypes"><tbody>{TYPES.map((t) => { const to = typeSum('opened', e, t), tc = typeSum('closed', e, t)
+                return <tr key={t}><td><i style={{ background: TYPE_STYLE[t].color }} />{TYPE_STYLE[t].short}</td><td>+{to}</td><td>−{tc}</td><td data-neg={to - tc < 0}>{to - tc >= 0 ? '+' : ''}{to - tc}</td></tr> })}</tbody></table>}
             </button> })}
         </div>
         <div className="row ui metricpick" role="group" aria-label="지표 선택">

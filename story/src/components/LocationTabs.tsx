@@ -40,7 +40,7 @@ function CenterDiagram({ centers, count }: { centers: any[]; count: (c: any) => 
     <svg viewBox={`0 0 ${W} 228`} role="img" aria-label="서울시 중심지 체계: 3도심, 7광역중심, 12지역중심" className="centerdiagram">
       {rows.map(({ lv, r, items }, i) => { const gap = (W - 120) / items.length
         return <g key={lv}>
-          <text x={0} y={rowY[i] - 4} fontSize="13" fontWeight="700" fill={CENTER_COLOR[lv]}>{lv.replace(/^(\d+)/, '$1 ')}</text>
+          <text x={0} y={rowY[i] - 4} fontSize="13" fontWeight="700" fill="#333">{lv.replace(/^(\d+)/, '$1 ')}</text>
           <text x={0} y={rowY[i] + 12} fontSize="10" fill="#777">{['서울 전체의 중심', '권역의 중심', '생활권의 중심'][i]}</text>
           {items.map((c, k) => { const x = 120 + gap * (k + 0.5), n = count(c)
             return <g key={c.properties.name}>

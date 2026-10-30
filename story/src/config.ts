@@ -40,7 +40,7 @@ export const OCC_COLOR = ['#0f9d8a', '#7b4fb3', '#e05fa0', '#5a9e2f', '#8c5a2b',
 // 2040 중심지 위계 색(개략 영역)
 export const CENTER_LEVELS = ['3도심', '7광역중심', '12지역중심']
 // 중심지 위계는 순서가 있는 값이라 한 색의 진하기로(진할수록 큰 중심지). 유형 색(남색·코럴·청록)과 겹치지 않는 보라 계열
-export const CENTER_COLOR: Record<string, string> = { '3도심': '#5b4b8a', '7광역중심': '#8f80b8', '12지역중심': '#c3b9dc', '중심지 밖': '#ececec' }
+export const CENTER_COLOR: Record<string, string> = { '3도심': '#8c3b6e', '7광역중심': '#d4a017', '12지역중심': '#4f9fd1', '중심지 밖': '#ececec' } // 와인·황금·하늘: 위계마다 다른 색(dataviz 검증 통과)
 
 // 각 장면이 필요로 하는 파일과 필수 필드. 없으면 DataStatus가 이 정보를 보여준다
 export const FILES = {
