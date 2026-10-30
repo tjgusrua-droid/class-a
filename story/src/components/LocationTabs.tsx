@@ -32,21 +32,26 @@ function CategoryBars({ vs, cats, of, title }: { vs: Venue[]; cats: string[]; of
   )
 }
 
-// 중심지 체계 그림: 위에서부터 3도심 → 7광역중심 → 12지역중심. 원 크기·색 = 위계, 원 안 숫자 = 그 중심지(개략 영역) 안 영업 영화관 수
+// 중심지 체계 그림: 위에서부터 3도심 → 7광역중심 → 12지역중심. 색 = 위계, 원 넓이 = 그 중심지(개략 영역) 안 영업 영화관 수(0곳은 회색 점)
 function CenterDiagram({ centers, count }: { centers: any[]; count: (c: any) => number }) {
-  const rows = CENTER_LEVELS.map((lv, i) => ({ lv, r: [26, 17, 12][i], items: centers.filter((c) => c.properties.level === lv) }))
-  const W = 560, rowY = [40, 118, 186]
+  const rows = CENTER_LEVELS.map((lv) => ({ lv, items: centers.filter((c) => c.properties.level === lv) }))
+  const W = 560, rowY = [42, 120, 190], X0 = 120
+  const rad = (n: number) => (n ? 7 + Math.sqrt(n) * 4.6 : 4)
+  const ink = (lv: string) => (lv === '7광역중심' ? '#3b2c00' : '#fff')
   return (
-    <svg viewBox={`0 0 ${W} 228`} role="img" aria-label="서울시 중심지 체계: 3도심, 7광역중심, 12지역중심" className="centerdiagram">
-      {rows.map(({ lv, r, items }, i) => { const gap = (W - 120) / items.length
+    <svg viewBox={`0 0 ${W} 232`} role="img" aria-label="서울시 중심지 체계: 3도심, 7광역중심, 12지역중심" className="centerdiagram">
+      {rows.map(({ lv, items }, i) => { const gap = (W - X0) / items.length
         return <g key={lv}>
-          <text x={0} y={rowY[i] - 4} fontSize="13" fontWeight="700" fill="#333">{lv.replace(/^(\d+)/, '$1 ')}</text>
-          <text x={0} y={rowY[i] + 12} fontSize="10" fill="#777">{['서울 전체의 중심', '권역의 중심', '생활권의 중심'][i]}</text>
-          {items.map((c, k) => { const x = 120 + gap * (k + 0.5), n = count(c)
+          <line x1={X0} x2={W} y1={rowY[i]} y2={rowY[i]} stroke="#eceae6" strokeWidth="1" />
+          <circle cx={6} cy={rowY[i] - 8} r={5} fill={CENTER_COLOR[lv]} />
+          <text x={16} y={rowY[i] - 4} fontSize="13" fontWeight="700" fill="#222">{lv.replace(/^(\d+)/, '$1 ')}</text>
+          <text x={16} y={rowY[i] + 12} fontSize="10" fill="#888">{['서울 전체의 중심', '권역의 중심', '생활권의 중심'][i]}</text>
+          {items.map((c, k) => { const x = X0 + gap * (k + 0.5), n = count(c), r = rad(n)
             return <g key={c.properties.name}>
-              <circle cx={x} cy={rowY[i]} r={r} fill={CENTER_COLOR[lv]} fillOpacity={0.18 + Math.min(0.6, n * 0.05)} stroke={CENTER_COLOR[lv]} strokeWidth="1.5" />
-              <text x={x} y={rowY[i] + 4} fontSize={i ? 11 : 15} fontWeight="700" textAnchor="middle" fill="#222">{n}</text>
-              <text x={x} y={rowY[i] + r + (i === 2 && k % 2 ? 22 : 11)} fontSize={i === 2 ? 9 : 10} textAnchor="middle" fill="#333">{c.properties.name}</text>
+              <title>{c.properties.name} · 영화관 {n}곳</title>
+              <circle cx={x} cy={rowY[i]} r={r} fill={n ? CENTER_COLOR[lv] : '#d9d9d6'} />
+              {n > 0 && <text x={x} y={rowY[i] + (n >= 10 ? 5 : 4)} fontSize={n >= 10 ? 14 : 11} fontWeight="700" textAnchor="middle" fill={ink(lv)}>{n}</text>}
+              <text x={x} y={rowY[i] + Math.max(r, 12) + (i === 2 && k % 2 ? 22 : 12)} fontSize={i === 2 ? 9 : 10} textAnchor="middle" fill="#555">{c.properties.name}</text>
             </g> })}
         </g> })}
     </svg>
@@ -226,7 +231,7 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
       const hd = best(TYPES, doc), ho = best(TYPES, out)
       return <>
         <CenterDiagram centers={centers} count={(c) => pts.filter((v) => inCenter(v, c)).length} />
-        <More label="중심지 체계란?">서울시는 도시기본계획(2040 서울도시기본계획)에서 일자리·상업·문화가 모이는 곳을 ‘중심지’로 정하고 크기에 따라 세 단계로 나눕니다. <b>3도심</b>(서울도심·영등포여의도·강남)은 서울 전체와 수도권을 이끄는 가장 큰 중심, <b>7광역중심</b>(용산·청량리왕십리·창동상계·상암수색·마곡·가산대림·잠실)은 동북·서북·서남·동남 같은 권역을 대표하는 중심, <b>12지역중심</b>은 동네 생활권의 중심입니다. 지도의 원은 대표 역을 기준으로 그린 대략적인 위치이며 공식 경계가 아닙니다(반경 도심 1.2km·광역 0.9km·지역 0.6km).</More>
+        <More label="중심지 체계란?">서울시는 도시기본계획(2040 서울도시기본계획)에서 일자리·상업·문화가 모이는 곳을 ‘중심지’로 정하고 크기에 따라 세 단계로 나눕니다. <b>3도심</b>(서울도심·영등포여의도·강남)은 서울 전체와 수도권을 이끄는 가장 큰 중심, <b>7광역중심</b>(용산·청량리왕십리·창동상계·상암수색·마곡·가산대림·잠실)은 동북·서북·서남·동남 같은 권역을 대표하는 중심, <b>12지역중심</b>은 동네 생활권의 중심입니다. 지도의 원은 대표 역을 기준으로 그린 대략적인 위치이며 공식 경계가 아닙니다(반경 도심 1.2km·광역 0.9km·지역 0.6km). 오른쪽 그림의 원이 클수록 그 중심지 안 영업 영화관이 많습니다(회색 점 = 0곳).</More>
         <p className="chart-title">위계별 영화관 수</p><CountBars title="중심지 위계별 영화관 수" unit="곳" rows={rows} rowH={26} />
         <More>면은 대표 역 기준 개략 위치(반경 도심 1.2km·광역 0.9km·지역 0.6km, 공식 범위 아님). 겹치면 높은 위계로 셉니다. 면에 마우스를 올리면 대표 역이 보입니다.</More>
         <Finding items={[
