@@ -11,7 +11,7 @@ const NO_MAP = [2, 3] // 지도가 필요 없는 단계(상권 자료 없음, �
 const GRAYS = ['#222', '#6a6a6a', '#aaa', '#dcdcdc']
 const BANDS = ['500m 이내', '0.5~1km', '1~2km', '2km 초과']
 const band = (m: number) => BANDS[m <= 500 ? 0 : m <= 1000 ? 1 : m <= 2000 ? 2 : 3]
-const BUF = { 일반역: { color: '#5b8fb9', opacity: 0.16 }, 환승역: { color: '#d0703c', opacity: 0.22 } }
+const BUF_COLOR = '#3a3f47'
 
 // 유형별 범주 구성비(100% 막대)
 function CategoryBars({ vs, cats, of, title }: { vs: Venue[]; cats: string[]; of: (v: Venue) => string | null; title: string }) {
@@ -92,8 +92,7 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
   const [showGu, setShowGu] = useState(true)
   const [radius, setRadius] = useState(500)
   const [bufKinds, setBufKinds] = useState({ 일반역: true, 환승역: true })
-  const [buf, setBuf] = useState(BUF)
-  const [bufLine, setBufLine] = useState({ color: '#3d3d3d', width: 0.6 })
+  const [bufW, setBufW] = useState({ 일반역: 0.8, 환승역: 2.6 }) // 역세권 경계선 두께(px)
   const [cultOn, setCultOn] = useState<string[]>(CULTURE_CATS)
   const [cultR, setCultR] = useState<number | 'nearest'>(500)
   const [nnMetric, setNnMetric] = useState<'same' | 'other' | 'any'>('same')
@@ -173,12 +172,10 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
   const extras: Overlay[] = []
   if (step === 0 && data.buffers.status === 'ok') extras.push({ id: 'buffers', place: 'under',
     data: { ...data.buffers.data, features: data.buffers.data.features.filter((f: any) => f.properties.radius === radius && (bufKinds as any)[f.properties.kind]) },
-    layers: [{ type: 'fill', paint: { 'fill-color': ['match', ['get', 'kind'], '환승역', buf.환승역.color, buf.일반역.color], 'fill-opacity': ['match', ['get', 'kind'], '환승역', buf.환승역.opacity, buf.일반역.opacity] } },
-      { type: 'line', paint: { 'line-color': bufLine.color, 'line-width': bufLine.width, 'line-opacity': 0.6 } }] })
+    // 색 대신 선 두께로 구분: 일반역 = 가는 선, 환승역 = 굵은 선(같은 회색). 안쪽은 아주 옅게만
+    layers: [{ type: 'fill', paint: { 'fill-color': BUF_COLOR, 'fill-opacity': 0.05 } },
+      { type: 'line', paint: { 'line-color': BUF_COLOR, 'line-opacity': 0.8, 'line-width': ['match', ['get', 'kind'], '환승역', bufW.환승역, bufW.일반역] } }] })
   if (step === 0 || (step === 5 && subOn)) extras.push(...stationOverlay(data, step === 5))
-  if (step === 0 && topSt.length) extras.push({ id: 'topst', place: 'over', label: { text: (q) => String(q.rank), color: '#111', size: 1, box: true },
-    data: { type: 'FeatureCollection', features: topSt.map((x: any, k: number) => ({ type: 'Feature', properties: { rank: k + 1, label: [x.lon, x.lat], tagAnchor: 'bottom' }, geometry: { type: 'Point', coordinates: [x.lon, x.lat] } })) },
-    layers: [{ type: 'circle', paint: { 'circle-radius': 5, 'circle-color': '#111', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } }] })
   if (step === 1) extras.push(...regionOverlay(data))
   const lvColor = ['match', ['get', 'level'], '3도심', CENTER_COLOR['3도심'], '7광역중심', CENTER_COLOR['7광역중심'], CENTER_COLOR['12지역중심']]
   if (step === 1 && centers.length) extras.push({ id: 'centers', place: 'under', data: data.centers.data,
@@ -205,14 +202,11 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
         <p className="chart-title">영화관이 많은 역 <small>역 {radius}m 안 영업 영화관 수 · 상위 {topSt.length}곳</small></p>
         <CountBars title="영화관이 많은 역" unit="곳" rowH={20} rows={topSt.map((x: any, k: number) => ({ label: `${k + 1}  ${x.name}역`, values: x.values }))} />
       </>}
-      <More label="버퍼 표시 설정"><div className="ctrl ui">
+      <More label="역세권 범위 표시 설정"><div className="ctrl ui">
         {(['일반역', '환승역'] as const).map((k) => <span key={k} className="bufctl">
-          <label><input type="checkbox" checked={bufKinds[k]} onChange={() => setBufKinds({ ...bufKinds, [k]: !bufKinds[k] })} /> {k} 버퍼</label>
-          <input type="color" aria-label={`${k} 버퍼 색`} value={buf[k].color} onChange={(e) => setBuf({ ...buf, [k]: { ...buf[k], color: e.target.value } })} />
-          <input type="range" aria-label={`${k} 버퍼 투명도`} min={0} max={0.6} step={0.02} value={buf[k].opacity} onChange={(e) => setBuf({ ...buf, [k]: { ...buf[k], opacity: +e.target.value } })} />
+          <label><input type="checkbox" checked={bufKinds[k]} onChange={() => setBufKinds({ ...bufKinds, [k]: !bufKinds[k] })} /> {k} 범위</label>
+          <input type="range" aria-label={`${k} 범위 선 두께`} min={0.4} max={4} step={0.2} value={bufW[k]} onChange={(e) => setBufW({ ...bufW, [k]: +e.target.value })} />
         </span>)}
-        <span className="bufctl">경계선 <input type="color" aria-label="버퍼 경계선 색" value={bufLine.color} onChange={(e) => setBufLine({ ...bufLine, color: e.target.value })} />
-          <input type="range" aria-label="버퍼 경계선 굵기" min={0} max={3} step={0.2} value={bufLine.width} onChange={(e) => setBufLine({ ...bufLine, width: +e.target.value })} /></span>
       </div></More>
       {stations.length ? <CategoryBars vs={pts} cats={['환승역세권', '일반역세권', '비역세권']} of={subwayCat} title="유형별 역세권 구성" /> : <DataStatus data={data} need={['stations', 'buffers']} />}
       <More>환승역 반경 안 → 환승역세권(우선), 그 밖에 일반역 반경 안 → 일반역세권, 나머지 → 비역세권. 같은 조건의 버퍼는 합집합. 역 {stations.filter((f: any) => f.properties.inside).length}곳(환승 {stations.filter((f: any) => f.properties.inside && f.properties.transfer).length}) · 노선은 OSM 선형(반투명).</More>
@@ -340,8 +334,7 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
               onSelect={(v) => setPick(v?.id ?? null)} resetKey={step} dark={step === 5} pointScale={step === 5 ? 0.5 : 1} />
             <MapLegend types={step === 5 ? (dens === '전체' ? [...TYPES] : [dens]) : on} marks={['fill']} extra={<>
               {extras.some((e) => e.id === 'stations') && <span>━ 노선(반투명) · ○ 역</span>}
-              {extras.some((e) => e.id === 'topst') && <span>① 숫자 = 영화관이 많은 역 순위</span>}
-              {extras.some((e) => e.id === 'buffers') && (['일반역', '환승역'] as const).filter((k) => bufKinds[k]).map((k) => <span key={k}><i className="lg-box" style={{ background: buf[k].color, opacity: Math.min(1, buf[k].opacity * 3) }} /> {k} {radius}m</span>)}
+              {extras.some((e) => e.id === 'buffers') && (['일반역', '환승역'] as const).filter((k) => bufKinds[k]).map((k) => <span key={k}><i className="lg-ring" style={{ borderWidth: Math.max(1, Math.round(bufW[k])), borderColor: BUF_COLOR }} /> {k} {radius}m 범위({k === '환승역' ? '굵은 선' : '가는 선'})</span>)}
               {extras.some((e) => e.id === 'centers') && CENTER_LEVELS.map((lv) => <span key={lv}><i className="lg-box" style={{ background: CENTER_COLOR[lv] }} /> {lv}</span>)}
               {extras.some((e) => e.id === 'culture') && <span>○ 문화시설({cult.length})</span>}
               {extras.some((e) => e.id === 'density') && <span>색의 진하기 = {dens === '전체' ? '전체' : TYPE_STYLE[dens].short} 영화관 밀도</span>}

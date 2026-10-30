@@ -567,3 +567,5 @@ input[type="checkbox"] { accent-color: var(--ink); }
 .split.advice .finding { padding: 10px 16px 8px 20px; }
 .split.advice .finding .f-head { margin: 4px 0 1px; }
 .split.advice .finding .f-mean { margin-bottom: 4px; line-height: 1.5; }
+.lg-ring { display: inline-block; width: 14px; height: 10px; border: 1px solid; border-radius: 6px; background: transparent; }
+.catrow i { font-size: 10px; }

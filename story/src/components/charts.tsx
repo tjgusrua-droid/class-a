@@ -32,7 +32,7 @@ export const ShareBars = forwardRef<SVGSVGElement, {
               const g = (
                 <g key={t} opacity={highlight && highlight !== t ? 0.25 : 1} onClick={() => onPick(highlight === t ? null : t)} style={{ cursor: 'pointer' }}>
                   <rect x={x} y={2} width={w} height={24} fill={TYPE_STYLE[t].color} stroke="#fff" />
-                  {w > 44 && <text x={x + 5} y={18} fontSize="11" fill="#fff" fontWeight="600">{f1((v / total) * 100)}%</text>}
+                  {w > 44 && <text x={x + 5} y={18} fontSize="10" fill="#fff" fontWeight="600">{f1((v / total) * 100)}%</text>}
                 </g>)
               x += w
               return g
@@ -217,6 +217,7 @@ export function Donut({ parts, title, n, sub }: { parts: { label: string; value:
 // 가로 누적 막대(개수): 행 = 범주, 조각 = 유형
 export const CountBars = forwardRef<SVGSVGElement, { rows: { label: string; values: Record<VenueType, number>; color?: string }[]; title: string; unit: string; rowH?: number }>(
   function CountBars({ rows, title, unit, rowH = 30 }, ref) {
+    const fs = Math.min(10, Math.max(7, (rowH - 12) * 0.85)) // 막대 두께에 맞춘 숫자 크기
     const x0 = 112, max = Math.max(1, ...rows.map((r) => TYPES.reduce((a, t) => a + r.values[t], 0)))
     const sx = (v: number) => (v / max) * (W - x0 - 60)
     return (
@@ -232,7 +233,7 @@ export const CountBars = forwardRef<SVGSVGElement, { rows: { label: string; valu
               {r.color && <rect x={0} y={4} width={10} height={rowH - 12} fill={r.color} />}
               <text x={r.color ? 15 : 0} y={rowH / 2 + 1} fontSize="11.5" fontWeight="600">{r.label}</text>
               {TYPES.map((t) => { const w = sx(r.values[t]), g = <g key={t}><rect x={x} y={2} width={w} height={rowH - 12} fill={TYPE_STYLE[t].color} stroke="#fff" />
-                {w > 16 && <text x={x + w / 2} y={rowH / 2 + 1} fontSize="10" fill="#fff" textAnchor="middle" fontWeight="600">{r.values[t]}</text>}</g>; x += w; return g })}
+                {w > 14 && <text x={x + w / 2} y={(rowH - 12) / 2 + 2 + fs * 0.36} fontSize={fs} fill="#fff" textAnchor="middle" fontWeight="600">{r.values[t]}</text>}</g>; x += w; return g })}
               <text x={x + 5} y={rowH / 2 + 1} fontSize="11">{tot}{unit}</text>
             </g>)
         })}
