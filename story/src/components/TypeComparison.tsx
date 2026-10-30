@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { SOURCES, TYPE_STYLE, TYPES, type VenueType } from '../config'
-import { f1, jo, mean, median, pct, sum, topBy, type Venue } from '../data'
+import { f1, jo, mean, median, pct, sum, topBy, type Venue, openYear } from '../data'
 import { BoxDot, DataTable, ShareBars } from './charts'
 import { atYear, survOf } from './SurvivalSection'
 import { saveSvg, Seg, SourceNote, Sym, More } from './ui'
@@ -38,14 +38,17 @@ function Traits({ t, open, all }: { t: VenueType; open: Venue[]; all: Venue[] })
   const pick = (vals: string[]) => { const c: Record<string, number> = {}; vals.forEach((x) => (c[x] = (c[x] ?? 0) + 1)); const top = Object.entries(c).sort((a, b) => b[1] - a[1])[0]; return top ? { k: top[0], p: Math.round((top[1] / vals.length) * 100), n: vals.length } : null }
   const occ = pick(xs.filter((v) => v.occupancy !== '확인 불가').map((v) => v.occupancy.replace(' 내 입점', '').replace('기타(', '').replace(')', '').replace('복합상업시설(', '')))
   const fl = pick(xs.filter((v) => v.floor != null).map((v) => (v.floor! < 0 ? '지하' : v.floor! <= 3 ? '1~3층' : '4층 이상')))
-  const era = pick(xs.filter((v) => v.openD && !v.bulkOpen).map((v) => { const y = v.openD!.getFullYear(); return y < 2000 ? '2000년 전' : `${Math.floor(y / 10) * 10}년대` }))
+  // 문 연 시기는 지금까지 있었던 곳 전체(폐업 포함)로: 오래된 극장은 대부분 문을 닫아 영업 중인 곳만 보면 빠진다
+  // 행안부 인허가일은 2000년대 초 재등록 날짜가 많아 시기 비율은 믿기 어렵다 → 실제 개관 연도가 확인된 가장 오래된 곳을 보여 준다
+  const allT = all.filter((v) => v.type === t)
+  const oldest = [...allT].filter((v) => openYear(v) != null).sort((a, b) => openYear(a)! - openYear(b)!)[0]
   const s20 = atYear(survOf(all.filter((v) => v.type === t)), 20)
   const scr = k.length ? median(k.map((v) => v.screens25!)) : null, seat = k.filter((v) => v.seats25 != null).map((v) => v.seats25!)
   const rows: [string, string, string][] = [
     ['상영관', scr == null ? '자료 없음' : `${+scr.toFixed(1)}개`, `좌석 ${seat.length ? Math.round(median(seat)).toLocaleString() : '—'}석 · 중앙값`],
     ['주로 있는 곳', occ ? occ.k : '확인 중', occ ? `확인된 ${occ.n}곳 중 ${occ.p}%` : ''],
     ['건물 층', fl ? fl.k : '확인 중', fl ? `층이 적힌 ${fl.n}곳 중 ${fl.p}%` : ''],
-    ['문 연 시기', era ? era.k : '—', era ? `${era.n}곳 중 ${era.p}%` : ''],
+    ['가장 오래된 곳', oldest ? `${openYear(oldest)}년` : '—', oldest ? `${oldest.name.replace('아산 M ', '')}${oldest.founded ? ' · 실제 개관' : ' · 등록일 기준'}` : ''],
     ['20년 뒤 남는 비율', `${Math.round(s20 * 100)}%`, '생존곡선 기준'],
   ]
   return <dl className="traits">{rows.map(([a, b, c]) => <div key={a}><dt>{a}</dt><dd><b>{b}</b><small>{c}</small></dd></div>)}</dl>

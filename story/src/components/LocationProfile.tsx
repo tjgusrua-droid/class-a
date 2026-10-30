@@ -1,6 +1,6 @@
 // 3장 정리: 유형마다 입지 모습을 한 장의 그림 카드로(역·중심지·입점·인접)
 import { CENTER_COLOR, CENTER_LEVELS, OCC_COLOR, OCCUPANCY, TYPE_STYLE, TYPES, type VenueType } from '../config'
-import { distM, f1, located, median, nearest, pct, type DataSet, type Venue } from '../data'
+import { distM, f1, located, median, nearest, openYear, pct, type DataSet, type Venue } from '../data'
 import { OccupancyIcon } from './Isometric'
 import { DataTable } from './charts'
 import { Sym, More } from './ui'
@@ -53,7 +53,7 @@ export default function LocationProfile({ data, open }: { data: DataSet; open: V
       fl: (() => { const f = xs.map((v) => v.floor).filter((x): x is number => x != null)
         return { n: f.length, parts: [['지하', f.filter((x) => x < 0).length], ['1~3층', f.filter((x) => x >= 1 && x <= 3).length], ['4층 이상', f.filter((x) => x >= 4).length]] as [string, number][] } })(),
       // 언제 열었나: 지금 영업 중인 곳의 개업 시기(일괄 등록일 의심은 제외)
-      era: (() => { const y = xs.filter((v) => v.openD && !v.bulkOpen).map((v) => v.openD!.getFullYear())
+      era: (() => { const y = xs.map(openYear).filter((x): x is number => x != null)
         return { n: y.length, parts: [['2000년 전', y.filter((x) => x < 2000).length], ['2000년대', y.filter((x) => x >= 2000 && x < 2010).length], ['2010년대', y.filter((x) => x >= 2010 && x < 2020).length], ['2020년대', y.filter((x) => x >= 2020).length]] as [string, number][] } })() }]
   })) as Record<VenueType, any>
   // 한 줄 초상: 계산된 값으로 문장 조각을 고른다
@@ -78,7 +78,7 @@ export default function LocationProfile({ data, open }: { data: DataSet; open: V
             <div className="p-cell"><OccupancyIcon label={p.known ? p.occ.c : ''} color={p.known ? OCC_COLOR[OCCUPANCY.indexOf(p.occ.c)] : '#ccc'} />
               <p>{p.known ? <><b>{p.occ.c.replace(' 내 입점', '')}</b> {p.occ.k}/{p.known}곳</> : '확인된 곳 없음'} <small>(확인 불가 {p.n - p.known})</small></p></div>
             <div className="p-cell"><MiniStack color={c} parts={p.fl.parts} n={p.fl.n} unit="층이 확인된 곳" /></div>
-            <div className="p-cell"><MiniStack color={c} parts={p.era.parts} n={p.era.n} unit="개업일이 확인된 곳" /></div>
+            <div className="p-cell"><MiniStack color={c} parts={p.era.parts} n={p.era.n} unit="지금 영업 중이고 개업 연도가 확인된 곳" /></div>
             <div className="p-cell"><Neighborhood color={c} count={p.cnt} dist={p.same} />
               <p>1km 안 다른 영화관 평균 <b>{f1(p.cnt)}곳</b> · 같은 유형까지 중앙값 <b>{f1(p.same)}km</b> <small>(평균 {f1(p.sameMean)}km)</small></p></div>
           </div> })}

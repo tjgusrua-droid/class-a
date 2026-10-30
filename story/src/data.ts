@@ -13,7 +13,7 @@ export type Venue = {
   open: string; close: string; openD: Date | null; closeD: Date | null; bulkOpen: boolean
   gu: string; dong: string; address: string
   screens: number | null; seats: number | null; screens25: number | null; seats25: number | null; special25: number | null; art25: number | null; operator25: string
-  koficYears: string; licenses: number; occupancy: string; occBuilding: string; occConf: string; floor: number | null
+  koficYears: string; licenses: number; occupancy: string; occBuilding: string; occConf: string; floor: number | null; founded: number | null // 실제 개관 연도(참고 자료로 확인한 곳만)
   conflict: string; source: string
   lon: number | null; lat: number | null
 }
@@ -69,7 +69,7 @@ export function toVenues(fc: any): Venue[] {
       status: p.status, open: p.open, close: p.close, openD: date(p.open), closeD: date(p.close), bulkOpen: p.bulk_open,
       gu: p.gu, dong: p.dong, address: p.address,
       screens: p.screens, seats: p.seats, screens25: p.screens25, seats25: p.seats25, special25: p.special25, art25: p.art25, operator25: p.operator25,
-      koficYears: p.kofic_years, licenses: p.licenses, occupancy: p.occupancy, occBuilding: p.occ_building, occConf: p.occ_conf, floor: p.floor ?? null,
+      koficYears: p.kofic_years, licenses: p.licenses, occupancy: p.occupancy, occBuilding: p.occ_building, occConf: p.occ_conf, floor: p.floor ?? null, founded: p.founded ?? null,
       conflict: p.conflict, source: p.source, lon: c ? c[0] : null, lat: c ? c[1] : null,
     }
   })
@@ -144,3 +144,7 @@ export function kaplanMeier(items: { t: number; event: boolean }[]) {
   const med = steps.find((x) => x.s <= 0.5)?.t ?? null
   return { steps, med, end: ts[ts.length - 1] ?? 0 }
 }
+
+// 문 연 해: 실제 개관 연도가 확인된 곳은 그 해, 아니면 LOCALDATA 인허가일(일괄 등록일 의심이면 알 수 없음)
+export const openYear = (v: Venue): number | null => v.founded ?? (v.openD && !v.bulkOpen ? v.openD.getFullYear() : null)
+export const eraOf = (y: number) => (y < 1960 ? '1960년 전' : y < 2000 ? `${Math.floor(y / 10) * 10}년대` : `${Math.floor(y / 10) * 10}년대`)
