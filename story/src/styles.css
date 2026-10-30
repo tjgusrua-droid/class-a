@@ -576,3 +576,13 @@ input[type="checkbox"] { accent-color: var(--ink); }
 .tl-side .finding .f-mean { font-size: 13.5px; }
 #change .lead { max-width: none; }
 .tl { height: calc(100vh - 150px); }
+
+/* 1장 유형 특징 */
+.traits { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin: 4px 0 6px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.traits > div { padding: 6px 6px 5px 0; min-width: 0; }
+.traits > div + div { padding-left: 8px; border-left: 1px solid var(--line); }
+.traits dt { font-size: 10.5px; color: var(--muted); margin: 0 0 2px; white-space: nowrap; }
+.traits dd { margin: 0; line-height: 1.25; }
+.traits dd b { display: block; font-size: 14px; font-weight: 700; letter-spacing: -0.02em; word-break: keep-all; }
+.traits dd small { display: block; font-size: 10px; color: var(--muted); margin-top: 1px; word-break: keep-all; }
+#types .iso { max-width: 220px; }

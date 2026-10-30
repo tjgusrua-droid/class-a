@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { SOURCES, TYPE_STYLE, TYPES, type VenueType } from '../config'
 import { f1, jo, mean, median, pct, sum, topBy, type Venue } from '../data'
 import { BoxDot, DataTable, ShareBars } from './charts'
+import { atYear, survOf } from './SurvivalSection'
 import { saveSvg, Seg, SourceNote, Sym, More } from './ui'
 import { TypeIsometric } from './Isometric'
 
@@ -31,7 +32,26 @@ const DEF: Record<VenueType, { legal: string; analytic: string; rule: string }> 
   },
 }
 
-export default function TypeComparison({ open }: { open: Venue[] }) {
+// 유형 특징 한 장: 계산한 값 다섯 가지(상영관·좌석·있는 곳·층·문 연 시기·오래 남는 정도)
+function Traits({ t, open, all }: { t: VenueType; open: Venue[]; all: Venue[] }) {
+  const xs = open.filter((v) => v.type === t), k = xs.filter((v) => v.screens25 != null)
+  const pick = (vals: string[]) => { const c: Record<string, number> = {}; vals.forEach((x) => (c[x] = (c[x] ?? 0) + 1)); const top = Object.entries(c).sort((a, b) => b[1] - a[1])[0]; return top ? { k: top[0], p: Math.round((top[1] / vals.length) * 100), n: vals.length } : null }
+  const occ = pick(xs.filter((v) => v.occupancy !== '확인 불가').map((v) => v.occupancy.replace(' 내 입점', '').replace('기타(', '').replace(')', '').replace('복합상업시설(', '')))
+  const fl = pick(xs.filter((v) => v.floor != null).map((v) => (v.floor! < 0 ? '지하' : v.floor! <= 3 ? '1~3층' : '4층 이상')))
+  const era = pick(xs.filter((v) => v.openD && !v.bulkOpen).map((v) => { const y = v.openD!.getFullYear(); return y < 2000 ? '2000년 전' : `${Math.floor(y / 10) * 10}년대` }))
+  const s20 = atYear(survOf(all.filter((v) => v.type === t)), 20)
+  const scr = k.length ? median(k.map((v) => v.screens25!)) : null, seat = k.filter((v) => v.seats25 != null).map((v) => v.seats25!)
+  const rows: [string, string, string][] = [
+    ['상영관', scr == null ? '자료 없음' : `${+scr.toFixed(1)}개`, `좌석 ${seat.length ? Math.round(median(seat)).toLocaleString() : '—'}석 · 중앙값`],
+    ['주로 있는 곳', occ ? occ.k : '확인 중', occ ? `확인된 ${occ.n}곳 중 ${occ.p}%` : ''],
+    ['건물 층', fl ? fl.k : '확인 중', fl ? `층이 적힌 ${fl.n}곳 중 ${fl.p}%` : ''],
+    ['문 연 시기', era ? era.k : '—', era ? `${era.n}곳 중 ${era.p}%` : ''],
+    ['20년 뒤 남는 비율', `${Math.round(s20 * 100)}%`, '생존곡선 기준'],
+  ]
+  return <dl className="traits">{rows.map(([a, b, c]) => <div key={a}><dt>{a}</dt><dd><b>{b}</b><small>{c}</small></dd></div>)}</dl>
+}
+
+export default function TypeComparison({ open, all }: { open: Venue[]; all: Venue[] }) {
   const [sel, setSel] = useState<VenueType | null>(null) // 이 장면에서만 쓰는 선택
   const [rangeOf, setRangeOf] = useState<'screens' | 'seats' | 'per'>('screens')
   const svg = useRef<SVGSVGElement>(null), svg2 = useRef<SVGSVGElement>(null)
@@ -59,7 +79,7 @@ export default function TypeComparison({ open }: { open: Venue[] }) {
               <h3 style={{ borderColor: TYPE_STYLE[t].color }}><Sym type={t} /> {t} <small>{S[t].n}곳</small></h3>
               <p className="easy">{EASY[t]}</p>
               <TypeIsometric type={t} screens={xs.length ? median(xs.map((v) => v.screens25!)) : null} />
-              <p className="easy-num">시설당 상영관 중앙값 <b>{xs.length ? `${+median(xs.map((v) => v.screens25!)).toFixed(1)}개` : '자료 없음'}</b> <small>(KOFIC 2025 수록 {xs.length}곳)</small>{o ? <> · 확인된 입점 형태 중 최다 <b>{o[0]}</b></> : ''}</p>
+              <Traits t={t} open={open} all={all} />
               <span onClick={(e) => e.stopPropagation()}><More label="분류 근거·세부 특성">
               <dl>
                 <dt>법적·제도적 지위</dt><dd>{DEF[t].legal}</dd>

@@ -66,7 +66,7 @@ export default function App() {
       <StorySection id="types">
         <h2><span>1</span>영화관의 분류는 어떻게 다른가?</h2>
         <p className="lead">법적 구분이 아니라 연구를 위한 분석용 분류입니다. 개소 수와 스크린·좌석 규모가 유형마다 어떻게 다른지 봅니다.</p>
-        <TypeComparison open={open} />
+        <TypeComparison open={open} all={all} />
       </StorySection>
 
       <StorySection id="where" className="fit">
