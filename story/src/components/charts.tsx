@@ -208,6 +208,7 @@ export function Donut({ parts, title, n, sub }: { parts: { label: string; value:
       <title>{title}</title>
       {n === 0 ? <circle cx={c} cy={c} r={(R + r) / 2} fill="none" stroke="#eee" strokeWidth={R - r} /> :
         parts.filter((x) => x.value > 0).map((x) => <path key={x.label} d={arc(x.value)} fill={x.color} stroke="#fff" strokeWidth="1.2" fillRule="evenodd"><title>{x.label} {x.value}곳 ({f1((x.value / n) * 100)}%)</title></path>)}
+      {n > 0 && <circle className="donut-sweep" cx={c} cy={c} r={(R + r) / 2} fill="none" stroke="#fff" strokeWidth={R - r + 4} pathLength={100} transform={`rotate(-90 ${c} ${c})`} />}
       <text x={c} y={c + 2} textAnchor="middle" fontSize="17" fontWeight="700">{n}</text>
       <text x={c} y={c + 15} textAnchor="middle" fontSize="9" fill="#666">곳</text>
       <text x={c} y={140} textAnchor="middle" fontSize="11" fontWeight="600">{title}</text>

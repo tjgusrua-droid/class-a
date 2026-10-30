@@ -46,10 +46,10 @@ function Traits({ t, open, all }: { t: VenueType; open: Venue[]; all: Venue[] })
   const scr = k.length ? median(k.map((v) => v.screens25!)) : null, seat = k.filter((v) => v.seats25 != null).map((v) => v.seats25!)
   const rows: [string, string, string][] = [
     ['상영관', scr == null ? '자료 없음' : `${+scr.toFixed(1)}개`, `좌석 ${seat.length ? Math.round(median(seat)).toLocaleString() : '—'}석 · 중앙값`],
-    ['주로 있는 곳', occ ? occ.k : '확인 중', occ ? `확인된 ${occ.n}곳 중 ${occ.p}%` : ''],
-    ['건물 층', fl ? fl.k : '확인 중', fl ? `층이 적힌 ${fl.n}곳 중 ${fl.p}%` : ''],
-    ['가장 오래된 곳', oldest ? `${openYear(oldest)}년` : '—', oldest ? `${oldest.name.replace('아산 M ', '')}${oldest.founded ? ' · 실제 개관' : ' · 등록일 기준'}` : ''],
-    ['20년 뒤 남는 비율', `${Math.round(s20 * 100)}%`, '생존곡선 기준'],
+    ['주 입점', occ ? occ.k : '확인 중', occ ? `확인된 ${occ.n}곳 중 ${occ.p}%` : ''],
+    ['층', fl ? fl.k : '확인 중', fl ? `층이 적힌 ${fl.n}곳 중 ${fl.p}%` : ''],
+    ['가장 오래됨', oldest ? `${openYear(oldest)}년` : '—', oldest ? `${oldest.name.replace('아산 M ', '')}${oldest.founded ? ' · 실제 개관' : ' · 등록일 기준'}` : ''],
+    ['20년 생존', `${Math.round(s20 * 100)}%`, '생존곡선 기준'],
   ]
   return <dl className="traits">{rows.map(([a, b, c]) => <div key={a}><dt>{a}</dt><dd><b>{b}</b><small>{c}</small></dd></div>)}</dl>
 }

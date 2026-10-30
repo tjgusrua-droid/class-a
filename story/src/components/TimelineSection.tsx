@@ -4,7 +4,7 @@ import { ALL_COLOR, DATA_DATE, ERAS, SOURCES, TYPE_STYLE, TYPES, YEAR_MIN, type 
 import { closedIn, f1, openedIn, operatingIn, type DataSet, type Venue } from '../data'
 import { DataTable, MetricChart } from './charts'
 import SeoulMap, { type Point } from './SeoulMap'
-import { Finding, MapLegend, savePng, saveSvg, Seg, SourceNote, TypeSelect, More } from './ui'
+import { Finding, MapLegend, savePng, saveSvg, Seg, SourceNote, TypeSelect, More, CountUp } from './ui'
 
 const LAST = new Date(DATA_DATE)
 const YEARS = Array.from({ length: LAST.getFullYear() - YEAR_MIN + 1 }, (_, i) => YEAR_MIN + i)
@@ -72,9 +72,9 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
             options={[...ERAS.map((e) => ({ v: e.id, label: e.label })), { v: 'now', label: '현재 보기' }]} />
         </div>
         <div className="keyfig">
-          <div><b>{yr?.operating ?? '—'}</b><span>{year}년 문 열고 있던 곳</span></div>
-          <div><b>{yr?.opened ?? '—'}</b><span>새로 연 곳{yr?.opened_unsure ? ` (+불확실 ${yr.opened_unsure})` : ''}</span></div>
-          <div><b>{yr?.closed ?? '—'}</b><span>문 닫은 곳</span></div>
+          <div><b><CountUp value={yr?.operating} /></b><span>{year}년 문 열고 있던 곳</span></div>
+          <div><b><CountUp value={yr?.opened} /></b><span>새로 연 곳{yr?.opened_unsure ? ` (+불확실 ${yr.opened_unsure})` : ''}</span></div>
+          <div><b><CountUp value={yr?.closed} /></b><span>문 닫은 곳</span></div>
         </div>
         {a0 != null && a1 != null && <Finding items={[
           { head: <>{sel ?? '전체'} 운영 영화관은 2000년 {a0}곳에서 2025년 {a1}곳이 되었습니다.</>,
@@ -83,11 +83,11 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
           {eraRows.map(({ e, n, o, c }) => { const s0 = row(e.from === YEAR_MIN ? e.from : e.from - 1)?.operating, s1 = row(Math.min(e.to, LAST.getFullYear()))?.operating
             return <button key={e.id} className="eracard" aria-pressed={era === e.id} onClick={() => setEra(era === e.id ? null : e.id)}>
               <b title={e.to >= LAST.getFullYear() ? '2026년은 9월까지' : undefined}>{e.label}{e.to >= LAST.getFullYear() ? '*' : ''}</b>
-              <div className="bignet" data-neg={o - c < 0}>{o - c >= 0 ? '+' : ''}{o - c}<small>곳</small></div>
+              <div className="bignet" data-neg={o - c < 0}><CountUp value={o - c} sign /><small>곳</small></div>
               <p>새로 연 곳 <b>{o}</b> · 문 닫은 곳 <b>{c}</b></p>
               <p className="sub">영화관 {s0 ?? '—'}곳 → {s1 ?? '—'}곳</p>
               {!sel && <table className="eratypes"><tbody>{TYPES.map((t) => { const to = typeSum('opened', e, t), tc = typeSum('closed', e, t)
-                return <tr key={t}><td><i style={{ background: TYPE_STYLE[t].color }} />{TYPE_STYLE[t].short}</td><td>+{to}</td><td>−{tc}</td><td data-neg={to - tc < 0}>{to - tc >= 0 ? '+' : ''}{to - tc}</td></tr> })}</tbody></table>}
+                return <tr key={t}><td><i style={{ background: TYPE_STYLE[t].color }} />{TYPE_STYLE[t].short}</td><td>+{to}</td><td>−{tc}</td><td data-neg={to - tc < 0}><CountUp value={to - tc} sign /></td></tr> })}</tbody></table>}
             </button> })}
         </div>
         <div className="row ui metricpick" role="group" aria-label="지표 선택">

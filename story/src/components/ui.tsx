@@ -151,3 +151,31 @@ export function More({ children, label = '자세히' }: { children: ReactNode; l
     </span>
   )
 }
+
+// 숫자가 바뀔 때 세며 움직인다: 늘면 통통 튀며(초록), 줄면 축 처지며(빨강). 처음엔 화면에 보일 때 0에서 센다
+export function CountUp({ value, sign = false }: { value: number | null | undefined; sign?: boolean }) {
+  const [shown, setShown] = useState<number | null>(null)
+  const [dir, setDir] = useState('')
+  const from = useRef(0), ref = useRef<HTMLSpanElement>(null), seen = useRef(false), raf = useRef(0)
+  useEffect(() => {
+    if (value == null) return
+    const run = () => {
+      const a = from.current, d = value - a
+      cancelAnimationFrame(raf.current)
+      if (!d || matchMedia('(prefers-reduced-motion: reduce)').matches) { from.current = value; setShown(value); return }
+      setDir(d > 0 ? 'up' : 'down')
+      const dur = 250 + Math.min(Math.abs(d), 30) * 40, t0 = performance.now()
+      const tick = (t: number) => { const k = Math.min(1, (t - t0) / dur)
+        setShown(Math.round(a + d * (1 - (1 - k) ** 2)))
+        if (k < 1) raf.current = requestAnimationFrame(tick); else { from.current = value; setTimeout(() => setDir(''), 420) } }
+      raf.current = requestAnimationFrame(tick)
+    }
+    if (seen.current) { run(); return }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { seen.current = true; io.disconnect(); run() } }, { threshold: 0.5 })
+    io.observe(ref.current!)
+    return () => io.disconnect()
+  }, [value])
+  if (value == null) return <span>—</span>
+  const v = shown ?? 0
+  return <span ref={ref} className="cu" data-dir={dir}>{sign && v > 0 ? '+' : ''}{v}</span>
+}

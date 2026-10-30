@@ -622,3 +622,137 @@ input[type="checkbox"] { accent-color: var(--ink); }
   .present .scene.in .centerdiagram g:nth-child(3) circle { animation-delay: 1s; }
   .present .scene.in svg rect { transform-box: fill-box; transform-origin: bottom; animation: p-up .6s .7s both; }
 }
+
+/* 1장 특징 칸: 이름이 길면 줄을 바꾼다(겹침 방지) */
+.traits dt { white-space: normal; word-break: keep-all; line-height: 1.2; }
+.traits dd small { overflow-wrap: anywhere; }
+
+/* ---- 장면 애니메이션(항상) ---- */
+@keyframes a-stack { from { opacity: 0; transform: translateY(-26px); } 60% { opacity: 1; } 80% { transform: translateY(2px); } to { opacity: 1; transform: none; } }
+@keyframes a-sweep { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -100; } }
+@keyframes a-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes a-pop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: none; } }
+@keyframes cu-up { to { transform: translateY(-4px) scale(1.08); } }
+@keyframes cu-down { 0% { transform: none; } 50% { transform: translateY(3px) rotate(-4deg) scaleY(.92); } 100% { transform: none; } }
+.cu { display: inline-block; transition: color .4s; }
+@media (prefers-reduced-motion: no-preference) {
+  /* 건물 아이소: 아래층부터 한 칸씩 위에서 내려와 쌓인다 */
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > g { animation: a-stack .55s cubic-bezier(.3,1.2,.5,1) both; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(1) { animation-delay: 0.32s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(2) { animation-delay: 0.39s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(3) { animation-delay: 0.46s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(4) { animation-delay: 0.53s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(5) { animation-delay: 0.60s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(6) { animation-delay: 0.67s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(7) { animation-delay: 0.74s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(8) { animation-delay: 0.81s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(9) { animation-delay: 0.88s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(10) { animation-delay: 0.95s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(11) { animation-delay: 1.02s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(12) { animation-delay: 1.09s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(13) { animation-delay: 1.16s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(14) { animation-delay: 1.23s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(15) { animation-delay: 1.30s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(16) { animation-delay: 1.37s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(17) { animation-delay: 1.44s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(18) { animation-delay: 1.51s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(19) { animation-delay: 1.58s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(20) { animation-delay: 1.65s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(21) { animation-delay: 1.72s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(22) { animation-delay: 1.79s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(23) { animation-delay: 1.86s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(24) { animation-delay: 1.93s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(25) { animation-delay: 2.00s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(26) { animation-delay: 2.07s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(27) { animation-delay: 2.14s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(28) { animation-delay: 2.21s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(29) { animation-delay: 2.28s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(30) { animation-delay: 2.35s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(31) { animation-delay: 2.42s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(32) { animation-delay: 2.49s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(33) { animation-delay: 2.56s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(34) { animation-delay: 2.63s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(35) { animation-delay: 2.70s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(36) { animation-delay: 2.77s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(37) { animation-delay: 2.84s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(38) { animation-delay: 2.91s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(39) { animation-delay: 2.98s; }
+  .scene.in :is(svg.iso, .occtiles svg, svg.occicon) > :nth-child(40) { animation-delay: 3.05s; }
+  /* 3-4 도넛: 위에서부터 시계 방향으로 쭉 차오른다 */
+  .donut-sweep { stroke-dasharray: 100 100; animation: a-sweep 1.2s .5s cubic-bezier(.4,0,.2,1) both; }
+  .donuts > :nth-child(2) .donut-sweep { animation-delay: .75s; }
+  .donuts > :nth-child(3) .donut-sweep { animation-delay: 1s; }
+  .scene.in .catrow > div > i { transform-origin: left; animation: p-grow .9s .3s cubic-bezier(.2,.7,.2,1) both; }
+  /* 3 정리: 글이 먼저 나오고, 1초쯤 뒤 그림·그래프가 나타난다 */
+  .profile-scene.in :is(.p-head, .p-cell p, .profile-rowhead) { animation: a-fade .5s .1s both; }
+  .profile-scene.in .waffle i { animation: a-pop .3s both; }
+    .profile-scene.in .waffle i:nth-child(1) { animation-delay: 1.04s; }
+  .profile-scene.in .waffle i:nth-child(2) { animation-delay: 1.08s; }
+  .profile-scene.in .waffle i:nth-child(3) { animation-delay: 1.12s; }
+  .profile-scene.in .waffle i:nth-child(4) { animation-delay: 1.16s; }
+  .profile-scene.in .waffle i:nth-child(5) { animation-delay: 1.20s; }
+  .profile-scene.in .waffle i:nth-child(6) { animation-delay: 1.24s; }
+  .profile-scene.in .waffle i:nth-child(7) { animation-delay: 1.28s; }
+  .profile-scene.in .waffle i:nth-child(8) { animation-delay: 1.32s; }
+  .profile-scene.in .waffle i:nth-child(9) { animation-delay: 1.36s; }
+  .profile-scene.in .waffle i:nth-child(10) { animation-delay: 1.40s; }
+  .profile-scene.in .waffle i:nth-child(11) { animation-delay: 1.44s; }
+  .profile-scene.in .waffle i:nth-child(12) { animation-delay: 1.48s; }
+  .profile-scene.in .waffle i:nth-child(13) { animation-delay: 1.52s; }
+  .profile-scene.in .waffle i:nth-child(14) { animation-delay: 1.56s; }
+  .profile-scene.in .waffle i:nth-child(15) { animation-delay: 1.60s; }
+  .profile-scene.in .waffle i:nth-child(16) { animation-delay: 1.64s; }
+  .profile-scene.in .waffle i:nth-child(17) { animation-delay: 1.68s; }
+  .profile-scene.in .waffle i:nth-child(18) { animation-delay: 1.72s; }
+  .profile-scene.in .waffle i:nth-child(19) { animation-delay: 1.76s; }
+  .profile-scene.in .waffle i:nth-child(20) { animation-delay: 1.80s; }
+  .profile-scene.in :is(.lvbar, .ministack) > i { transform-origin: left; animation: p-grow .8s 1.2s cubic-bezier(.2,.7,.2,1) both; }
+  .profile-scene.in :is(.occicon, .nb) { animation: a-fade .6s 1.3s both; }
+  #profile.in svg.occicon > :nth-child(1) { animation-delay: 1.47s; }
+  #profile.in svg.occicon > :nth-child(2) { animation-delay: 1.54s; }
+  #profile.in svg.occicon > :nth-child(3) { animation-delay: 1.61s; }
+  #profile.in svg.occicon > :nth-child(4) { animation-delay: 1.68s; }
+  #profile.in svg.occicon > :nth-child(5) { animation-delay: 1.75s; }
+  #profile.in svg.occicon > :nth-child(6) { animation-delay: 1.82s; }
+  #profile.in svg.occicon > :nth-child(7) { animation-delay: 1.89s; }
+  #profile.in svg.occicon > :nth-child(8) { animation-delay: 1.96s; }
+  #profile.in svg.occicon > :nth-child(9) { animation-delay: 2.03s; }
+  #profile.in svg.occicon > :nth-child(10) { animation-delay: 2.10s; }
+  #profile.in svg.occicon > :nth-child(11) { animation-delay: 2.17s; }
+  #profile.in svg.occicon > :nth-child(12) { animation-delay: 2.24s; }
+  #profile.in svg.occicon > :nth-child(13) { animation-delay: 2.31s; }
+  #profile.in svg.occicon > :nth-child(14) { animation-delay: 2.38s; }
+  #profile.in svg.occicon > :nth-child(15) { animation-delay: 2.45s; }
+  #profile.in svg.occicon > :nth-child(16) { animation-delay: 2.52s; }
+  #profile.in svg.occicon > :nth-child(17) { animation-delay: 2.59s; }
+  #profile.in svg.occicon > :nth-child(18) { animation-delay: 2.66s; }
+  #profile.in svg.occicon > :nth-child(19) { animation-delay: 2.73s; }
+  #profile.in svg.occicon > :nth-child(20) { animation-delay: 2.80s; }
+  #profile.in svg.occicon > :nth-child(21) { animation-delay: 2.87s; }
+  #profile.in svg.occicon > :nth-child(22) { animation-delay: 2.94s; }
+  #profile.in svg.occicon > :nth-child(23) { animation-delay: 3.01s; }
+  #profile.in svg.occicon > :nth-child(24) { animation-delay: 3.08s; }
+  #profile.in svg.occicon > :nth-child(25) { animation-delay: 3.15s; }
+  #profile.in svg.occicon > :nth-child(26) { animation-delay: 3.22s; }
+  #profile.in svg.occicon > :nth-child(27) { animation-delay: 3.29s; }
+  #profile.in svg.occicon > :nth-child(28) { animation-delay: 3.36s; }
+  #profile.in svg.occicon > :nth-child(29) { animation-delay: 3.43s; }
+  #profile.in svg.occicon > :nth-child(30) { animation-delay: 3.50s; }
+  #profile.in svg.occicon > :nth-child(31) { animation-delay: 3.57s; }
+  #profile.in svg.occicon > :nth-child(32) { animation-delay: 3.64s; }
+  #profile.in svg.occicon > :nth-child(33) { animation-delay: 3.71s; }
+  #profile.in svg.occicon > :nth-child(34) { animation-delay: 3.78s; }
+  #profile.in svg.occicon > :nth-child(35) { animation-delay: 3.85s; }
+  #profile.in svg.occicon > :nth-child(36) { animation-delay: 3.92s; }
+  #profile.in svg.occicon > :nth-child(37) { animation-delay: 3.99s; }
+  #profile.in svg.occicon > :nth-child(38) { animation-delay: 4.06s; }
+  #profile.in svg.occicon > :nth-child(39) { animation-delay: 4.13s; }
+  #profile.in svg.occicon > :nth-child(40) { animation-delay: 4.20s; }
+  /* 4장 숫자: 늘면 통통, 줄면 축 */
+  .cu[data-dir='up'] { color: #1d7a3a; animation: cu-up .13s ease-out infinite alternate; }
+  .cu[data-dir='down'] { color: #b3261e; animation: cu-down .45s ease-in-out infinite; }
+  /* 5장 생존곡선: 왼쪽부터 그려지며 내려간다 */
+  #closed.in svg path[fill="none"]:not([stroke-dasharray]) { stroke-dasharray: 3000; animation: p-draw 2.4s .4s cubic-bezier(.4,0,.3,1) both; }
+}
+.keyfig b > .cu { font-size: inherit; }
+.keyfig b > .cu[data-dir=''] { color: inherit; }
