@@ -68,8 +68,8 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
         <div className="row"><TypeSelect value={sel} onChange={setSel} /></div>
         <div className="row ui">
           <label className="slider">연도 <input type="range" min={YEAR_MIN} max={YEARS[YEARS.length - 1]} value={year} onChange={(e) => { setYear(+e.target.value); setEra(null) }} /> <b>{year}</b></label>
-          <Seg label="시기" value={era ?? ''} onChange={(v) => setEra(v === era ? null : v || null)} options={ERAS.map((e) => ({ v: e.id, label: e.label }))} />
-          <button className={`nowbtn ${!E && year === LAST.getFullYear() ? 'on' : ''}`} onClick={nowView}>현재 보기</button>
+          <Seg label="시기" value={era ?? (year === LAST.getFullYear() ? 'now' : '')} onChange={(v) => (v === 'now' ? nowView() : setEra(v === era ? null : v || null))}
+            options={[...ERAS.map((e) => ({ v: e.id, label: e.label })), { v: 'now', label: '현재 보기' }]} />
         </div>
         <div className="keyfig">
           <div><b>{yr?.operating ?? '—'}</b><span>{year}년 문 열고 있던 곳</span></div>
