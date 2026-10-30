@@ -72,7 +72,7 @@ def main():
                       "properties": {
                           "id": r.operation_episode_id, "venue": r.venue_id, "name": r.standardized_name,
                           "ld_names": r.source_name_localdata, "kofic_names": r.source_name_kofic,
-                          "type": r.analysis_type, "type_basis": r.type_basis, "type_note": r.type_note, "subtype": r.facility_subtype,
+                          "type": r.analysis_type, "chain_op": r.chain_operation, "type_basis": r.type_basis, "type_note": r.type_note, "subtype": r.facility_subtype,
                           "status": r.operation_status, "open": r.open_date, "close": r.close_date,
                           "bulk_open": "일괄 등록일" in r.source_conflict,
                           "gu": r.gu, "dong": r.dong, "address": r.address_road or r.address_jibun,

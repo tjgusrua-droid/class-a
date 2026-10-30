@@ -9,14 +9,14 @@ export const CULTURE_RADII = [300, 500, 1000]
 export const NEAR_BANDS = [500, 1000] // 최근접 영화관 거리 구간(m)
 export const YEAR_MIN = 1958 // LOCALDATA 첫 개업 기록 해. 1990년 이전은 남아 있는 기록만(그 전에 사라진 극장은 자료에 없음)
 
-export type VenueType = '멀티플렉스' | '독립·예술영화관' | '기타'
-export const TYPES: VenueType[] = ['멀티플렉스', '독립·예술영화관', '기타']
+export type VenueType = '멀티플렉스' | '독립·예술영화전용관' | '일반영화관'
+export const TYPES: VenueType[] = ['멀티플렉스', '독립·예술영화전용관', '일반영화관']
 // 유형은 색으로만 구분한다(모양은 모두 원). '전체'는 중립색(검정)
 // 색: 차분한 남색 · 코럴 · 청록(데이터 시각화 검증 스크립트로 색각 이상 구분·대비 확인, 3색 모든 짝 통과)
 export const TYPE_STYLE: Record<VenueType, { color: string; shape: 'circle' | 'square' | 'diamond'; mark: string; short: string }> = {
   멀티플렉스: { color: '#3d5a98', shape: 'circle', mark: '●', short: '멀티' },
-  '독립·예술영화관': { color: '#e06c55', shape: 'circle', mark: '●', short: '독립·예술' },
-  기타: { color: '#2a9d8f', shape: 'circle', mark: '●', short: '기타' },
+  '독립·예술영화전용관': { color: '#e06c55', shape: 'circle', mark: '●', short: '독립·예술' },
+  일반영화관: { color: '#2a9d8f', shape: 'circle', mark: '●', short: '일반' },
 }
 export const ALL_COLOR = '#111111'
 

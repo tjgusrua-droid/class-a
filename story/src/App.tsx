@@ -65,7 +65,7 @@ export default function App() {
 
       <StorySection id="types">
         <h2><span>1</span>영화관의 분류는 어떻게 다른가?</h2>
-        <p className="lead">법적 구분이 아니라 연구를 위한 분석용 분류입니다. 개소 수와 스크린·좌석 규모가 유형마다 어떻게 다른지 봅니다.</p>
+        <p className="lead">영화진흥위원회 구분(멀티플렉스 체인 · 독립·예술영화전용관 · 일반영화관)을 따릅니다. 작은영화관은 서울에 없어 뺐습니다.</p>
         <TypeComparison open={open} all={all} />
       </StorySection>
 

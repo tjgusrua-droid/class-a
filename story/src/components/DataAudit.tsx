@@ -17,7 +17,7 @@ export default function DataAudit({ data }: { data: DataSet }) {
     ['KOFIC에만 있는 극장(별도 인허가 기록 없음)', a.kofic_only],
     ['같은 장소 동시 영업 구간 / 같은 이름 영업 구간', `${a.dup_place} / ${a.dup_name}`],
     ['좌표 누락 운영구간(영업 중)', `${a.no_coords} (${a.no_coords_active})`],
-    ['유형 근거 없음(기타) / 참고 홈페이지 분류에만 근거', `${a.type_no_evidence} / ${a.type_reference_only}`],
+    ['유형 근거 없음(일반영화관) / 참고 홈페이지 분류에만 근거', `${a.type_no_evidence} / ${a.type_reference_only}`],
     ['영업 중이지만 자료 충돌', `${a.conflicts_active}개 — 영업으로 집계하고 충돌 내용 기록`],
     ['영업 구간 세부유형', Object.entries(a.subtype_active).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'],
   ]

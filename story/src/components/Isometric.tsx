@@ -50,7 +50,7 @@ export function TypeIsometric({ type, screens }: { type: VenueType; screens: num
         <Label x={16} y={0} z={11} t={`상영관 ${screens == null ? '—' : +screens.toFixed(1)}개(중앙값)`} dx={12} />
         <Label x={0} y={14} z={4} t="상업시설(백화점·쇼핑몰 등)" dx={-8} />
       </>}
-      {type === '독립·예술영화관' && <>
+      {type === '독립·예술영화전용관' && <>
         <Box x={3} y={3} z={0} w={10} d={8} h={3} color="#e4e1d8" />
         <Box x={3} y={3} z={3} w={10} d={8} h={0.3} color="#cfcac0" />
         <Screens n={n} x={4} y={4} z={3.3} w={8} d={6} color={c} />
@@ -58,7 +58,7 @@ export function TypeIsometric({ type, screens }: { type: VenueType; screens: num
         <Label x={12} y={4} z={5} t={`상영관 ${screens == null ? '—' : +screens.toFixed(1)}개(중앙값)`} dx={14} />
         <Label x={3} y={11} z={2} t="소규모 건물·문화시설" dx={-8} />
       </>}
-      {type === '기타' && <>
+      {type === '일반영화관' && <>
         <Box x={1} y={3} z={0} w={9} d={8} h={4} color={c} />
         <Label x={10} y={3} z={4} t="단관·소규모 상영관" dx={12} />
         <Box x={14} y={2} z={0} w={0.4} d={6} h={4} color="#fafafa" />

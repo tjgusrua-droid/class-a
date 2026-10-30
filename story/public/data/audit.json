@@ -7,8 +7,8 @@
  "active": 110,
  "active_by_type": {
   "멀티플렉스": 73,
-  "독립·예술영화관": 19,
-  "기타": 18
+  "독립·예술영화전용관": 19,
+  "일반영화관": 18
  },
  "status": {
   "영업": 110,
@@ -16,9 +16,9 @@
   "취소·말소": 4
  },
  "closed_by_type": {
-  "멀티플렉스": 17,
-  "독립·예술영화관": 15,
-  "기타": 63
+  "멀티플렉스": 16,
+  "독립·예술영화전용관": 15,
+  "일반영화관": 64
  },
  "active_matched_kofic2025": 85,
  "active_localdata_only": 25,
@@ -29,7 +29,7 @@
  "dup_name": 0,
  "no_coords": 12,
  "no_coords_active": 6,
- "type_no_evidence": 71,
+ "type_no_evidence": 0,
  "type_reference_only": 14,
  "conflicts_active": 30,
  "subtype_active": {
@@ -52,18 +52,18 @@
    "reason": "분류 근거: KOFIC 대기업 운영 여부 → 상호 브랜드"
   },
   {
-   "item": "독립·예술영화관",
+   "item": "독립·예술영화전용관",
    "previous": 15,
    "reference": 14,
    "current": 19,
    "reason": "KOFIC 독립예술 전용관 + 상호 명칭 + 참고 홈페이지 분류(근거 표시)"
   },
   {
-   "item": "기타 영화관",
+   "item": "일반영화관",
    "previous": 3,
    "reference": 22,
    "current": 18,
-   "reason": "LOCALDATA에만 있는 소극장·이동상영관·자동차극장 등이 기타로 들어옴"
+   "reason": "LOCALDATA에만 있는 소극장·이동상영관·자동차극장 등이 일반영화관으로 들어옴"
   },
   {
    "item": "폐업 영화관(전 기간)",
@@ -77,7 +77,7 @@
    "previous": 0,
    "reference": 18,
    "current": 15,
-   "reason": "기존 0건 원인: 2019년 이전 KOFIC에 독립예술 필드가 없어 기타로 분류 + 2010년 이전 폐업 미포함"
+   "reason": "기존 0건 원인: 2019년 이전 KOFIC에 독립예술 필드가 없어 일반영화관으로 분류 + 2010년 이전 폐업 미포함"
   },
   {
    "item": "좌표 누락",

@@ -101,7 +101,7 @@ export default function LocationTabs({ data, open, title }: { data: DataSet; ope
   const [cultOn, setCultOn] = useState<string[]>(CULTURE_CATS)
   const [cultR, setCultR] = useState<number | 'nearest'>(500)
   const [nnMetric, setNnMetric] = useState<'same' | 'other' | 'any'>('same')
-  const [dens, setDens] = useState<VenueType | '전체'>('독립·예술영화관')
+  const [dens, setDens] = useState<VenueType | '전체'>('독립·예술영화전용관')
   const [subOn, setSubOn] = useState(true) // 3-6 배경 지하철
   const [pick, setPick] = useState<string | null>(null)
   const wrap = useRef<HTMLDivElement>(null)

@@ -6,29 +6,29 @@ import { atYear, survOf } from './SurvivalSection'
 import { saveSvg, Seg, SourceNote, Sym, More } from './ui'
 import { TypeIsometric } from './Isometric'
 
-// 한두 문장으로 된 쉬운 설명
+// 한두 문장으로 된 쉬운 설명(영화진흥위원회 구분 기준). 작은영화관(영화관 없는 군 지역의 공공 영화관)은 서울에 없어 뺀다
 const EASY: Record<VenueType, string> = {
-  멀티플렉스: '한 건물 안에 상영관(스크린)이 여러 개 있는 대형 체인 영화관입니다. CGV·롯데시네마·메가박스처럼 대기업이 직접 또는 위탁으로 운영합니다.',
-  '독립·예술영화관': '흥행 대작보다 독립영화·예술영화·고전영화를 주로 트는 작은 영화관입니다. 상영관 수가 적고, 개인·단체·공공기관이 운영하는 경우가 많습니다.',
-  기타: '위 두 유형에 들지 않는 영화관입니다. 대기업 체인이 아닌 단관·소규모 상영관, 자동차극장, 이동상영관 등이 여기에 속합니다.',
+  멀티플렉스: '대기업 4대 체인(CGV·롯데시네마·메가박스·씨네Q) 브랜드로 운영하는 복합 상영관입니다. 본사가 직접 운영하는 직영점과, 지역 사업자가 브랜드·예매망을 빌려 쓰는 위탁점이 있습니다.',
+  '독립·예술영화전용관': '상업영화 비중을 줄이고 독립영화·예술영화를 일정 비율 이상 전문적으로 상영하도록 지정·지원받는 전용 극장입니다.',
+  일반영화관: '대기업 체인에 속하지 않고 개인·회사가 독자적으로 운영하는 극장입니다(비체인). 서울극장·대한극장 같은 옛 개봉관과 단관 극장이 여기에 속합니다.',
 }
 
 // 분류 차원별 설명. 법적 지위 칸은 원문을 이 환경에서 확인하지 못해 '확인 필요'로 둔다
 const DEF: Record<VenueType, { legal: string; analytic: string; rule: string }> = {
   멀티플렉스: {
     legal: '법령상 별도 유형 아님 — 모두 「영화 및 비디오물의 진흥에 관한 법률」의 영화상영관(LOCALDATA 업종 ‘영화상영관’). 조문 원문 확인 필요',
-    analytic: '분석용 분류(연구자 정의)',
-    rule: '① KOFIC 극장 현황 ‘대기업 운영 여부’가 직영·위탁 → ② (KOFIC 미수록 시) 상호의 멀티플렉스 브랜드(CGV·롯데시네마·메가박스·씨너스·프리머스·씨네Q)',
+    analytic: '영화진흥위원회 구분 ‘멀티플렉스 체인’(5개 이상 스크린 또는 4대 체인 브랜드 운영). 이 연구에서는 체인 운영 여부로 판단',
+    rule: '① KOFIC 극장 현황 운영형태가 직영·위탁 → ② (KOFIC 미수록 시) 상호의 4대 체인 브랜드(CGV·롯데시네마·메가박스·씨네Q, 합쳐진 옛 체인 씨너스·프리머스 포함). 직영·위탁은 KOFIC 가장 최근 연도 값',
   },
-  '독립·예술영화관': {
+  '독립·예술영화전용관': {
     legal: '법령상 별도 유형 아님(영화상영관). KOFIC 극장 현황에 ‘독립예술영화 전용관 수’ 항목이 있음(2019년~)',
-    analytic: '분석용 분류(연구자 정의)',
-    rule: '① KOFIC 독립예술영화 전용관 수 > 0 → ② 상호의 독립·예술영화 명칭(시네마테크·아트시네마·독립영화전용관 등) → ③ 참고 홈페이지 분류(근거 재확인 필요로 표시)',
+    analytic: '영화진흥위원회 구분 ‘독립·예술영화전용관’',
+    rule: '① KOFIC 독립예술영화 전용관 수 > 0(체인 소속이 아닐 때) → ② 상호의 독립·예술영화 명칭(시네마테크·아트시네마·독립영화전용관 등) → ③ 참고 홈페이지 분류(근거 재확인 필요로 표시)',
   },
-  기타: {
-    legal: '영화상영관(LOCALDATA). 자동차극장·이동상영관은 LOCALDATA 공연장형태·상호로 구분',
-    analytic: '분석용 잔여 범주 — 위 두 유형의 근거가 없는 시설',
-    rule: '대기업 운영·독립예술 근거 없음. 근거 부족 시설은 ‘유형 근거 없음’으로 표시',
+  일반영화관: {
+    legal: '영화상영관(LOCALDATA). 자동차극장·이동상영관도 체인이 아니어서 여기에 넣고 세부 구분으로 표시',
+    analytic: '영화진흥위원회 구분 ‘일반영화관(비체인계)’. 스크린이 5개 이상이어도 체인이 아니면 여기(서울극장 8관·대한극장 11관·아트레온 9관 등)',
+    rule: '4대 체인이 아니고 독립·예술영화전용관 근거도 없는 곳',
   },
 }
 
@@ -79,7 +79,7 @@ export default function TypeComparison({ open, all }: { open: Venue[]; all: Venu
           return (
             <div key={t} className={`col ${sel && sel !== t ? 'dim' : ''}`} role="rowgroup" onClick={() => setSel(sel === t ? null : t)} tabIndex={0}
               onKeyDown={(e) => e.key === 'Enter' && setSel(sel === t ? null : t)}>
-              <h3 style={{ borderColor: TYPE_STYLE[t].color }}><Sym type={t} /> {t} <small>{S[t].n}곳</small></h3>
+              <h3 style={{ borderColor: TYPE_STYLE[t].color }}><Sym type={t} /> {t} <small>{S[t].n}곳{t === '멀티플렉스' ? ` · 직영 ${by(t).filter((v) => v.chainOp === '직영').length} · 위탁 ${by(t).filter((v) => v.chainOp === '위탁').length}` : ''}</small></h3>
               <p className="easy">{EASY[t]}</p>
               <TypeIsometric type={t} screens={xs.length ? median(xs.map((v) => v.screens25!)) : null} />
               <Traits t={t} open={open} all={all} />

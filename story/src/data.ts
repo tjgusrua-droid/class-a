@@ -10,6 +10,7 @@ export type Venue = {
   id: string; venue: string; name: string; ldNames: string; koficNames: string
   type: VenueType; typeBasis: string; typeNote: string; subtype: string
   status: '영업' | '폐업' | '취소·말소'
+  chainOp: string // 멀티플렉스 체인 운영 방식: 직영·위탁·확인 불가
   open: string; close: string; openD: Date | null; closeD: Date | null; bulkOpen: boolean
   gu: string; dong: string; address: string
   screens: number | null; seats: number | null; screens25: number | null; seats25: number | null; special25: number | null; art25: number | null; operator25: string
@@ -65,7 +66,7 @@ export function toVenues(fc: any): Venue[] {
     const p = f.properties, c = f.geometry?.coordinates
     return {
       id: p.id, venue: p.venue, name: p.name, ldNames: p.ld_names, koficNames: p.kofic_names,
-      type: p.type, typeBasis: p.type_basis, typeNote: p.type_note, subtype: p.subtype,
+      type: p.type, chainOp: p.chain_op ?? '', typeBasis: p.type_basis, typeNote: p.type_note, subtype: p.subtype,
       status: p.status, open: p.open, close: p.close, openD: date(p.open), closeD: date(p.close), bulkOpen: p.bulk_open,
       gu: p.gu, dong: p.dong, address: p.address,
       screens: p.screens, seats: p.seats, screens25: p.screens25, seats25: p.seats25, special25: p.special25, art25: p.art25, operator25: p.operator25,
@@ -123,7 +124,7 @@ export function topBy(vs: Venue[], key: (v: Venue) => string, n = 3) {
   return [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, n)
 }
 
-// 조사: 받침 여부에 따라 은/는, 이/가, 과/와, 을/를. jo('독립·예술영화관', '는') → '독립·예술영화관은'
+// 조사: 받침 여부에 따라 은/는, 이/가, 과/와, 을/를. jo('독립·예술영화전용관', '는') → '독립·예술영화관은'
 export function jo(w: string, p: string) {
   const c = w.charCodeAt(w.length - 1) - 0xac00
   const has = c >= 0 && c <= 11171 && c % 28 !== 0

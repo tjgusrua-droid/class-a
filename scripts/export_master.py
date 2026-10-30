@@ -201,7 +201,7 @@ def survival_sheet(ep):
                        "계산 제외": ["일괄 등록일 의심 개업일" if b else ("날짜 없음" if pd.isna(x) else "") for b, x in zip(bulk, (end - o))]})
     use = df[df["계산 제외"] == ""]
     rows = []
-    for t in ["멀티플렉스", "독립·예술영화관", "기타"]:
+    for t in ["멀티플렉스", "독립·예술영화전용관", "일반영화관"]:
         u = use[use["유형"] == t]
         rows.append({"operation_episode_id": f"[요약] {t}", "영화관": f"n={len(u)}(폐업 {int((u['관측'] == '폐업(사건)').sum())})",
                      "운영기간(년)": km_median([(r["운영기간(년)"], r["관측"] == "폐업(사건)") for _, r in u.iterrows()]),

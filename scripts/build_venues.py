@@ -243,7 +243,10 @@ def occupancy(texts, use_names):
     return "확인 불가", "", ""
 
 
-MULTI_BRAND = r"CGV|씨지브이|롯데시네마|메가박스|씨너스|프리머스|CINE\s*Q|씨네Q|MEGA"
+# 영진위 기준 멀티플렉스 체인 = 대기업 4대 체인 브랜드(CGV·롯데시네마·메가박스·씨네Q)로 운영되는 곳.
+# 씨너스(→메가박스)·프리머스(→CGV)는 4대 체인에 합쳐진 옛 체인이라 함께 본다.
+# 스크린 5개 이상이어도 체인이 아니면(서울극장·대한극장·아트레온 등) 일반영화관(비체인)으로 둔다.
+MULTI_BRAND = r"CGV|씨지브이|롯데시네마|메가박스|씨너스|프리머스|CINE\s*Q|씨네Q|MEGABOX"
 INDIE_WORDS = r"독립영화|시네마테크|아트시네마|아트하우스|예술영화|예술관"
 
 
@@ -304,24 +307,30 @@ def build_table(m, links, t):
         names_all = " ".join(ld_names + list(ky.name))
         refm = [x for x in ref if lon and abs(x["lon"] - lon) < 0.0008 and abs(x["lat"] - lat) < 0.0008
                 and (open_d is pd.NaT or abs(x["o"] - open_d.year) <= 2)]
-        typ, basis, note = "기타", "대기업 운영·독립예술 근거 없음", ""
+        typ, basis, note = "일반영화관", "4대 체인 아님·독립예술 전용관 근거 없음(비체인)", ""
         if ops & {"직영", "위탁"}:
             typ, basis = "멀티플렉스", "KOFIC 대기업 운영 여부(직영·위탁)"
             if (art > 0).any():
                 note = f"복합 성격: 독립예술영화 전용관 {int(art.max())}관 운영(KOFIC)"
         elif (art > 0).any():
-            typ, basis = "독립·예술영화관", "KOFIC 독립예술영화 전용관 수 > 0"
+            typ, basis = "독립·예술영화전용관", "KOFIC 독립예술영화 전용관 수 > 0"
         elif re.search(INDIE_WORDS, names_all):
-            typ, basis = "독립·예술영화관", "상호에 독립·예술영화 명칭"
+            typ, basis = "독립·예술영화전용관", "상호에 독립·예술영화 명칭"
         elif any(x["b"] == "indie" for x in refm):
-            typ, basis = "독립·예술영화관", "참고 홈페이지 분류(독립·예술) — 근거 재확인 필요"
-        elif re.search(MULTI_BRAND, names_all.upper()) or any(x["b"] in ("cgv", "lotte", "megabox") for x in refm):
-            typ, basis = "멀티플렉스", "상호의 멀티플렉스 브랜드"
+            typ, basis = "독립·예술영화전용관", "참고 홈페이지 분류(독립·예술) — 근거 재확인 필요"
+        elif re.search(MULTI_BRAND, names_all.upper()):
+            typ, basis = "멀티플렉스", "상호의 4대 체인 브랜드"
+        # 체인 운영 방식(영진위 운영형태): 직영 = 본사 직접 운영, 위탁 = 지역 사업자가 브랜드·전산망을 쓰고 수수료를 내는 가맹형. 가장 최근 연도 값
+        chain_op = ""
+        if typ == "멀티플렉스":
+            o = ky.sort_values("year").operator.astype(str).str.strip() if len(ky) else pd.Series(dtype=str)
+            o = o[o.isin(["직영", "위탁"])]
+            chain_op = o.iloc[-1] if len(o) else "확인 불가"
         subtype = ""
         if (g["공연장형태구분명"] == "자동차극장").any() or re.search("자동차", names_all):
-            typ, basis, subtype = "기타", "LOCALDATA 공연장형태·상호: 자동차극장", "자동차극장"
+            typ, basis, subtype = "일반영화관", "LOCALDATA 공연장형태·상호: 자동차극장", "자동차극장"
         elif re.search(r"이동상영관|이동영화", names_all):
-            typ, basis, subtype = "기타", "상호에 '이동상영관'", "이동상영관(고정 상영관 아님)"
+            typ, basis, subtype = "일반영화관", "상호에 '이동상영관'", "이동상영관(고정 상영관 아님)"
         for k in kk:
             if k in override:
                 typ, basis = override[k]["type"], override[k]["basis"] or "data/manual/theater_type.csv"
@@ -370,7 +379,7 @@ def build_table(m, links, t):
             close_date=("" if active else (close_d.date().isoformat() if close_d is not None and pd.notna(close_d) else "자료 없음")),
             gu=g.gu.iloc[0] or dgu, dong=dname, lon=round(lon, 6) if lon else None, lat=round(lat, 6) if lat else None,
             address_jibun=g["지번주소"].iloc[-1], address_road=g["도로명주소"].iloc[-1],
-            analysis_type=typ, type_basis=basis, type_note=note, facility_subtype=subtype,
+            analysis_type=typ, type_basis=basis, type_note=note, facility_subtype=subtype, chain_operation=chain_op,
             legal_status="영화상영관(LOCALDATA 인허가 업종)",
             kofic_years=",".join(map(str, sorted(set(ky.year)))),
             screens_kofic_latest=int(ky.sort_values("year").screens.iloc[-1]) if len(ky) and pd.notna(ky.sort_values("year").screens.iloc[-1]) else None,
@@ -410,10 +419,10 @@ def yearly(ep, t):
     bulk_open = ep.source_conflict.fillna("").str.contains("일괄 등록일")
     ep_type = ep.set_index("operation_episode_id").analysis_type
     lk = t.merge(pd.read_pickle(CLEAN / "_links.pkl"), left_on=["key", "year"], right_on=["kofic_key", "year"], how="left")
-    lk["type"] = lk.operation_episode_id.map(ep_type).fillna("기타")
+    lk["type"] = lk.operation_episode_id.map(ep_type).fillna("일반영화관")
     det = pd.read_csv(CLEAN / "_screen_detail.csv") if (CLEAN / "_screen_detail.csv").exists() else None
     rows = []
-    for ty in ["전체", "멀티플렉스", "독립·예술영화관", "기타"]:
+    for ty in ["전체", "멀티플렉스", "독립·예술영화전용관", "일반영화관"]:
         e = ep if ty == "전체" else ep[ep.analysis_type == ty]
         cum_o = cum_c = 0
         for y in years:
@@ -426,7 +435,7 @@ def yearly(ep, t):
             sp = None
             if det is not None and y in set(det.year):
                 d = det[det.year == y]
-                d = d if ty == "전체" else d[d.key.map(lambda x: lk[(lk.key == x) & (lk.year == y)].type.iloc[0] if len(lk[(lk.key == x) & (lk.year == y)]) else "기타") == ty]
+                d = d if ty == "전체" else d[d.key.map(lambda x: lk[(lk.key == x) & (lk.year == y)].type.iloc[0] if len(lk[(lk.key == x) & (lk.year == y)]) else "일반영화관") == ty]
                 sp = int((d.is_special.astype(str).str.upper() == "Y").sum())
             rows.append(dict(type=ty, year=y, partial=y == data_date.year, operating=int(alive.sum()), opened=o_, opened_unsure=unsure, closed=c_,
                              cum_opened=cum_o, cum_closed=cum_c,

@@ -11,7 +11,7 @@ from build_venues import DATA_DATE, VERIFIED
 
 ROOT = Path(__file__).resolve().parent.parent
 CLEAN = ROOT / "data" / "clean"
-TYPES = ["멀티플렉스", "독립·예술영화관", "기타"]
+TYPES = ["멀티플렉스", "독립·예술영화전용관", "일반영화관"]
 
 
 def main():
@@ -43,11 +43,11 @@ def main():
         ("전체 운영 영화관", prev["total"], len(ref_open), len(act),
          "기존: KOFIC 2025년 말 목록(휴관 포함). 참고: 폐업연도 없는 기록. 현재: LOCALDATA 영업/정상 운영구간. LOCALDATA에만 남은 오래된 영업 기록·이동상영관이 포함되고, 2026년 폐업분은 빠짐"),
         ("멀티플렉스", prev["multi"], rb(ref_open, multi), cnt(act, "멀티플렉스"), "분류 근거: KOFIC 대기업 운영 여부 → 상호 브랜드"),
-        ("독립·예술영화관", prev["indie"], rb(ref_open, ("indie",)), cnt(act, "독립·예술영화관"), "KOFIC 독립예술 전용관 + 상호 명칭 + 참고 홈페이지 분류(근거 표시)"),
-        ("기타 영화관", prev["other"], rb(ref_open, ("other",)), cnt(act, "기타"), "LOCALDATA에만 있는 소극장·이동상영관·자동차극장 등이 기타로 들어옴"),
+        ("독립·예술영화전용관", prev["indie"], rb(ref_open, ("indie",)), cnt(act, "독립·예술영화전용관"), "KOFIC 독립예술 전용관 + 상호 명칭 + 참고 홈페이지 분류(근거 표시)"),
+        ("일반영화관", prev["other"], rb(ref_open, ("other",)), cnt(act, "일반영화관"), "LOCALDATA에만 있는 소극장·이동상영관·자동차극장 등이 일반영화관으로 들어옴"),
         ("폐업 영화관(전 기간)", prev["closed"], len(ref_closed), len(closed), "기존은 2010~2025 KOFIC 폐관만. 현재는 LOCALDATA 전 기간 폐업·취소 운영구간"),
-        ("독립·예술영화관 폐업", prev["indie_closed"], rb(ref_closed, ("indie",)), cnt(closed, "독립·예술영화관"),
-         "기존 0건 원인: 2019년 이전 KOFIC에 독립예술 필드가 없어 기타로 분류 + 2010년 이전 폐업 미포함"),
+        ("독립·예술영화관 폐업", prev["indie_closed"], rb(ref_closed, ("indie",)), cnt(closed, "독립·예술영화전용관"),
+         "기존 0건 원인: 2019년 이전 KOFIC에 독립예술 필드가 없어 일반영화관으로 분류 + 2010년 이전 폐업 미포함"),
         ("좌표 누락", prev["noxy"], 0, int((e.lon == "").sum()), "현재: 운영구간 기준(LOCALDATA 좌표 없음)"),
         ("2000년대 운영 기록", prev["s2000"], len(ref_2000s), len(eps_2000s), "2000~2009년에 한 번이라도 운영한 기록 수"),
     ]
@@ -76,7 +76,7 @@ def main():
     md = [f"# 서울 영화관 데이터 감사 — LOCALDATA {DATA_DATE} 갱신본 기준 (확인일 {VERIFIED})", "",
           "## 2026년 운영 영화관 재검증", "",
           f"- LOCALDATA 인허가 기록 {audit['localdata_records']}건 → 장소 {audit['venues']}곳 · 운영구간 {audit['episodes']}개",
-          f"- **영업 중 운영구간 {audit['active']}개** (멀티플렉스 {audit['active_by_type']['멀티플렉스']} · 독립·예술 {audit['active_by_type']['독립·예술영화관']} · 기타 {audit['active_by_type']['기타']})",
+          f"- **영업 중 운영구간 {audit['active']}개** (멀티플렉스 {audit['active_by_type']['멀티플렉스']} · 독립·예술 {audit['active_by_type']['독립·예술영화전용관']} · 일반 {audit['active_by_type']['일반영화관']})",
           f"- 상태별 운영구간: {audit['status']}",
           f"- 폐업·취소 운영구간 유형별: {audit['closed_by_type']}",
           f"- KOFIC 2025 목록과 연결되는 영업 구간 {audit['active_matched_kofic2025']} · LOCALDATA에만 있는 영업 구간 {audit['active_localdata_only']}",
@@ -84,7 +84,7 @@ def main():
           f"- KOFIC에만 있고 별도 LOCALDATA 기록이 없는 극장 {audit['kofic_only']} (`data/clean/kofic_only.csv`)",
           f"- 같은 장소에 동시 영업 구간이 둘 이상인 장소 {audit['dup_place']} · 같은 이름의 영업 구간 {audit['dup_name']}",
           f"- 좌표 누락 운영구간 {audit['no_coords']} (영업 중 {audit['no_coords_active']})",
-          f"- 유형 근거 없음(기타로 둠) {audit['type_no_evidence']} · 참고 홈페이지 분류에만 근거 {audit['type_reference_only']}",
+          f"- 유형 근거 없음(일반영화관으로 둠) {audit['type_no_evidence']} · 참고 홈페이지 분류에만 근거 {audit['type_reference_only']}",
           f"- 영업 중이지만 다른 자료와 충돌하는 구간 {audit['conflicts_active']} — 규칙상 영업으로 집계하고 `source_conflict`에 기록",
           f"- 영업 구간 세부유형: {audit['subtype_active']}", "",
           "## 기존·참고 홈페이지와 비교", "",
