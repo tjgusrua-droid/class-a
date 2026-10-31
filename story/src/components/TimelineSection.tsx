@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type maplibregl from 'maplibre-gl'
 import { ALL_COLOR, DATA_DATE, ERAS, SOURCES, TYPE_STYLE, TYPES, YEAR_MIN, type VenueType } from '../config'
-import { closedIn, f1, openedIn, operatingIn, type DataSet, type Venue } from '../data'
+import { closedIn, f1, openedIn, operatingIn, typeAt, type DataSet, type Venue } from '../data'
 import { DataTable, MetricChart } from './charts'
 import SeoulMap, { type Point } from './SeoulMap'
 import { Finding, MapLegend, savePng, saveSvg, Seg, SourceNote, TypeSelect, More, CountUp } from './ui'
@@ -39,12 +39,15 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
   const inR = (y?: number) => y != null && y >= range[0] && y <= range[1]
   const points: Point[] = []
   // 시기 버튼: 그 시기에 새로 열었거나 문을 닫은 영화관만. 연도(현재 보기 포함): 그해 문을 열고 있던 곳 + 그해 새로 연 곳·닫은 곳
-  for (const v of vs) {
+  // 점의 유형 = 그 시점의 유형(인수·전환 반영): 문 닫은 곳은 닫을 때, 새로 연 곳은 열 때, 운영 중은 보는 해
+  const as = (v: Venue, y: number) => { const t = typeAt(v, y); return !sel || t === sel ? (t === v.type ? v : { ...v, type: t }) : null }
+  for (const v of all) {
     const closedHere = closedIn(v, v.closeD?.getFullYear() ?? -1) && inR(v.closeD!.getFullYear())
     const openedHere = !v.bulkOpen && inR(v.openD?.getFullYear())
-    if (closedHere) points.push({ v, mark: 'hollow' })
-    else if (E) { if (openedHere) points.push({ v, mark: 'new' }) }
-    else if (operatingIn(v, range[1], LAST)) points.push({ v, mark: openedHere ? 'new' : 'fill' })
+    let w: Venue | null
+    if (closedHere) { if ((w = as(v, v.closeD!.getFullYear()))) points.push({ v: w, mark: 'hollow' }) }
+    else if (E) { if (openedHere && (w = as(v, v.openD!.getFullYear()))) points.push({ v: w, mark: 'new' }) }
+    else if (operatingIn(v, range[1], LAST) && (w = as(v, range[1]))) points.push({ v: w, mark: openedHere ? 'new' : 'fill' })
   }
   const nowView = () => { setEra(null); setYear(LAST.getFullYear()) }
   const yr = row(year)
@@ -86,8 +89,8 @@ export default function TimelineSection({ data, all }: { data: DataSet; all: Ven
               <div className="bignet" data-neg={o - c < 0}><CountUp value={o - c} sign /><small>곳</small></div>
               <p>새로 연 곳 <b>{o}</b> · 문 닫은 곳 <b>{c}</b></p>
               <p className="sub">영화관 {s0 ?? '—'}곳 → {s1 ?? '—'}곳</p>
-              {!sel && <table className="eratypes"><tbody>{TYPES.map((t) => { const to = typeSum('opened', e, t), tc = typeSum('closed', e, t)
-                return <tr key={t}><td><i style={{ background: TYPE_STYLE[t].color }} />{TYPE_STYLE[t].short}</td><td>+{to}</td><td>−{tc}</td><td data-neg={to - tc < 0}><CountUp value={to - tc} sign /></td></tr> })}</tbody></table>}
+              {!sel && <table className="eratypes"><tbody>{TYPES.map((t) => { const to = typeSum('opened', e, t), tc = typeSum('closed', e, t), cv = typeSum('conv_in', e, t) - typeSum('conv_out', e, t), net = to - tc + cv
+                return <tr key={t}><td title={t}><i style={{ background: TYPE_STYLE[t].color }} />{TYPE_STYLE[t].short.replace('·예술', '')}</td><td className="det">+{to} −{tc}{cv ? <em title="인수·전환으로 이 유형이 된 곳 − 다른 유형이 된 곳"> {cv > 0 ? '⇢' : '⇠'}{Math.abs(cv)}</em> : null}</td><td data-neg={net < 0}><CountUp value={net} sign /></td></tr> })}</tbody></table>}
             </button> })}
         </div>
         <div className="row ui metricpick" role="group" aria-label="지표 선택">

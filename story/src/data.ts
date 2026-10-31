@@ -11,6 +11,8 @@ export type Venue = {
   type: VenueType; typeBasis: string; typeNote: string; subtype: string
   status: '영업' | '폐업' | '취소·말소'
   chainOp: string // 멀티플렉스 체인 운영 방식: 직영·위탁·확인 불가
+  types: [number, number, VenueType, string][] // 연도별 유형 구간 [시작, 끝, 유형, 브랜드] — 인수·전환 반영
+  typeHistory: string
   open: string; close: string; openD: Date | null; closeD: Date | null; bulkOpen: boolean
   gu: string; dong: string; address: string
   screens: number | null; seats: number | null; screens25: number | null; seats25: number | null; special25: number | null; art25: number | null; operator25: string
@@ -66,7 +68,7 @@ export function toVenues(fc: any): Venue[] {
     const p = f.properties, c = f.geometry?.coordinates
     return {
       id: p.id, venue: p.venue, name: p.name, ldNames: p.ld_names, koficNames: p.kofic_names,
-      type: p.type, chainOp: p.chain_op ?? '', typeBasis: p.type_basis, typeNote: p.type_note, subtype: p.subtype,
+      type: p.type, chainOp: p.chain_op ?? '', types: p.types ?? [], typeHistory: p.type_history ?? '', typeBasis: p.type_basis, typeNote: p.type_note, subtype: p.subtype,
       status: p.status, open: p.open, close: p.close, openD: date(p.open), closeD: date(p.close), bulkOpen: p.bulk_open,
       gu: p.gu, dong: p.dong, address: p.address,
       screens: p.screens, seats: p.seats, screens25: p.screens25, seats25: p.seats25, special25: p.special25, art25: p.art25, operator25: p.operator25,
@@ -149,3 +151,11 @@ export function kaplanMeier(items: { t: number; event: boolean }[]) {
 // 문 연 해: 실제 개관 연도가 확인된 곳은 그 해, 아니면 LOCALDATA 인허가일(일괄 등록일 의심이면 알 수 없음)
 export const openYear = (v: Venue): number | null => v.founded ?? (v.openD && !v.bulkOpen ? v.openD.getFullYear() : null)
 export const eraOf = (y: number) => (y < 1960 ? '1960년 전' : y < 2000 ? `${Math.floor(y / 10) * 10}년대` : `${Math.floor(y / 10) * 10}년대`)
+
+// 그해의 유형(인수·전환 반영). 구간 밖이면 가장 가까운 구간, 없으면 대표 유형
+export function typeAt(v: Venue, y: number): VenueType {
+  const t = v.types
+  if (!t.length) return v.type
+  const hit = t.find(([a, b]) => y >= a && y <= b)
+  return (hit ?? (y < t[0][0] ? t[0] : t[t.length - 1]))[2]
+}

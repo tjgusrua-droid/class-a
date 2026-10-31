@@ -409,7 +409,8 @@ def kofic_only(links, t):
     return pd.DataFrame(rows)
 
 
-def yearly(ep, t):
+def yearly(ep, t, type_year=None):
+    """ty(운영구간×연도 유형, build_type_history)가 있으면 유형별 집계를 그해 유형으로 한다(인수·전환 반영)."""
     data_date = pd.Timestamp(DATA_DATE)
     ep = ep.copy()
     ep["o"] = pd.to_datetime(ep.open_date, errors="coerce")
@@ -418,14 +419,17 @@ def yearly(ep, t):
     unknown_close = ep.operation_status.ne("영업") & ep.c.isna()
     bulk_open = ep.source_conflict.fillna("").str.contains("일괄 등록일")
     ep_type = ep.set_index("operation_episode_id").analysis_type
+    tyy = {} if type_year is None else {(a, int(b)): c for a, b, c in zip(type_year.operation_episode_id, type_year.year, type_year.type)}
+    type_at = lambda eid, y: tyy.get((eid, y), ep_type.get(eid, "일반영화관"))
     lk = t.merge(pd.read_pickle(CLEAN / "_links.pkl"), left_on=["key", "year"], right_on=["kofic_key", "year"], how="left")
-    lk["type"] = lk.operation_episode_id.map(ep_type).fillna("일반영화관")
+    lk["type"] = [type_at(e, y) if isinstance(e, str) else "일반영화관" for e, y in zip(lk.operation_episode_id, lk.year)]
+    ids = ep.operation_episode_id.tolist()
     det = pd.read_csv(CLEAN / "_screen_detail.csv") if (CLEAN / "_screen_detail.csv").exists() else None
     rows = []
     for ty in ["전체", "멀티플렉스", "독립·예술영화전용관", "일반영화관"]:
-        e = ep if ty == "전체" else ep[ep.analysis_type == ty]
         cum_o = cum_c = 0
         for y in years:
+            e = ep if ty == "전체" else ep[[type_at(i, y) == ty for i in ids]]
             y0, y1 = pd.Timestamp(f"{y}-01-01"), min(pd.Timestamp(f"{y}-12-31"), data_date)
             alive = (e.o <= y1) & (e.c.isna() & ~unknown_close[e.index] | (e.c >= y0))
             o_ = int(((e.o.dt.year == y) & ~bulk_open[e.index]).sum()); c_ = int((e.c.dt.year == y).sum())
@@ -437,11 +441,38 @@ def yearly(ep, t):
                 d = det[det.year == y]
                 d = d if ty == "전체" else d[d.key.map(lambda x: lk[(lk.key == x) & (lk.year == y)].type.iloc[0] if len(lk[(lk.key == x) & (lk.year == y)]) else "일반영화관") == ty]
                 sp = int((d.is_special.astype(str).str.upper() == "Y").sum())
+            # 인수·전환: 작년과 올해 유형이 다른 운영구간(개업·폐업 없이 유형만 바뀜)
+            cin = cout = 0
+            if ty != "전체" and tyy:
+                for i, oy in zip(ids, ep.o.dt.year):
+                    if oy == oy and oy < y and (i, y) in tyy and (i, y - 1) in tyy and tyy[(i, y)] != tyy[(i, y - 1)]:
+                        cin += tyy[(i, y)] == ty; cout += tyy[(i, y - 1)] == ty
             rows.append(dict(type=ty, year=y, partial=y == data_date.year, operating=int(alive.sum()), opened=o_, opened_unsure=unsure, closed=c_,
+                             conv_in=cin, conv_out=cout,
                              cum_opened=cum_o, cum_closed=cum_c,
                              screens=int(k.screens.sum()) if len(k) else None, seats=int(k.seats.sum()) if len(k) else None,
                              special=sp, kofic_n=len(k) if len(k) else None))
     return pd.DataFrame(rows)
+
+
+def apply_corrections(ep):
+    """data/manual/episode_corrections.csv: 다른 자료로 확인한 상태·폐업일·좌표·상호 보정. 원래 값은 verification_note 에 남긴다."""
+    f = ROOT / "data" / "manual" / "episode_corrections.csv"
+    if not f.exists():
+        return ep
+    for c in pd.read_csv(f, dtype=str).fillna("").itertuples():
+        i = ep.index[ep.standardized_name == c.standardized_name]
+        if not len(i):
+            print("보정 대상 없음:", c.standardized_name); continue
+        for j in i:
+            old = f"{ep.at[j, 'lon']} {ep.at[j, 'lat']}" if c.field == "lonlat" else ep.at[j, c.field]
+            if c.field == "lonlat":
+                ep.at[j, "lon"], ep.at[j, "lat"] = (float(v) for v in c.value.split())
+            else:
+                ep.at[j, c.field] = c.value
+            note = f"[보정] {c.field}: '{old}' → '{c.value}' ({c.source})"
+            ep.at[j, "verification_note"] = (str(ep.at[j, "verification_note"]) + " " if str(ep.at[j, "verification_note"]) not in ("", "nan") else "") + note
+    return ep
 
 
 def main():
@@ -456,6 +487,7 @@ def main():
     bulk = m.groupby(["gu", "인허가일자"]).venue_id.nunique()
     BULK_DATES.update({k: v for k, v in bulk[bulk >= 4].items()})
     ep = build_table(m, links, t)
+    ep = apply_corrections(ep)
     ep.to_csv(CLEAN / "venues_episodes.csv", index=False, encoding="utf-8-sig")
     m.drop(columns=["keys"]).to_csv(CLEAN / "license_records.csv", index=False, encoding="utf-8-sig")
     links.to_csv(CLEAN / "kofic_episode_links.csv", index=False, encoding="utf-8-sig")

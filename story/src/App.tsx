@@ -8,12 +8,13 @@ import Distribution from './components/Distribution'
 import LocationTabs from './components/LocationTabs'
 import LocationProfile from './components/LocationProfile'
 import TimelineSection from './components/TimelineSection'
+import EventTimeline from './components/EventTimeline'
 import SurvivalDurationPlot from './components/SurvivalDurationPlot'
 import SurvivalSection from './components/SurvivalSection'
 import { DataStatus, StorySection } from './components/ui'
 import { startPaging } from './paging'
 
-const SCENES = [['intro', '시작'], ['audit', '자료 검증'], ['types', '1 유형'], ['where', '2 분포'], ['location', '3 입지'], ['profile', '3 정리'], ['change', '4 변화'], ['closed', '5 생존'], ['advice', '5 제언'], ['sources', '출처']]
+const SCENES = [['intro', '시작'], ['audit', '자료 검증'], ['types', '1 유형'], ['where', '2 분포'], ['location', '3 입지'], ['profile', '3 정리'], ['change', '4 변화'], ['events', '4 연표'], ['closed', '5 생존'], ['advice', '5 제언'], ['sources', '출처']]
 
 export default function App() {
   const [data, setData] = useState<DataSet | null>(null)
@@ -87,6 +88,12 @@ export default function App() {
         <h2><span>4</span>언제, 어디에서 생기고 얼마나 유지되었는가?</h2>
         <p className="lead">연도를 움직이거나 시기를 누르면 지도와 그래프가 함께 바뀝니다. ‘현재 보기’ = 지금 영업 중인 곳 전체.</p>
         <TimelineSection data={data} all={all} />
+      </StorySection>
+
+      <StorySection id="events">
+        <h2><span>4</span>개업·폐업·인수합병 연표</h2>
+        <p className="lead">해마다 새로 연 곳, 문 닫은 곳, 그리고 체인에 인수되거나 브랜드가 바뀐 곳을 한 줄에 놓았습니다. 점에 마우스를 올리면 이름이 보입니다.</p>
+        <EventTimeline data={data} />
       </StorySection>
 
       <StorySection id="closed">

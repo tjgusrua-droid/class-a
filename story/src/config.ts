@@ -49,6 +49,7 @@ export const FILES = {
   river: { file: 'han_river.geojson', fields: [] },
   venues: { file: 'venues.geojson', fields: ['id', 'type', 'status', 'open'] },
   yearly: { file: 'yearly.json', fields: [] },
+  events: { file: 'events.json', fields: [] },
   audit: { file: 'audit.json', fields: [] },
   culture: { file: 'cultural_facilities.geojson', fields: ['name', 'category'] },
   stations: { file: 'subway_stations.geojson', fields: ['name', 'transfer', 'n_lines'] },

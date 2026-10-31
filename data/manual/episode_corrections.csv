@@ -1,0 +1,9 @@
+standardized_name,field,value,source,note
+스카라극장,close_date,2005-12-31,참고 홈페이지 '극장 이야기'(1935 개관 · 2005 폐관 · 2006 철거),LOCALDATA는 영업으로 남아 있으나 2006년 철거. 폐업 연도만 확인되어 12-31로 둠
+스카라극장,operation_status,폐업,참고 홈페이지 '극장 이야기',LOCALDATA 영업 상태가 갱신되지 않음
+CGV명동역씨네라이브러리,close_date,2025-10-29,참고 홈페이지 '극장 이야기'(2025.10.29 영업 종료) · KOFIC 2025 목록에 없음,LOCALDATA는 영업으로 남아 있음
+CGV명동역씨네라이브러리,operation_status,폐업,같은 근거,
+메가박스 상암월드컵경기장,lonlat,126.898247 37.569338,Overture Maps 장소(메가박스 상암월드컵경기장 · 월드컵로 240),LOCALDATA 좌표 없음
+메가박스 구의이스트폴,lonlat,127.086121 37.535627,Overture Maps 건물(옛 동서울우편집중국 부지 = 구의 이스트폴 · 아차산로 402),LOCALDATA 좌표 없음. 건물 중심 좌표
+메가박스 강남대로(씨티),standardized_name,시티극장(구 메가박스 강남대로),KOFIC 2023~2025 상호 '시티극장'(운영형태 비체인),2024년 메가박스가 빠지고 시티극장으로 운영
+프리머스시네마 노원,standardized_name,CGV하계(구 프리머스시네마 노원),KOFIC 2013~2024 상호 'CGV하계'(같은 인허가 구간),KOFIC 2025 목록에는 없음 — 영업 여부 확인 필요

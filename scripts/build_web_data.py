@@ -63,6 +63,17 @@ def main():
     art_ep = l25.assign(n=l25.kofic_key.map(pd.to_numeric(t25.art_screens, errors="coerce")).fillna(0)).groupby("operation_episode_id").n.sum()
     op_ep = l25.assign(o=l25.kofic_key.map(t25.operator.astype(str).str.strip())).groupby("operation_episode_id").o.first()
     founded = founded_years(e)
+    ty = pd.read_csv(CLEAN / "episode_type_year.csv")
+    # 연도별 유형을 구간으로 묶어 [시작 연도, 끝 연도, 유형, 브랜드]
+    spans = {}
+    for eid, g in ty.sort_values("year").groupby("operation_episode_id"):
+        out = []
+        for r in g.fillna("").itertuples():
+            if out and out[-1][2] == r.type and out[-1][3] == r.brand and out[-1][1] == r.year - 1:
+                out[-1][1] = r.year
+            else:
+                out.append([int(r.year), int(r.year), r.type, r.brand])
+        spans[eid] = out
     print("실제 개관 연도 보정", len(founded), "곳:", ", ".join(f"{v[1]} {v[0]}" for v in founded.values()))
     feats = []
     for _, r in e.iterrows():
@@ -72,7 +83,7 @@ def main():
                       "properties": {
                           "id": r.operation_episode_id, "venue": r.venue_id, "name": r.standardized_name,
                           "ld_names": r.source_name_localdata, "kofic_names": r.source_name_kofic,
-                          "type": r.analysis_type, "chain_op": r.chain_operation, "type_basis": r.type_basis, "type_note": r.type_note, "subtype": r.facility_subtype,
+                          "type": r.analysis_type, "types": spans.get(r.operation_episode_id, []), "type_history": r.type_history, "chain_op": r.chain_operation, "type_basis": r.type_basis, "type_note": r.type_note, "subtype": r.facility_subtype,
                           "status": r.operation_status, "open": r.open_date, "close": r.close_date,
                           "bulk_open": "일괄 등록일" in r.source_conflict,
                           "gu": r.gu, "dong": r.dong, "address": r.address_road or r.address_jibun,
@@ -86,6 +97,8 @@ def main():
                           "conflict": r.source_conflict, "source": r.data_source_status,
                       }})
     (OUT / "venues.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": feats}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    ev = pd.read_csv(CLEAN / "cinema_events_timeline.csv", dtype=str).fillna("")
+    (OUT / "events.json").write_text(json.dumps(ev.to_dict("records"), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     y = pd.read_csv(CLEAN / "yearly_series.csv")
     y = y.astype(object).where(y.notna(), None)
     (OUT / "yearly.json").write_text(json.dumps(y.to_dict("records"), ensure_ascii=False), encoding="utf-8")

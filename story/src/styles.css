@@ -756,3 +756,30 @@ input[type="checkbox"] { accent-color: var(--ink); }
 }
 .keyfig b > .cu { font-size: inherit; }
 .keyfig b > .cu[data-dir=''] { color: inherit; }
+
+/* ---- 4 연표 ---- */
+.evt { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.evt-chart svg { width: 100%; height: auto; display: block; }
+.evt-dot { cursor: pointer; transition: r .15s; }
+.evt-dot:hover { r: 5; }
+.evt-key { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--fs-small); color: #444; margin-top: 4px; }
+.evt-key i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: 0; }
+.evt-key i.ring { background: #ccc; border: 1.5px solid #111; }
+.evt-key i.hollow { background: #fff; border: 1.5px solid #888; }
+.evt-side .finding { margin-top: 0; }
+.evt-list { list-style: none; margin: 8px 0; padding: 0; max-height: 330px; overflow: auto; border-top: 1px solid var(--line); }
+.evt-list li { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 8px; padding: 5px 2px; border-bottom: 1px solid var(--line); font-size: 13px; align-items: baseline; }
+.evt-list li b { font-variant-numeric: tabular-nums; color: #555; }
+.evt-list .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evt-list .ev { font-size: 12px; color: #555; white-space: nowrap; }
+.evt-list em { font-style: normal; font-weight: 700; }
+.eratypes td.cv { color: #6b5bd2; font-weight: 600; font-size: 11px; }
+@keyframes evt-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  #events.in .evt-dot { transform-box: fill-box; animation: evt-in .4s both; }
+}
+@media (max-width: 1000px) { .evt { grid-template-columns: 1fr; } }
+.eratypes td.det { white-space: nowrap; color: #555; font-size: 10.5px; }
+.eratypes td.det em { font-style: normal; color: #6b5bd2; font-weight: 700; }
+.eracard[aria-pressed='true'] .eratypes td.det, .eracard[aria-pressed='true'] .eratypes td.det em { color: #d6d8dd; }
+.eratypes td:first-child { overflow: hidden; text-overflow: ellipsis; max-width: 60px; }
